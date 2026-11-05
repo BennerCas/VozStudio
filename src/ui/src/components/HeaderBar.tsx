@@ -7,6 +7,7 @@ export interface HeaderBarProps {
   isUnloading: boolean;
   statusBanner: string | null;
   onUnloadEngines: () => void;
+  onReturnHome?: () => void;
 }
 
 export function HeaderBar({
@@ -15,6 +16,7 @@ export function HeaderBar({
   isUnloading,
   statusBanner,
   onUnloadEngines,
+  onReturnHome,
 }: HeaderBarProps) {
   const hw = status.hardware;
   const ramPct =
@@ -27,6 +29,17 @@ export function HeaderBar({
     >
       {/* Identidad del estudio + H1 unico */}
       <div className="flex min-w-0 items-center gap-[0.75cqw]">
+        {onReturnHome ? (
+          <button
+            type="button"
+            onClick={onReturnHome}
+            className="flex h-[4.2cqh] min-h-[26px] shrink-0 items-center gap-[0.35cqw] rounded-[0.65cqh] border border-sky-400/20 bg-slate-950/55 px-[0.55cqw] font-display tx-xs font-semibold text-slate-300 transition hover:border-cyan-400/45 hover:text-cyan-100"
+            title="Volver al espacio de trabajo"
+          >
+            <AnimatedIcon name="chevron-left" variant="oscillate" trigger="hover" />
+            <span>Inicio</span>
+          </button>
+        ) : null}
         <div className="flex h-[4.2cqh] w-[4.2cqh] min-h-[26px] min-w-[26px] shrink-0 items-center justify-center rounded-[0.65cqh] border border-cyan-400/40 bg-cyan-400/12 text-cyan-300 shadow-[0_0_16px_rgba(12,211,245,0.2)]">
           <AnimatedIcon name="audio-lines" variant="oscillate" trigger="hover" className="!w-[2.2cqh] !h-[2.2cqh]" />
         </div>

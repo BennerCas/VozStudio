@@ -186,6 +186,7 @@ test.describe('Certificacion E2E Full-Stack en Vivo (FastAPI + Bundle Dist en 12
     // 1. Carga en 1920x1080 sobre el servidor FastAPI real (127.0.0.1:8880)
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.goto(`${LIVE_BACKEND_URL}/`, { waitUntil: 'networkidle' });
+    await page.getByTestId('open-live-studio').click();
 
     // Verificar favicon explicito sin 404
     const favRes = await page.request.get(`${LIVE_BACKEND_URL}/favicon.ico`);

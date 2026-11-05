@@ -1,7 +1,8 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { App } from './App';
+import { WorkspaceHub } from './WorkspaceHub';
 import './styles/studio.css';
+import './styles/workspace-hub.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -10,6 +11,6 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <App />
+    <WorkspaceHub />
   </StrictMode>,
 );

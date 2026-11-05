@@ -87,12 +87,27 @@ async function assertZeroEmojisInVisibleDom(page: Page): Promise<void> {
   ).toEqual([]);
 }
 
+async function openNeuralStudio(page: Page, orientationGuard: boolean = false): Promise<void> {
+  const sidebarLauncher = page.getByTestId('open-live-studio');
+  if (await sidebarLauncher.isVisible()) {
+    await sidebarLauncher.click();
+  } else {
+    await page.getByTestId('open-live-studio-home').click();
+  }
+  if (orientationGuard) {
+    await expect(page.locator('h1')).toHaveText('VOZSTUDIO OMNI-ES');
+    return;
+  }
+  await expect(page.getByTestId('studio-stage-16-9')).toBeVisible();
+}
+
 for (const viewport of DESKTOP_RESOLUTIONS) {
   test(`Cumplimiento estricto 16:9 Cero Scroll, Cero Emojis y Flujos en ${viewport.label}`, async ({
     page,
   }) => {
     await page.setViewportSize({ width: viewport.width, height: viewport.height });
     await page.goto('/');
+    await openNeuralStudio(page);
 
     // 1. Verificar carga del escenario 16:9, H1 unico y firma obligatoria DISENO.md
     await expect(page.getByTestId('studio-stage-16-9')).toBeVisible();
@@ -260,6 +275,7 @@ test('Transicion a DIRECTML / LOCAL ONLINE e integracion API sin scroll (1920x10
 
   await page.setViewportSize({ width: 1920, height: 1080 });
   await page.goto('/');
+  await openNeuralStudio(page);
 
   await expect(page.getByTestId('connection-status-badge')).toContainText(
     'DIRECTML / LOCAL ONLINE',
@@ -277,6 +293,7 @@ test('Guardia de orientacion vertical / movil (<900px) sin scroll y con firma of
 }) => {
   await page.setViewportSize({ width: 768, height: 1024 });
   await page.goto('/');
+  await openNeuralStudio(page, true);
 
   await expect(page.locator('h1')).toHaveText('VOZSTUDIO OMNI-ES');
   await expect(page.locator('footer')).toContainText(

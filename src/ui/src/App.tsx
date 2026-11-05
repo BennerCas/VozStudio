@@ -24,19 +24,40 @@ import {
   updateBlockWithAutoSplit,
 } from './utils/textSegmenter';
 
-export function App() {
+export type StudioMode = 'direct' | 'clone' | 'dna';
+
+export interface StudioWorkspaceProps {
+  initialMode?: StudioMode;
+  initialText?: string;
+  initialEngineId?: string;
+  initialVoiceId?: string;
+  onReturnHome?: () => void;
+}
+
+/**
+ * La consola mantiene toda la operacion conectada al backend local. La
+ * navegacion visual de Figma la abre con un modo, motor, voz o guion concreto
+ * sin duplicar ni simular los flujos de sintesis.
+ */
+export function StudioWorkspace({
+  initialMode = 'direct',
+  initialText,
+  initialEngineId,
+  initialVoiceId,
+  onReturnHome,
+}: StudioWorkspaceProps) {
   const viewport = useViewportGuard();
   const stageRef = useRef<HTMLDivElement | null>(null);
 
   const [isOnline, setIsOnline] = useState<boolean>(false);
   const [systemStatus, setSystemStatus] = useState<SystemStatus>(FALLBACK_SYSTEM_STATUS);
   const [engines, setEngines] = useState<EngineInfo[]>(FALLBACK_ENGINES);
-  const [selectedEngineId, setSelectedEngineId] = useState<string>('kokoro');
+  const [selectedEngineId, setSelectedEngineId] = useState<string>(initialEngineId ?? 'kokoro');
   const [voicesByEngine, setVoicesByEngine] =
     useState<Record<string, VoiceInfo[]>>(FALLBACK_VOICES_BY_ENGINE);
-  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('ef_dora');
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>(initialVoiceId ?? 'ef_dora');
 
-  const [centerMode, setCenterMode] = useState<'direct' | 'clone' | 'dna'>('direct');
+  const [centerMode, setCenterMode] = useState<StudioMode>(initialMode);
 
   // Estado de composicion directa paginada por bloques sin scroll
   const [blocks, setBlocks] = useState<string[]>(() =>
@@ -69,6 +90,28 @@ export function App() {
   // Telemetria / Mensajes de estado discretos en Header
   const [isUnloading, setIsUnloading] = useState<boolean>(false);
   const [statusBanner, setStatusBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    setCenterMode(initialMode);
+  }, [initialMode]);
+
+  useEffect(() => {
+    if (!initialText?.trim()) return;
+    setBlocks(segmentSpanishText(initialText));
+    setActiveBlockIndex(0);
+  }, [initialText]);
+
+  useEffect(() => {
+    if (initialEngineId?.trim()) {
+      setSelectedEngineId(initialEngineId);
+    }
+  }, [initialEngineId]);
+
+  useEffect(() => {
+    if (initialVoiceId?.trim()) {
+      setSelectedVoiceId(initialVoiceId);
+    }
+  }, [initialVoiceId]);
 
   const currentVoices = useMemo(
     () => voicesByEngine[selectedEngineId] ?? FALLBACK_VOICES_BY_ENGINE[selectedEngineId] ?? [],
@@ -440,6 +483,7 @@ export function App() {
           isUnloading={isUnloading}
           statusBanner={statusBanner}
           onUnloadEngines={handleUnloadEngines}
+          onReturnHome={onReturnHome}
         />
 
         {/* Fila 2 (Body 3 columnas: 23% | 52% | 25%) */}
