@@ -30,6 +30,7 @@ from src.core.audio_dsp import (
     save_generation_to_biblioteca,
 )
 from src.core.config import APP_NAME, APP_VERSION, BIBLIOTECA_DIR, CPU_THREADS, DEFAULT_USER
+from src.core.custom_voice_store import CustomVoiceStore
 from src.core.hardware import get_hardware_telemetry
 from src.core.memory_manager import MemoryManager, memory_manager as default_memory_manager
 from src.core.text_normalizer import prepare_spanish_chunks
@@ -49,6 +50,7 @@ class EngineOrchestrator:
     ) -> None:
         self._memory_manager = mem_manager if mem_manager is not None else default_memory_manager
         self._biblioteca_dir = biblioteca_dir
+        self._custom_voice_store = CustomVoiceStore(biblioteca_dir=self._biblioteca_dir)
         self._engines: dict[str, BaseTTSEngine] = {}
         self._register_default_engines(models_link_dir=models_link_dir)
 
@@ -109,14 +111,43 @@ class EngineOrchestrator:
         return catalog
 
     def list_voices(self, engine_id: str | None = None) -> list[VoiceDescriptor]:
-        """Lista los perfiles de voz de un motor especifico o de todos los motores."""
+        """Lista los perfiles de voz nativos y personalizados de un motor especifico o de todos."""
+        built_in: list[VoiceDescriptor] = []
         if engine_id is not None and engine_id.strip():
-            return self.get_engine(engine_id).get_voices()
+            built_in = list(self.get_engine(engine_id).get_voices())
+        else:
+            for engine in self._engines.values():
+                built_in.extend(engine.get_voices())
 
-        all_voices: list[VoiceDescriptor] = []
-        for engine in self._engines.values():
-            all_voices.extend(engine.get_voices())
-        return all_voices
+        custom_voices = self._custom_voice_store.list_custom_voices(engine_id)
+        return built_in + custom_voices
+
+    def register_custom_voice(
+        self,
+        engine_id: str,
+        name: str,
+        samples: np.ndarray,
+        sample_rate: int,
+        reference_text: str | None = None,
+        region: str = "ES",
+        gender: str = "MIX",
+        description: str = "",
+    ) -> VoiceDescriptor:
+        """Registra un nuevo timbre personalizado en el motor indicado."""
+        return self._custom_voice_store.add_custom_voice(
+            engine_id=engine_id,
+            name=name,
+            samples=samples,
+            sample_rate=sample_rate,
+            reference_text=reference_text,
+            region=region,
+            gender=gender,
+            description=description,
+        )
+
+    def delete_custom_voice(self, voice_id: str) -> bool:
+        """Elimina un timbre personalizado registrado."""
+        return self._custom_voice_store.delete_custom_voice(voice_id)
 
     def unload_active_engine(self) -> bool:
         """Descarga el motor actualmente residente en VRAM/RAM."""
@@ -144,6 +175,16 @@ class EngineOrchestrator:
 
         voices = engine.get_voices()
         resolved_voice_id = (voice_id or "").strip() or (voices[0].id if voices else "default")
+
+        # Inyectar semilla acustica si la voz seleccionada corresponde a un timbre personalizado
+        custom_rec = self._custom_voice_store.get_custom_voice_record(resolved_voice_id)
+        if custom_rec:
+            if not syn_params.reference_wav_path and custom_rec.get("reference_wav_path"):
+                syn_params.reference_wav_path = custom_rec["reference_wav_path"]
+            if not syn_params.reference_text and custom_rec.get("reference_text"):
+                syn_params.reference_text = custom_rec["reference_text"]
+            if not any(v.id == resolved_voice_id for v in voices):
+                resolved_voice_id = voices[0].id if voices else "default"
 
         chunks = prepare_spanish_chunks(text, max_chars=max(40, int(syn_params.max_chunk_chars)))
         if not chunks:

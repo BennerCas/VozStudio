@@ -196,4 +196,45 @@ export const studioApi = {
       30000,
     );
   },
+
+  async saveCustomVoice(payload: {
+    engineId: string;
+    name: string;
+    gender?: string;
+    region?: string;
+    description?: string;
+    referenceText?: string;
+    referenceAudio?: File | Blob;
+    referenceAudioUrl?: string;
+  }): Promise<VoiceInfo> {
+    const formData = new FormData();
+    formData.append('engine_id', payload.engineId);
+    formData.append('name', payload.name);
+    if (payload.gender) formData.append('gender', payload.gender);
+    if (payload.region) formData.append('region', payload.region);
+    if (payload.description) formData.append('description', payload.description);
+    if (payload.referenceText) formData.append('reference_text', payload.referenceText);
+    if (payload.referenceAudio) {
+      formData.append('reference_audio', payload.referenceAudio, 'ref.wav');
+    }
+    if (payload.referenceAudioUrl) {
+      formData.append('reference_audio_url', payload.referenceAudioUrl);
+    }
+    return fetchJson<VoiceInfo>(
+      '/api/v1/voices/custom',
+      {
+        method: 'POST',
+        body: formData,
+      },
+      30000,
+    );
+  },
+
+  async deleteCustomVoice(voiceId: string): Promise<{ deleted: boolean; voice_id: string }> {
+    return fetchJson<{ deleted: boolean; voice_id: string }>(
+      `/api/v1/voices/custom/${encodeURIComponent(voiceId)}`,
+      { method: 'DELETE' },
+      8000,
+    );
+  },
 };

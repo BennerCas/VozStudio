@@ -99,6 +99,7 @@ class VoiceInfoResponse(BaseModel):
     description: str
     supports_cloning: bool = False
     supports_emotion: bool = False
+    is_custom: bool = False
 
 
 class LibraryItemResponse(BaseModel):

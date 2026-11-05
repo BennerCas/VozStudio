@@ -128,6 +128,7 @@ def create_api_router(
                     description=v.description,
                     supports_cloning=v.supports_cloning,
                     supports_emotion=v.supports_emotion,
+                    is_custom=v.id.startswith("custom_"),
                 )
                 for v in descriptors
             ]
@@ -373,5 +374,123 @@ def create_api_router(
         if not candidate.is_file() or candidate.parent != clean_cache_dir.resolve():
             raise HTTPException(status_code=404, detail="Audio procesado no encontrado.")
         return FileResponse(path=str(candidate), media_type="audio/wav", filename=filename)
+
+    @router.post("/voices/custom", response_model=VoiceInfoResponse)
+    async def create_custom_voice(
+        engine_id: str = Form(..., min_length=1, max_length=32),
+        name: str = Form(..., min_length=1, max_length=60),
+        gender: str = Form(default="MIX", max_length=20),
+        region: str = Form(default="ES", max_length=20),
+        description: str = Form(default="Timbre clonado personalizado", max_length=200),
+        reference_text: str | None = Form(default=None, max_length=1200),
+        reference_audio: UploadFile | None = File(default=None),
+        reference_audio_url: str | None = Form(default=None, max_length=256),
+    ) -> VoiceInfoResponse:
+        samples = None
+        sr = 24000
+
+        if reference_audio is not None and reference_audio.filename:
+            content = await reference_audio.read(MAX_REFERENCE_WAV_BYTES + 1)
+            if len(content) > MAX_REFERENCE_WAV_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail="El archivo de audio excede el limite de 15 MB.",
+                )
+            if len(content) < 64:
+                raise HTTPException(
+                    status_code=400,
+                    detail="El archivo de audio de referencia esta vacio o truncado.",
+                )
+            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_f:
+                tmp_f.write(content)
+                tmp_f_path = Path(tmp_f.name)
+            try:
+                samples, sr = sf.read(str(tmp_f_path), dtype="float32")
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Formato de audio no valido: {exc}",
+                ) from exc
+            finally:
+                try:
+                    tmp_f_path.unlink()
+                except OSError:
+                    pass
+        elif reference_audio_url:
+            clean_cache_dir = target_bib / ".dsp_cache"
+            match = re.search(r"(clean_[0-9]{8}_[0-9]{6}_[a-f0-9]{6}\.wav)", reference_audio_url)
+            if not match:
+                raise HTTPException(
+                    status_code=400,
+                    detail="URL de audio procesado no valida o formato no reconocido.",
+                )
+            candidate = (clean_cache_dir / match.group(1)).resolve()
+            if not candidate.is_file() or candidate.parent != clean_cache_dir.resolve():
+                raise HTTPException(
+                    status_code=404,
+                    detail="Audio de referencia cacheado no encontrado.",
+                )
+            try:
+                samples, sr = sf.read(str(candidate), dtype="float32")
+            except Exception as exc:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Error al leer audio cacheado: {exc}",
+                ) from exc
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Debe proporcionar un archivo de audio o referencia valida.",
+            )
+
+        if samples is None or len(samples) < int(sr * 0.8):
+            raise HTTPException(
+                status_code=400,
+                detail="La duracion minima para registrar un timbre es de 0.8 segundos.",
+            )
+
+        try:
+            descriptor = await run_in_threadpool(
+                lambda: orch.register_custom_voice(
+                    engine_id=engine_id.strip().lower(),
+                    name=name.strip(),
+                    samples=samples,
+                    sample_rate=sr,
+                    reference_text=reference_text.strip() if reference_text else None,
+                    region=region.strip().upper(),
+                    gender=gender.strip().upper(),
+                    description=description.strip(),
+                )
+            )
+        except Exception as exc:
+            logger.exception("Fallo al registrar voz personalizada")
+            raise HTTPException(
+                status_code=500,
+                detail=f"No se pudo guardar la voz personalizada: {exc}",
+            ) from exc
+
+        return VoiceInfoResponse(
+            id=descriptor.id,
+            name=descriptor.name,
+            engine=descriptor.engine,
+            gender=descriptor.gender,
+            region=descriptor.region,
+            sample_rate=descriptor.sample_rate,
+            quality=descriptor.quality,
+            supports_cloning=descriptor.supports_cloning,
+            supports_emotion=descriptor.supports_emotion,
+            description=descriptor.description,
+            is_custom=True,
+        )
+
+    @router.delete("/voices/custom/{voice_id}", response_model=dict[str, Any])
+    async def remove_custom_voice(voice_id: str) -> dict[str, Any]:
+        deleted = await run_in_threadpool(lambda: orch.delete_custom_voice(voice_id))
+        if not deleted:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Timbre personalizado no encontrado: {voice_id}",
+            )
+        return {"deleted": True, "voice_id": voice_id}
 
     return router

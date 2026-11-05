@@ -235,6 +235,9 @@ export function EngineVoiceSidebar({
                       {voice.name}
                     </span>
                     <div className="flex shrink-0 items-center gap-[0.22cqw]">
+                      {voice.is_custom && (
+                        <span className="badge-chip badge-amber font-bold">CLON</span>
+                      )}
                       <span className="badge-chip badge-cyan">{regBadge}</span>
                       <span className="badge-chip badge-amber">{genBadge}</span>
                     </div>

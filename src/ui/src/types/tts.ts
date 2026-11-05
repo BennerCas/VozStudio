@@ -45,6 +45,8 @@ export interface VoiceInfo {
   description: string;
   supports_cloning: boolean;
   supports_emotion: boolean;
+  is_custom?: boolean;
+  is_default?: boolean;
 }
 
 export interface LibraryMetrics {

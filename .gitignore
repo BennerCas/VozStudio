@@ -29,6 +29,10 @@ biblioteca/*.wav
 biblioteca/*.mp3
 biblioteca/*.ogg
 biblioteca/*.json
+biblioteca/.dsp_cache/
+biblioteca/voces_clonadas/
+biblioteca/.custom_voices.json
+scratch/
 !biblioteca/.gitkeep
 .kiosk_profile/
 logs/

@@ -120,7 +120,8 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     clean_body = r_clean.json()
     assert "audio_url" in clean_body
     assert clean_body["metrics"]["duracion_seg"] > 1.0
-    assert "Anti-Nasal 1050Hz (-4.5dB)" in clean_body["metrics"]["filtros_aplicados"]
+    assert any("Anti-Nasal 1050Hz" in f for f in clean_body["metrics"]["filtros_aplicados"])
+    assert any("Sustraccion Espectral STFT" in f for f in clean_body["metrics"]["filtros_aplicados"])
     assert clean_body["metrics"]["pico_final"] <= 0.90
 
     # Descarga del audio limpio procesado
@@ -128,6 +129,34 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     assert r_clean_wav.status_code == 200
     assert r_clean_wav.content[:4] == b"RIFF"
 
+    # 9. Registro y gestion de timbres personalizados (/api/v1/voices/custom)
+    r_cust = client.post(
+        "/api/v1/voices/custom",
+        data={
+            "engine_id": "qwen3_tts",
+            "name": "Locutor Test Pro",
+            "reference_audio_url": clean_body["audio_url"],
+            "reference_text": "Texto de prueba de clonacion",
+            "gender": "MASC",
+            "region": "ES",
+        },
+    )
+    assert r_cust.status_code == 200
+    cust_data = r_cust.json()
+    assert cust_data["is_custom"] is True
+    assert cust_data["engine"] == "qwen3_tts"
+    assert "Locutor Test Pro" in cust_data["name"]
+    cust_id = cust_data["id"]
+
+    # Verificar que aparece en el listado de voces de qwen3_tts
+    r_voices_qwen = client.get("/api/v1/voices?engine_id=qwen3_tts")
+    assert r_voices_qwen.status_code == 200
+    assert any(v["id"] == cust_id for v in r_voices_qwen.json()["voices"])
+
+    # Eliminacion de voz personalizada
+    r_del_voice = client.delete(f"/api/v1/voices/custom/{cust_id}")
+    assert r_del_voice.status_code == 200
+    assert r_del_voice.json()["deleted"] is True
 
     r_unload = client.post("/api/v1/engines/unload")
     assert r_unload.status_code == 200

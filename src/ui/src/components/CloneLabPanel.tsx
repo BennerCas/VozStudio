@@ -22,6 +22,7 @@ export interface CloneLabPanelProps {
   onSpeedChange: (val: number) => void;
   onEmotionChange: (val: string) => void;
   onRunClone: () => void;
+  onVoiceSaved?: (engineId: string, voiceId: string) => void;
 }
 
 export function CloneLabPanel({
@@ -42,11 +43,15 @@ export function CloneLabPanel({
   onSpeedChange,
   onEmotionChange,
   onRunClone,
+  onVoiceSaved,
 }: CloneLabPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [refSourceMode, setRefSourceMode] = useState<'upload' | 'mic'>('mic');
   const [activeScriptId, setActiveScriptId] = useState<string>('pangrama_fonetico');
   const [isCleaning, setIsCleaning] = useState<boolean>(false);
+  const [isSavingVoice, setIsSavingVoice] = useState<boolean>(false);
+  const [customVoiceName, setCustomVoiceName] = useState<string>('Voz Clonada');
+  const [customVoiceRegion, setCustomVoiceRegion] = useState<string>('ES');
   const [dspFeedback, setDspFeedback] = useState<string | null>(null);
   const [cleanNoise, setCleanNoise] = useState<boolean>(true);
   const [cleanNasal, setCleanNasal] = useState<boolean>(true);
@@ -127,6 +132,32 @@ export function CloneLabPanel({
       setDspFeedback(`Aviso DSP: ${msg}`);
     } finally {
       setIsCleaning(false);
+    }
+  };
+
+  const handleSaveVoiceAsTimbre = async () => {
+    if (!referenceFile || isSavingVoice) return;
+    setIsSavingVoice(true);
+    setDspFeedback(`Guardando timbre "${customVoiceName.trim()}" en biblioteca y registrando en Columna 1...`);
+
+    try {
+      const saved = await studioApi.saveCustomVoice({
+        engineId: selectedEngineId,
+        name: customVoiceName.trim() || 'Voz Clonada',
+        region: customVoiceRegion,
+        gender: 'MIX',
+        description: `Clon creado desde audio ${referenceFile.name}`,
+        referenceText: referenceText.trim() || undefined,
+        referenceAudio: referenceFile,
+      });
+
+      setDspFeedback(`Timbre "${saved.name}" registrado en Columna 1 bajo motor ${selectedEngineId.toUpperCase()} con exito.`);
+      onVoiceSaved?.(selectedEngineId, saved.id);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar timbre personalizado';
+      setDspFeedback(`Error al guardar: ${msg}`);
+    } finally {
+      setIsSavingVoice(false);
     }
   };
 
@@ -445,6 +476,51 @@ export function CloneLabPanel({
             trigger={isCleaning ? 'always' : 'hover'}
           />
           <span>{isCleaning ? 'Limpiando...' : 'Limpiar Audio (DSP)'}</span>
+        </button>
+      </div>
+
+      {/* Registro de Timbre en Columna 1 */}
+      <div className="flex shrink-0 items-center justify-between gap-[0.35cqw] rounded-[0.45cqh] border border-amber-400/25 bg-amber-950/20 px-[0.55cqw] py-[0.18cqh]">
+        <div className="flex min-w-0 items-center gap-[0.3cqw] overflow-hidden">
+          <AnimatedIcon name="sparkles" className="text-amber-300 shrink-0" />
+          <span className="font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] font-semibold text-amber-200 shrink-0">
+            GUARDAR TIMBRE EN COLUMNA 1:
+          </span>
+          <input
+            type="text"
+            data-testid="custom-voice-name-input"
+            value={customVoiceName}
+            onChange={(e) => setCustomVoiceName(e.target.value)}
+            placeholder="Nombre del timbre..."
+            maxLength={40}
+            className="w-[11cqw] rounded-[0.35cqh] border border-amber-400/30 bg-slate-900/90 px-[0.35cqw] py-[0.1cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,11px)] text-slate-100"
+          />
+          <select
+            value={customVoiceRegion}
+            onChange={(e) => setCustomVoiceRegion(e.target.value)}
+            aria-label="Region del timbre personalizado"
+            className="rounded-[0.35cqh] border border-amber-400/30 bg-slate-900/90 px-[0.3cqw] py-[0.1cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,11px)] text-slate-100"
+          >
+            <option value="ES">ES (Espana)</option>
+            <option value="MX">MX (Mexico)</option>
+            <option value="AR">AR (Argentina)</option>
+            <option value="LATAM">LATAM</option>
+          </select>
+        </div>
+
+        <button
+          type="button"
+          disabled={!referenceFile || isSavingVoice}
+          data-testid="save-custom-voice-btn"
+          onClick={() => void handleSaveVoiceAsTimbre()}
+          className="flex items-center gap-[0.25cqw] rounded-[0.4cqh] border border-amber-400/80 bg-amber-500/20 px-[0.55cqw] py-[0.18cqh] tx-xs font-semibold text-amber-200 transition hover:bg-amber-500/35 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <AnimatedIcon
+            name={isSavingVoice ? 'loader' : 'sparkles'}
+            variant={isSavingVoice ? 'spin' : 'pulse'}
+            trigger={isSavingVoice ? 'always' : 'hover'}
+          />
+          <span>{isSavingVoice ? 'Guardando...' : `Guardar en ${selectedEngineId.toUpperCase()}`}</span>
         </button>
       </div>
 

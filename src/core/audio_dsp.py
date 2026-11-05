@@ -351,6 +351,63 @@ def apply_soft_noise_gate(
     return np.asarray(mono * np.clip(smooth_gain, floor_linear, 1.0), dtype=np.float32)
 
 
+def apply_spectral_subtraction(
+    samples: np.ndarray,
+    sample_rate: int,
+    alpha: float = 1.4,
+    beta: float = 0.08,
+) -> np.ndarray:
+    """Aplica sustraccion espectral dinamica en el dominio STFT para extinguir ruido continuo (Berouti)."""
+    from scipy import signal as sp_signal
+
+    mono = _to_mono_float32(samples)
+    if mono.size < 512:
+        return mono
+
+    fs = max(1, int(sample_rate))
+    orig_len = mono.size
+    n_fft = min(1024, max(128, 1 << int(np.floor(np.log2(orig_len)))))
+    hop = max(32, n_fft // 4)
+    noverlap = n_fft - hop
+
+    _, _, stft_mat = sp_signal.stft(
+        mono,
+        fs=fs,
+        window="hann",
+        nperseg=n_fft,
+        noverlap=noverlap,
+        boundary="zeros",
+        padded=True,
+    )
+    mag = np.abs(stft_mat)
+    phase = np.angle(stft_mat)
+
+    # Estimacion del espectro de ruido base mediante el percentil 15 de cada banda frecuencial
+    noise_est = np.percentile(mag, 15, axis=1, keepdims=True)
+
+    # Sustraccion no lineal con piso residual beta para evitar 'musical noise'
+    subtracted = np.maximum(mag - float(alpha) * noise_est, float(beta) * mag)
+
+    reconstructed_stft = subtracted * np.exp(1j * phase)
+    _, reconstructed_audio = sp_signal.istft(
+        reconstructed_stft,
+        fs=fs,
+        window="hann",
+        nperseg=n_fft,
+        noverlap=noverlap,
+        boundary=True,
+    )
+
+    if reconstructed_audio.size > orig_len:
+        reconstructed_audio = reconstructed_audio[:orig_len]
+    elif reconstructed_audio.size < orig_len:
+        reconstructed_audio = np.pad(
+            reconstructed_audio, (0, orig_len - reconstructed_audio.size)
+        )
+
+    return np.asarray(reconstructed_audio, dtype=np.float32)
+
+
 def clean_vocal_audio(
     samples: np.ndarray,
     sample_rate: int,
@@ -361,7 +418,8 @@ def clean_vocal_audio(
     enhance_presence: bool = True,
     target_peak: float = 0.89,
     anti_nasal_freq_hz: float = 1050.0,
-    anti_nasal_gain_db: float = -4.5,
+    anti_nasal_gain_db: float = -5.0,
+    anti_boxy_gain_db: float = -2.5,
 ) -> tuple[np.ndarray, dict[str, Any]]:
     """Cadena integral de post-procesamiento acustico vocal (DSP) de grado estudio."""
     from scipy import signal as sp_signal
@@ -385,40 +443,54 @@ def clean_vocal_audio(
     fs = max(1, int(sample_rate))
     processed = mono.copy()
 
-    # 1. Filtro Pasa-Altos (High-Pass Butterworth a 75 Hz para retumbos y ruido electrico)
+    # 1. Filtro Pasa-Altos Reforzado (Butterworth 4to orden a 85 Hz: 24 dB/octava)
     if remove_noise:
         nyquist = fs * 0.5
-        hp_cutoff = min(75.0, nyquist * 0.4)
+        hp_cutoff = min(85.0, nyquist * 0.4)
         if hp_cutoff > 10.0:
-            sos = sp_signal.butter(2, hp_cutoff, btype="highpass", fs=fs, output="sos")
+            sos = sp_signal.butter(4, hp_cutoff, btype="highpass", fs=fs, output="sos")
             processed = sp_signal.sosfilt(sos, processed).astype(np.float32)
-            filters_applied.append(f"HPF {int(hp_cutoff)}Hz")
+            filters_applied.append(f"HPF 4to-Orden {int(hp_cutoff)}Hz")
+
+        # Sustraccion espectral en frecuencia STFT (elimina siseo y ventiladores continuos)
+        processed = apply_spectral_subtraction(processed, fs, alpha=1.4, beta=0.08)
+        filters_applied.append("Sustraccion Espectral STFT")
 
         # Compuerta de ruido suave para silencios y pausas
         processed = apply_soft_noise_gate(processed, fs, threshold_db=-42.0)
         filters_applied.append("Noise-Gate -42dB")
 
-    # 2. Filtro Anti-Nasal Quirurgico (Biquad Peaking Notch en 1050 Hz, Q=2.0)
+    # 2. Filtro Anti-Caja / Anti-Habitacion Hueca (Notch en 450 Hz, Q=2.0)
     if anti_nasal:
+        processed = biquad_peaking_filter(
+            processed,
+            fs,
+            center_freq_hz=450.0,
+            gain_db=anti_boxy_gain_db,
+            q=2.0,
+        )
+        filters_applied.append(f"Anti-Caja 450Hz ({anti_boxy_gain_db:.1f}dB)")
+
+        # Filtro Anti-Nasal Quirurgico Reforzado (Notch en 1050 Hz, Q=2.2)
         processed = biquad_peaking_filter(
             processed,
             fs,
             center_freq_hz=anti_nasal_freq_hz,
             gain_db=anti_nasal_gain_db,
-            q=2.0,
+            q=2.2,
         )
         filters_applied.append(f"Anti-Nasal {int(anti_nasal_freq_hz)}Hz ({anti_nasal_gain_db:.1f}dB)")
 
-    # 3. De-Esser (Atenuacion de consonantes sibilantes estridentes en 7000 Hz)
+    # 3. De-Esser (Atenuacion de consonantes sibilantes estridentes en 6800 Hz)
     if de_esser and fs >= 16000:
         processed = biquad_peaking_filter(
             processed,
             fs,
-            center_freq_hz=7000.0,
-            gain_db=-3.5,
+            center_freq_hz=6800.0,
+            gain_db=-4.0,
             q=2.5,
         )
-        filters_applied.append("De-Esser 7kHz (-3.5dB)")
+        filters_applied.append("De-Esser 6.8kHz (-4.0dB)")
 
     # 4. Realce de Articulacion y Presencia Vocal (Campana en 3200 Hz)
     if enhance_presence and fs >= 8000:
@@ -438,7 +510,6 @@ def clean_vocal_audio(
     final_peak = float(np.max(np.abs(processed))) if processed.size > 0 else 0.0
     duration_sec = float(processed.size) / float(fs)
 
-    # Estimacion SNR aproximada pre/post
     metrics: dict[str, Any] = {
         "duracion_seg": round(duration_sec, 2),
         "pico_original": round(orig_peak, 4),

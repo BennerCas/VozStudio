@@ -389,6 +389,26 @@ export function App() {
     }
   };
 
+  const handleVoiceSaved = useCallback(
+    async (engineId: string, voiceId: string) => {
+      try {
+        const remoteVoices = await studioApi.getVoices(engineId);
+        if (remoteVoices.length > 0) {
+          setVoicesByEngine((prev) => ({
+            ...prev,
+            [engineId]: remoteVoices,
+          }));
+        }
+        setSelectedEngineId(engineId);
+        setSelectedVoiceId(voiceId);
+        setStatusBanner(`Timbre registrado y seleccionado en ${engineId.toUpperCase()}`);
+      } catch (err) {
+        console.error('Error al actualizar voces tras guardado:', err);
+      }
+    },
+    [],
+  );
+
   if (viewport.isCompactOrPortrait) {
     return <OrientationGuard width={viewport.width} height={viewport.height} />;
   }
@@ -528,6 +548,7 @@ export function App() {
                     onSpeedChange={setSpeed}
                     onEmotionChange={setEmotion}
                     onRunClone={() => void handleRunClone()}
+                    onVoiceSaved={handleVoiceSaved}
                   />
                 )}
               </div>
