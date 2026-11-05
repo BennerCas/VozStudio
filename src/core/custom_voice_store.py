@@ -67,8 +67,9 @@ class CustomVoiceStore:
         region: str = "ES",
         gender: str = "MIX",
         description: str = "",
+        prompt_utilizado: str | None = None,
     ) -> VoiceDescriptor:
-        """Registra un nuevo timbre clonado, persiste su audio y actualiza el catalogo."""
+        """Registra un nuevo timbre clonado o disenado, persiste su audio y actualiza el catalogo."""
         clean_engine = sanitize_slug(engine_id, max_len=20)
         clean_name = name.strip() or f"Voz {clean_engine.upper()}"
         slug_name = sanitize_slug(clean_name, max_len=24)
@@ -98,6 +99,7 @@ class CustomVoiceStore:
             "supports_emotion": True,
             "reference_wav_path": str(wav_path),
             "reference_text": (reference_text or "").strip(),
+            "prompt_utilizado": (prompt_utilizado or "").strip(),
             "is_custom": True,
         }
 
@@ -116,6 +118,53 @@ class CustomVoiceStore:
             description=record["description"],
             supports_cloning=record["supports_cloning"],
             supports_emotion=record["supports_emotion"],
+            prompt_utilizado=record["prompt_utilizado"],
+        )
+
+    def update_custom_voice_metadata(
+        self,
+        voice_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        region: str | None = None,
+        gender: str | None = None,
+        reference_text: str | None = None,
+        prompt_utilizado: str | None = None,
+    ) -> VoiceDescriptor | None:
+        """Actualiza metadatos editables de un timbre personalizado."""
+        all_records = self._load_raw()
+        if voice_id not in all_records:
+            return None
+
+        record = all_records[voice_id]
+        if name is not None and name.strip():
+            record["name"] = name.strip()
+        if description is not None:
+            record["description"] = description.strip()
+        if region is not None and region.strip():
+            record["region"] = region.strip().upper()
+        if gender is not None and gender.strip():
+            record["gender"] = gender.strip().upper()
+        if reference_text is not None:
+            record["reference_text"] = reference_text.strip()
+        if prompt_utilizado is not None:
+            record["prompt_utilizado"] = prompt_utilizado.strip()
+
+        all_records[voice_id] = record
+        self._save_raw(all_records)
+
+        return VoiceDescriptor(
+            id=record["id"],
+            name=record["name"],
+            engine=record["engine"],
+            region=record.get("region", "ES"),
+            gender=record.get("gender", "MIX"),
+            sample_rate=int(record.get("sample_rate", 24000)),
+            quality=record.get("quality", "STUDIO"),
+            description=record.get("description", "Voz personalizada clonada."),
+            supports_cloning=False,
+            supports_emotion=True,
+            prompt_utilizado=record.get("prompt_utilizado", ""),
         )
 
     def list_custom_voices(self, engine_id: str | None = None) -> list[VoiceDescriptor]:
@@ -144,6 +193,7 @@ class CustomVoiceStore:
                     description=r.get("description", "Voz personalizada clonada."),
                     supports_cloning=False,
                     supports_emotion=True,
+                    prompt_utilizado=r.get("prompt_utilizado", ""),
                 )
             )
         return descriptors

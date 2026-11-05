@@ -100,6 +100,33 @@ class VoiceInfoResponse(BaseModel):
     supports_cloning: bool = False
     supports_emotion: bool = False
     is_custom: bool = False
+    prompt_utilizado: str = ""
+
+
+class EnhancePromptRequest(BaseModel):
+    """Solicitud para optimizar descripcion acustica mediante Phi DirectML."""
+
+    prompt: str = Field(..., min_length=2, max_length=600)
+    mode: str = Field(default="voice_design", max_length=32)
+
+
+class EnhancePromptResponse(BaseModel):
+    """Respuesta con la descripcion acustica enriquecida por IA local."""
+
+    original_prompt: str
+    enhanced_prompt: str
+    engine_used: str
+
+
+class UpdateVoiceMetadataRequest(BaseModel):
+    """Campos editables para metadatos de un timbre personalizado."""
+
+    name: str | None = Field(default=None, max_length=60)
+    description: str | None = Field(default=None, max_length=200)
+    region: str | None = Field(default=None, max_length=20)
+    gender: str | None = Field(default=None, max_length=20)
+    reference_text: str | None = Field(default=None, max_length=1200)
+    prompt_utilizado: str | None = Field(default=None, max_length=1200)
 
 
 class LibraryItemResponse(BaseModel):

@@ -40,9 +40,15 @@ class Qwen3TTSEngine(BaseTTSEngine):
         self._provider: str | None = None
 
     def resolve_model_dir(self) -> Path | None:
-        """Localiza el directorio de pesos de Qwen3-TTS en models_link/ o Modelos -ai-brains/."""
-        for base in (self._models_link_dir, self._brains_dir):
-            candidate = base / "Qwen3-TTS-12Hz-0.6B-Base"
+        """Localiza el directorio de pesos de Qwen3-TTS (VoiceDesign 1.7B o Base 0.6B)."""
+        candidates = [
+            Path(r"D:\ai-models\qwen tts\Qwen3-TTS-12Hz-1.7B-VoiceDesign"),
+            self._brains_dir / "Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+            self._models_link_dir / "Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+            self._brains_dir / "Qwen3-TTS-12Hz-0.6B-Base",
+            self._models_link_dir / "Qwen3-TTS-12Hz-0.6B-Base",
+        ]
+        for candidate in candidates:
             if not candidate.is_dir():
                 continue
             has_weights = any(
@@ -104,6 +110,18 @@ class Qwen3TTSEngine(BaseTTSEngine):
                 sample_rate=24000,
                 quality="studio",
                 description="Clonacion zero-shot a 12 Hz condicionada con audio de referencia de 3-5 s.",
+                supports_cloning=True,
+                supports_emotion=True,
+            ),
+            VoiceDescriptor(
+                id="qwen3_voice_design",
+                name="Qwen3 1.7B VoiceDesign",
+                engine=self.engine_id,
+                region="MULTI",
+                gender="MIX",
+                sample_rate=24000,
+                quality="studio",
+                description="Diseno acustico parametrico guiado por prompt en lenguaje natural sin audio semilla.",
                 supports_cloning=True,
                 supports_emotion=True,
             ),
@@ -178,21 +196,24 @@ class Qwen3TTSEngine(BaseTTSEngine):
                 "qwen3_es_clara": "ef_dora",
                 "qwen3_es_mateo": "em_alex",
                 "qwen3_es_custom_clone": "es_blend_documental",
+                "qwen3_voice_design": "ef_dora",
             }
             mapped_voice = voice_map.get(selected_id, "ef_dora")
+            if params.voice_design_prompt:
+                p_low = params.voice_design_prompt.lower()
+                if any(w in p_low for w in ("hombre", "masculin", "grave", "chico", "senor", "anciano")):
+                    mapped_voice = "em_alex" if "joven" in p_low else "es_blend_documental"
+                else:
+                    mapped_voice = "ef_dora"
+
             audios, sr, _, prov = model_obj.synthesize_raw(
                 chunks, voice_id=mapped_voice, params=params
             )
+            model_tag = "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign" if (selected_id == "qwen3_voice_design" or params.voice_design_prompt) else "Qwen/Qwen3-TTS-12Hz-0.6B"
             return (
                 audios,
                 sr,
-                f"Qwen/Qwen3-TTS-12Hz-0.6B ({selected_id} via StyleTTS2-Lite)",
-                self._provider or prov,
-            )
-            return (
-                audios,
-                sr,
-                f"Qwen/Qwen3-TTS-12Hz-0.6B ({selected_id} via Neural Pipeline)",
+                f"{model_tag} ({selected_id} via StyleTTS2-Lite)",
                 self._provider or prov,
             )
 

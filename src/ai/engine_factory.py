@@ -132,8 +132,9 @@ class EngineOrchestrator:
         region: str = "ES",
         gender: str = "MIX",
         description: str = "",
+        prompt_utilizado: str | None = None,
     ) -> VoiceDescriptor:
-        """Registra un nuevo timbre personalizado en el motor indicado."""
+        """Registra un nuevo timbre personalizado en el motor indicado con persistencia de prompt."""
         return self._custom_voice_store.add_custom_voice(
             engine_id=engine_id,
             name=name,
@@ -143,6 +144,28 @@ class EngineOrchestrator:
             region=region,
             gender=gender,
             description=description,
+            prompt_utilizado=prompt_utilizado,
+        )
+
+    def update_custom_voice(
+        self,
+        voice_id: str,
+        name: str | None = None,
+        description: str | None = None,
+        region: str | None = None,
+        gender: str | None = None,
+        reference_text: str | None = None,
+        prompt_utilizado: str | None = None,
+    ) -> VoiceDescriptor | None:
+        """Actualiza los metadatos editables de un timbre personalizado."""
+        return self._custom_voice_store.update_custom_voice_metadata(
+            voice_id=voice_id,
+            name=name,
+            description=description,
+            region=region,
+            gender=gender,
+            reference_text=reference_text,
+            prompt_utilizado=prompt_utilizado,
         )
 
     def delete_custom_voice(self, voice_id: str) -> bool:
@@ -285,6 +308,8 @@ class EngineOrchestrator:
             enriched = dict(metadata)
             enriched["wav_path"] = str(resolved_dir / metadata["archivo"])
             enriched["json_path"] = str(resolved_dir / metadata["json_archivo"])
+            enriched["samples"] = syn_result.samples
+            enriched["sample_rate"] = syn_result.sample_rate
             return enriched
 
         duration_sec = round(

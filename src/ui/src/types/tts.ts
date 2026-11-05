@@ -47,6 +47,36 @@ export interface VoiceInfo {
   supports_emotion: boolean;
   is_custom?: boolean;
   is_default?: boolean;
+  prompt_utilizado?: string;
+}
+
+export interface EnhancePromptResult {
+  original_prompt: string;
+  enhanced_prompt: string;
+  engine_used: string;
+}
+
+export interface DnaSynthesisPayload {
+  text: string;
+  engine_id: string;
+  mode: 'voice_design' | 'instruct_tts';
+  voice_design_prompt?: string;
+  instruct_prompt?: string;
+  voice_id?: string;
+  speed: number;
+  temperature?: number;
+  save_as_custom?: boolean;
+  custom_voice_name?: string;
+  custom_voice_region?: string;
+}
+
+export interface UpdateVoiceMetadataPayload {
+  name?: string;
+  description?: string;
+  region?: string;
+  gender?: string;
+  reference_text?: string;
+  prompt_utilizado?: string;
 }
 
 export interface LibraryMetrics {

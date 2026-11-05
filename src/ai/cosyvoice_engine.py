@@ -717,6 +717,21 @@ class CosyVoiceEngine(BaseTTSEngine):
                 supports_cloning=True,
                 supports_emotion=True,
             ),
+            VoiceDescriptor(
+                id="cosy_instruct_tts",
+                name="CosyVoice Instruct-TTS",
+                engine=self.engine_id,
+                region="MULTI",
+                gender="MIX",
+                sample_rate=COSYVOICE_SAMPLE_RATE,
+                quality="studio",
+                description=(
+                    "Control expresivo mediante instrucciones de estilo y emocion "
+                    "con soporte de etiquetas paralinguisticas."
+                ),
+                supports_cloning=True,
+                supports_emotion=True,
+            ),
         ]
 
     def load(self) -> str:
@@ -767,7 +782,7 @@ class CosyVoiceEngine(BaseTTSEngine):
         clean_voice = (voice_id or "cosy_nova_es").strip()
         if clean_voice == "cosy_onyx_es":
             wav_path = prompts_dir / "en_male_onyx_greeting.wav"
-        elif clean_voice in ("cosy_nova_es", "cosy_custom_clone"):
+        elif clean_voice in ("cosy_nova_es", "cosy_custom_clone", "cosy_instruct_tts"):
             wav_path = prompts_dir / "en_female_nova_greeting.wav"
         else:
             valid = [v.id for v in self.get_voices()]

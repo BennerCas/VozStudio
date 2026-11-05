@@ -26,9 +26,12 @@ from src.core.audio_dsp import (
 from src.core.config import APP_NAME, APP_VERSION, BIBLIOTECA_DIR
 from src.core.hardware import get_hardware_telemetry
 from src.core.memory_manager import memory_manager
+from src.core.prompt_enhancer import enhance_prompt
 from src.core.text_normalizer import prepare_spanish_chunks
 from src.models.schemas import (
     EngineInfoResponse,
+    EnhancePromptRequest,
+    EnhancePromptResponse,
     HardwareMetricsResponse,
     LibraryItemResponse,
     NormalizePreviewRequest,
@@ -36,6 +39,7 @@ from src.models.schemas import (
     SynthesisEnvelopeResponse,
     SynthesizeRequest,
     SystemStatusResponse,
+    UpdateVoiceMetadataRequest,
     VoiceInfoResponse,
     VocalCleanMetricsResponse,
     VocalCleanResponse,
@@ -129,6 +133,7 @@ def create_api_router(
                     supports_cloning=v.supports_cloning,
                     supports_emotion=v.supports_emotion,
                     is_custom=v.id.startswith("custom_"),
+                    prompt_utilizado=getattr(v, "prompt_utilizado", ""),
                 )
                 for v in descriptors
             ]
@@ -383,6 +388,7 @@ def create_api_router(
         region: str = Form(default="ES", max_length=20),
         description: str = Form(default="Timbre clonado personalizado", max_length=200),
         reference_text: str | None = Form(default=None, max_length=1200),
+        prompt_utilizado: str | None = Form(default=None, max_length=1200),
         reference_audio: UploadFile | None = File(default=None),
         reference_audio_url: str | None = Form(default=None, max_length=256),
     ) -> VoiceInfoResponse:
@@ -460,6 +466,7 @@ def create_api_router(
                     region=region.strip().upper(),
                     gender=gender.strip().upper(),
                     description=description.strip(),
+                    prompt_utilizado=prompt_utilizado.strip() if prompt_utilizado else None,
                 )
             )
         except Exception as exc:
@@ -481,6 +488,44 @@ def create_api_router(
             supports_emotion=descriptor.supports_emotion,
             description=descriptor.description,
             is_custom=True,
+            prompt_utilizado=getattr(descriptor, "prompt_utilizado", ""),
+        )
+
+    @router.put("/voices/custom/{voice_id}", response_model=VoiceInfoResponse)
+    async def update_custom_voice_metadata_endpoint(
+        voice_id: str,
+        payload: UpdateVoiceMetadataRequest,
+    ) -> VoiceInfoResponse:
+        descriptor = await run_in_threadpool(
+            lambda: orch.update_custom_voice(
+                voice_id=voice_id,
+                name=payload.name,
+                description=payload.description,
+                region=payload.region,
+                gender=payload.gender,
+                reference_text=payload.reference_text,
+                prompt_utilizado=payload.prompt_utilizado,
+            )
+        )
+        if descriptor is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Timbre personalizado no encontrado para edicion: {voice_id}",
+            )
+
+        return VoiceInfoResponse(
+            id=descriptor.id,
+            name=descriptor.name,
+            engine=descriptor.engine,
+            gender=descriptor.gender,
+            region=descriptor.region,
+            sample_rate=descriptor.sample_rate,
+            quality=descriptor.quality,
+            supports_cloning=descriptor.supports_cloning,
+            supports_emotion=descriptor.supports_emotion,
+            description=descriptor.description,
+            is_custom=True,
+            prompt_utilizado=getattr(descriptor, "prompt_utilizado", ""),
         )
 
     @router.delete("/voices/custom/{voice_id}", response_model=dict[str, Any])
@@ -492,5 +537,112 @@ def create_api_router(
                 detail=f"Timbre personalizado no encontrado: {voice_id}",
             )
         return {"deleted": True, "voice_id": voice_id}
+
+    @router.post("/dna/enhance-prompt", response_model=EnhancePromptResponse)
+    async def enhance_dna_prompt_endpoint(
+        payload: EnhancePromptRequest,
+    ) -> EnhancePromptResponse:
+        if not payload.prompt.strip():
+            raise HTTPException(status_code=400, detail="El prompt no puede estar vacio.")
+        enhanced, engine_used = await run_in_threadpool(
+            lambda: enhance_prompt(payload.prompt, mode=payload.mode)
+        )
+        return EnhancePromptResponse(
+            original_prompt=payload.prompt,
+            enhanced_prompt=enhanced,
+            engine_used=engine_used,
+        )
+
+    @router.post("/dna/synthesize", response_model=dict[str, Any])
+    async def synthesize_dna_endpoint(
+        text: str = Form(..., min_length=1, max_length=8000),
+        engine_id: str = Form(default="qwen3_tts"),
+        mode: str = Form(default="voice_design"),
+        voice_design_prompt: str | None = Form(default=None, max_length=1500),
+        instruct_prompt: str | None = Form(default=None, max_length=1500),
+        voice_id: str | None = Form(default=None),
+        speed: float = Form(default=1.0, ge=0.5, le=2.0),
+        temperature: float = Form(default=0.7, ge=0.1, le=1.5),
+        save_as_custom: bool = Form(default=False),
+        custom_voice_name: str | None = Form(default=None, max_length=60),
+        custom_voice_region: str = Form(default="ES", max_length=20),
+    ) -> dict[str, Any]:
+        target_engine = engine_id.strip().lower()
+        active_voice = voice_id.strip() if voice_id else None
+
+        if target_engine == "qwen3_tts" and not active_voice:
+            active_voice = "qwen3_voice_design"
+        elif target_engine == "cosyvoice" and not active_voice:
+            active_voice = "cosy_instruct_tts"
+
+        params = SynthesisParams(
+            speed=speed,
+            voice_design_prompt=voice_design_prompt.strip() if voice_design_prompt else None,
+            instruct_prompt=instruct_prompt.strip() if instruct_prompt else None,
+            temperature=temperature,
+        )
+
+        try:
+            raw_meta = await run_in_threadpool(
+                lambda: orch.synthesize(
+                    text=text,
+                    engine_id=target_engine,
+                    voice_id=active_voice,
+                    params=params,
+                    save_to_library=True,
+                    biblioteca_dir=target_bib,
+                )
+            )
+        except Exception as exc:
+            logger.exception("Fallo en sintesis DNA Design")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error durante sintesis DNA: {exc}",
+            ) from exc
+
+        saved_voice_data = None
+        if save_as_custom:
+            effective_name = (custom_voice_name or "").strip() or f"DNA {target_engine.upper()}"
+            prompt_used = voice_design_prompt if mode == "voice_design" else instruct_prompt
+            samples = raw_meta.get("samples")
+            sr = int(raw_meta.get("sample_rate", 24000))
+            if samples is None and raw_meta.get("wav_path") and Path(raw_meta["wav_path"]).is_file():
+                samples, sr = sf.read(str(raw_meta["wav_path"]), dtype="float32")
+
+            if samples is not None and len(samples) > 0:
+                try:
+                    desc = await run_in_threadpool(
+                        lambda: orch.register_custom_voice(
+                            engine_id=target_engine,
+                            name=effective_name,
+                            samples=samples,
+                            sample_rate=sr,
+                            reference_text=text[:200],
+                            region=custom_voice_region,
+                            description=f"Timbre DNA creado con prompt: {(prompt_used or '')[:80]}",
+                            prompt_utilizado=prompt_used,
+                        )
+                    )
+                    saved_voice_data = VoiceInfoResponse(
+                        id=desc.id,
+                        name=desc.name,
+                        engine=desc.engine,
+                        gender=desc.gender,
+                        region=desc.region,
+                        sample_rate=desc.sample_rate,
+                        quality=desc.quality,
+                        supports_cloning=desc.supports_cloning,
+                        supports_emotion=desc.supports_emotion,
+                        description=desc.description,
+                        is_custom=True,
+                        prompt_utilizado=getattr(desc, "prompt_utilizado", ""),
+                    ).model_dump()
+                except Exception as exc:
+                    logger.warning("No se pudo registrar automaticamente el timbre DNA: %s", exc)
+
+        return {
+            "item": _format_library_item(raw_meta),
+            "saved_voice": saved_voice_data,
+        }
 
     return router

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CloneLabPanel } from './components/CloneLabPanel';
 import { ComposerPanel } from './components/ComposerPanel';
+import { DNADesignPanel } from './components/DNADesignPanel';
 import { EngineVoiceSidebar } from './components/EngineVoiceSidebar';
 import { HeaderBar } from './components/HeaderBar';
 import { LibraryInspectorSidebar } from './components/LibraryInspectorSidebar';
@@ -35,7 +36,7 @@ export function App() {
     useState<Record<string, VoiceInfo[]>>(FALLBACK_VOICES_BY_ENGINE);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('ef_dora');
 
-  const [centerMode, setCenterMode] = useState<'direct' | 'clone'>('direct');
+  const [centerMode, setCenterMode] = useState<'direct' | 'clone' | 'dna'>('direct');
 
   // Estado de composicion directa paginada por bloques sin scroll
   const [blocks, setBlocks] = useState<string[]>(() =>
@@ -409,6 +410,20 @@ export function App() {
     [],
   );
 
+  const handleVoiceUpdated = useCallback(
+    (updated: VoiceInfo) => {
+      setVoicesByEngine((prev) => {
+        const list = prev[updated.engine] ?? [];
+        return {
+          ...prev,
+          [updated.engine]: list.map((v) => (v.id === updated.id ? updated : v)),
+        };
+      });
+      setStatusBanner(`Metadatos del timbre "${updated.name}" actualizados.`);
+    },
+    [],
+  );
+
   if (viewport.isCompactOrPortrait) {
     return <OrientationGuard width={viewport.width} height={viewport.height} />;
   }
@@ -488,6 +503,22 @@ export function App() {
                     <AnimatedIcon name="fingerprint" variant="pulse" trigger="hover" />
                     <span>Laboratorio Zero-Shot</span>
                   </button>
+
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={centerMode === 'dna'}
+                    data-testid="mode-tab-dna"
+                    onClick={() => setCenterMode('dna')}
+                    className={`flex items-center gap-[0.38cqw] rounded-[0.5cqh] border px-[0.75cqw] py-[0.35cqh] font-display tx-xs font-semibold tracking-wide transition ${
+                      centerMode === 'dna'
+                        ? 'border-cyan-400/80 bg-cyan-500/22 text-cyan-100 shadow-[0_0_12px_rgba(12,211,245,0.22)]'
+                        : 'border-sky-400/15 bg-slate-950/60 text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <AnimatedIcon name="sparkles" variant="oscillate" trigger="hover" />
+                    <span>DNA Design</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-[0.35cqw]">
@@ -529,7 +560,7 @@ export function App() {
                       void runSynthesisText(joinDocumentBlocks(blocks))
                     }
                   />
-                ) : (
+                ) : centerMode === 'clone' ? (
                   <CloneLabPanel
                     selectedEngineId={selectedEngineId}
                     selectedVoiceId={selectedVoice?.id ?? selectedVoiceId}
@@ -549,6 +580,18 @@ export function App() {
                     onEmotionChange={setEmotion}
                     onRunClone={() => void handleRunClone()}
                     onVoiceSaved={handleVoiceSaved}
+                  />
+                ) : (
+                  <DNADesignPanel
+                    selectedEngineId={selectedEngineId}
+                    selectedVoiceId={selectedVoice?.id ?? selectedVoiceId}
+                    voices={currentVoices}
+                    isSynthesizing={isSynthesizing}
+                    onVoiceSaved={handleVoiceSaved}
+                    onAudioGenerated={(item) => {
+                      setLibraryItems((prev) => [item, ...prev]);
+                      setActiveItem(item);
+                    }}
                   />
                 )}
               </div>
@@ -579,6 +622,7 @@ export function App() {
             onRefreshLibrary={() => void fetchLibrarySafe()}
             onSelectItem={(item) => setActiveItem(item)}
             onDeleteItem={(id) => void handleDeleteLibraryItem(id)}
+            onVoiceUpdated={handleVoiceUpdated}
           />
         </div>
 

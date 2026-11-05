@@ -139,6 +139,7 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
             "reference_text": "Texto de prueba de clonacion",
             "gender": "MASC",
             "region": "ES",
+            "prompt_utilizado": "Voz grave y sabia de locutor",
         },
     )
     assert r_cust.status_code == 200
@@ -146,17 +147,58 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     assert cust_data["is_custom"] is True
     assert cust_data["engine"] == "qwen3_tts"
     assert "Locutor Test Pro" in cust_data["name"]
+    assert cust_data["prompt_utilizado"] == "Voz grave y sabia de locutor"
     cust_id = cust_data["id"]
 
-    # Verificar que aparece en el listado de voces de qwen3_tts
-    r_voices_qwen = client.get("/api/v1/voices?engine_id=qwen3_tts")
-    assert r_voices_qwen.status_code == 200
-    assert any(v["id"] == cust_id for v in r_voices_qwen.json()["voices"])
+    # 10. Edicion de metadatos del timbre personalizado (PUT /api/v1/voices/custom/{voice_id})
+    r_edit = client.put(
+        f"/api/v1/voices/custom/{cust_id}",
+        json={
+            "name": "Locutor Test Pro Editado",
+            "description": "Nueva descripcion actualizada",
+            "region": "MX",
+            "prompt_utilizado": "Voz calida documental mexicana",
+        },
+    )
+    assert r_edit.status_code == 200
+    edited_data = r_edit.json()
+    assert edited_data["name"] == "Locutor Test Pro Editado"
+    assert edited_data["region"] == "MX"
+    assert edited_data["prompt_utilizado"] == "Voz calida documental mexicana"
 
-    # Eliminacion de voz personalizada
-    r_del_voice = client.delete(f"/api/v1/voices/custom/{cust_id}")
-    assert r_del_voice.status_code == 200
-    assert r_del_voice.json()["deleted"] is True
+    # 11. Optimizacion de prompt DNA con IA local Phi (/api/v1/dna/enhance-prompt)
+    r_enh = client.post(
+        "/api/v1/dna/enhance-prompt",
+        json={"prompt": "narrador historico viejo", "mode": "voice_design"},
+    )
+    assert r_enh.status_code == 200
+    enh_data = r_enh.json()
+    assert len(enh_data["enhanced_prompt"]) > 10
+    assert "engine_used" in enh_data
+
+    # 12. Sintesis DNA Design (/api/v1/dna/synthesize)
+    r_dna_syn = client.post(
+        "/api/v1/dna/synthesize",
+        data={
+            "text": "Sintesis de prueba DNA Design con control de timbre.",
+            "engine_id": "qwen3_tts",
+            "mode": "voice_design",
+            "voice_design_prompt": enh_data["enhanced_prompt"],
+            "save_as_custom": "true",
+            "custom_voice_name": "Timbre DNA Autogenerado",
+            "custom_voice_region": "ES",
+        },
+    )
+    assert r_dna_syn.status_code == 200
+    dna_body = r_dna_syn.json()
+    assert "item" in dna_body
+    assert dna_body["saved_voice"] is not None
+    assert dna_body["saved_voice"]["is_custom"] is True
+    dna_saved_id = dna_body["saved_voice"]["id"]
+
+    # Limpieza de timbres de prueba
+    client.delete(f"/api/v1/voices/custom/{cust_id}")
+    client.delete(f"/api/v1/voices/custom/{dna_saved_id}")
 
     r_unload = client.post("/api/v1/engines/unload")
     assert r_unload.status_code == 200

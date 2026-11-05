@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { ENGINE_TECHNICAL_SPECS } from '../data/fallbackCatalog';
 import { useFitCount } from '../hooks/useFitCount';
 import { AnimatedIcon } from '../icons/AnimatedIcon';
+import { studioApi } from '../services/api';
 import type { EngineInfo, LibraryItem, VoiceInfo } from '../types/tts';
 import { Paginator } from './Paginator';
 
@@ -18,6 +19,7 @@ export interface LibraryInspectorSidebarProps {
   onRefreshLibrary: () => void;
   onSelectItem: (item: LibraryItem) => void;
   onDeleteItem: (id: string) => void;
+  onVoiceUpdated?: (updated: VoiceInfo) => void;
 }
 
 export function LibraryInspectorSidebar({
@@ -33,10 +35,49 @@ export function LibraryInspectorSidebar({
   onRefreshLibrary,
   onSelectItem,
   onDeleteItem,
+  onVoiceUpdated,
 }: LibraryInspectorSidebarProps) {
   const [libPage, setLibPage] = useState<number>(1);
-  const [inspectorTab, setInspectorTab] = useState<'engine' | 'json'>('engine');
+  const [inspectorTab, setInspectorTab] = useState<'engine' | 'json' | 'voice'>('engine');
+  const [editName, setEditName] = useState<string>('');
+  const [editDesc, setEditDesc] = useState<string>('');
+  const [editRegion, setEditRegion] = useState<string>('ES');
+  const [editPrompt, setEditPrompt] = useState<string>('');
+  const [isSavingMeta, setIsSavingMeta] = useState<boolean>(false);
+  const [editFeedback, setEditFeedback] = useState<string | null>(null);
   const libraryListRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (selectedVoice) {
+      setEditName(selectedVoice.name);
+      setEditDesc(selectedVoice.description || '');
+      setEditRegion(selectedVoice.region || 'ES');
+      setEditPrompt(selectedVoice.prompt_utilizado || '');
+      setEditFeedback(null);
+    }
+  }, [selectedVoice]);
+
+  const handleSaveMetadata = async () => {
+    if (!selectedVoice || !selectedVoice.is_custom || isSavingMeta) return;
+    setIsSavingMeta(true);
+    setEditFeedback('Guardando metadatos...');
+
+    try {
+      const updated = await studioApi.updateCustomVoice(selectedVoice.id, {
+        name: editName.trim() || selectedVoice.name,
+        description: editDesc.trim(),
+        region: editRegion,
+        prompt_utilizado: editPrompt.trim(),
+      });
+      setEditFeedback('Metadatos actualizados.');
+      onVoiceUpdated?.(updated);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Error al guardar metadatos';
+      setEditFeedback(`Error: ${msg}`);
+    } finally {
+      setIsSavingMeta(false);
+    }
+  };
 
   const fitLibCount = useFitCount(libraryListRef, stageRef, {
     itemCqh: 6.8,
@@ -295,27 +336,102 @@ export function LibraryInspectorSidebar({
             >
               JSON AUDIT
             </button>
+
+            <button
+              type="button"
+              data-testid="inspector-tab-voice"
+              onClick={() => setInspectorTab('voice')}
+              className={`rounded-[0.38cqh] border px-[0.45cqw] py-[0.18cqh] font-mono-tech text-[clamp(7.5px,0.86cqh,11px)] font-semibold transition ${
+                inspectorTab === 'voice'
+                  ? 'border-amber-400/80 bg-amber-500/22 text-amber-200'
+                  : 'border-sky-400/15 bg-slate-950/60 text-slate-400'
+              }`}
+            >
+              METADATOS TIMBRE
+            </button>
           </div>
         </div>
 
-        {/* Matriz 2x4 (8 celdas en 2 columnas) con truncado limpio ellipsis */}
-        <div
-          className="mt-[0.45cqh] grid min-h-0 flex-1 grid-cols-2 grid-rows-4 gap-[0.38cqh_0.4cqw] overflow-hidden"
-          data-testid="inspector-grid"
-        >
-          {inspectorEntries.slice(0, 8).map((entry) => (
-            <div
-              key={entry.key}
-              className="flex min-h-0 min-w-0 flex-col justify-center rounded-[0.45cqh] border border-sky-400/14 bg-slate-950/65 px-[0.5cqw] py-[0.22cqh] overflow-hidden"
-              title={`${entry.key}: ${entry.value}`}
-            >
-              <span className="font-mono-tech truncate text-[clamp(7px,0.82cqh,10.5px)] text-[var(--text-muted)]">
-                {entry.key}
-              </span>
-              <span className="tx-xs truncate font-medium text-slate-100">{entry.value}</span>
+        {inspectorTab === 'voice' ? (
+          <div
+            className="mt-[0.35cqh] flex min-h-0 flex-1 flex-col justify-between gap-[0.25cqh] overflow-hidden"
+            data-testid="voice-metadata-editor"
+          >
+            <div className="grid grid-cols-12 gap-[0.3cqw] shrink-0">
+              <div className="col-span-8 flex flex-col">
+                <span className="font-mono-tech text-[clamp(6.5px,0.76cqh,9.5px)] text-slate-400">NOMBRE TIMBRE</span>
+                <input
+                  type="text"
+                  disabled={!selectedVoice?.is_custom}
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  maxLength={40}
+                  className="rounded border border-amber-400/30 bg-slate-900/90 px-[0.3cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] text-slate-100 disabled:opacity-50"
+                />
+              </div>
+              <div className="col-span-4 flex flex-col">
+                <span className="font-mono-tech text-[clamp(6.5px,0.76cqh,9.5px)] text-slate-400">REGION</span>
+                <select
+                  disabled={!selectedVoice?.is_custom}
+                  value={editRegion}
+                  onChange={(e) => setEditRegion(e.target.value)}
+                  className="rounded border border-amber-400/30 bg-slate-900/90 px-[0.25cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] text-slate-100 disabled:opacity-50"
+                >
+                  <option value="ES">ES</option>
+                  <option value="MX">MX</option>
+                  <option value="AR">AR</option>
+                  <option value="LATAM">LATAM</option>
+                </select>
+              </div>
             </div>
-          ))}
-        </div>
+
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <span className="font-mono-tech text-[clamp(6.5px,0.76cqh,9.5px)] text-slate-400">PROMPT UTILIZADO / HUELLA</span>
+              <textarea
+                disabled={!selectedVoice?.is_custom}
+                value={editPrompt}
+                onChange={(e) => setEditPrompt(e.target.value)}
+                placeholder={selectedVoice?.is_custom ? 'Prompt de generacion o instruccion...' : 'Timbre base sin prompt'}
+                className="studio-textarea min-h-0 flex-1 text-[clamp(7.5px,0.85cqh,10.5px)]"
+              />
+            </div>
+
+            <div className="flex shrink-0 items-center justify-between gap-[0.3cqw]">
+              <span className="font-mono-tech text-[clamp(6.5px,0.76cqh,9.5px)] text-cyan-300 truncate">
+                {editFeedback || (selectedVoice?.is_custom ? 'Timbre personal editable' : 'Timbre nativo del sistema')}
+              </span>
+              {selectedVoice?.is_custom && (
+                <button
+                  type="button"
+                  disabled={isSavingMeta}
+                  onClick={() => void handleSaveMetadata()}
+                  className="rounded border border-amber-400 bg-amber-500/25 px-[0.4cqw] py-[0.12cqh] font-mono-tech text-[clamp(7px,0.8cqh,10px)] font-bold text-amber-100 hover:bg-amber-500/40 transition disabled:opacity-40"
+                >
+                  {isSavingMeta ? 'Guardando...' : 'Guardar Cambios'}
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* Matriz 2x4 (8 celdas en 2 columnas) con truncado limpio ellipsis */
+          <div
+            className="mt-[0.45cqh] grid min-h-0 flex-1 grid-cols-2 grid-rows-4 gap-[0.38cqh_0.4cqw] overflow-hidden"
+            data-testid="inspector-grid"
+          >
+            {inspectorEntries.slice(0, 8).map((entry) => (
+              <div
+                key={entry.key}
+                className="flex min-h-0 min-w-0 flex-col justify-center rounded-[0.45cqh] border border-sky-400/14 bg-slate-950/65 px-[0.5cqw] py-[0.22cqh] overflow-hidden"
+                title={`${entry.key}: ${entry.value}`}
+              >
+                <span className="font-mono-tech truncate text-[clamp(7px,0.82cqh,10.5px)] text-[var(--text-muted)]">
+                  {entry.key}
+                </span>
+                <span className="tx-xs truncate font-medium text-slate-100">{entry.value}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </aside>
   );

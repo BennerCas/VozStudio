@@ -23,6 +23,7 @@ class VoiceDescriptor:
     description: str
     supports_cloning: bool = False
     supports_emotion: bool = False
+    prompt_utilizado: str = ""
 
     def to_dict(self) -> dict[str, Any]:
         """Serializa el descriptor a diccionario plano compatible con Pydantic."""
@@ -39,6 +40,9 @@ class SynthesisParams:
     reference_wav_path: str | None = None
     reference_text: str | None = None
     max_chunk_chars: int = 260
+    voice_design_prompt: str | None = None
+    instruct_prompt: str | None = None
+    temperature: float = 0.7
 
 
 @dataclass(slots=True)

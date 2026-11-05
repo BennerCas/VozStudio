@@ -137,6 +137,23 @@ for (const viewport of DESKTOP_RESOLUTIONS) {
     await assertZeroEmojisInVisibleDom(page);
     await assertStrictZeroScroll(page, `${viewport.label} - Laboratorio Zero-Shot`);
 
+    // 3.1 Conmutacion a DNA Design (Qwen3 VoiceDesign y CosyVoice Instruct-TTS)
+    await page.getByTestId('mode-tab-dna').click();
+    await expect(page.getByTestId('dna-design-panel')).toBeVisible();
+    await expect(page.getByTestId('qwen-voice-design-prompt')).toBeVisible();
+    await expect(page.getByTestId('enhance-qwen-prompt-btn')).toBeVisible();
+    await assertStrictZeroScroll(page, `${viewport.label} - DNA Design Qwen`);
+
+    await page.getByTestId('switch-dna-cosy-btn').click();
+    await expect(page.getByTestId('cosy-instruct-prompt')).toBeVisible();
+    await expect(page.getByTestId('insert-tag-risa')).toBeVisible();
+    await assertStrictZeroScroll(page, `${viewport.label} - DNA Design CosyVoice`);
+
+    // Pestaña de metadatos de timbre en Inspector
+    await page.getByTestId('inspector-tab-voice').click();
+    await expect(page.getByTestId('voice-metadata-editor')).toBeVisible();
+    await assertStrictZeroScroll(page, `${viewport.label} - Inspector Metadatos Timbre`);
+
     await page.getByTestId('mode-tab-direct').click();
     await expect(page.getByTestId('direct-composer-panel')).toBeVisible();
 

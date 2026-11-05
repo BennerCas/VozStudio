@@ -1,10 +1,13 @@
 import type {
   ClonePayload,
+  DnaSynthesisPayload,
   EngineInfo,
+  EnhancePromptResult,
   LibraryItem,
   NormalizePreviewResponse,
   SynthesizePayload,
   SystemStatus,
+  UpdateVoiceMetadataPayload,
   VoiceInfo,
 } from '../types/tts';
 
@@ -204,6 +207,7 @@ export const studioApi = {
     region?: string;
     description?: string;
     referenceText?: string;
+    prompt_utilizado?: string;
     referenceAudio?: File | Blob;
     referenceAudioUrl?: string;
   }): Promise<VoiceInfo> {
@@ -214,6 +218,7 @@ export const studioApi = {
     if (payload.region) formData.append('region', payload.region);
     if (payload.description) formData.append('description', payload.description);
     if (payload.referenceText) formData.append('reference_text', payload.referenceText);
+    if (payload.prompt_utilizado) formData.append('prompt_utilizado', payload.prompt_utilizado);
     if (payload.referenceAudio) {
       formData.append('reference_audio', payload.referenceAudio, 'ref.wav');
     }
@@ -227,6 +232,73 @@ export const studioApi = {
         body: formData,
       },
       30000,
+    );
+  },
+
+  async updateCustomVoice(voiceId: string, metadata: UpdateVoiceMetadataPayload): Promise<VoiceInfo> {
+    return fetchJson<VoiceInfo>(
+      `/api/v1/voices/custom/${encodeURIComponent(voiceId)}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(metadata),
+      },
+      10000,
+    );
+  },
+
+  async enhancePrompt(
+    prompt: string,
+    mode: 'voice_design' | 'instruct_tts' = 'voice_design',
+  ): Promise<EnhancePromptResult> {
+    return fetchJson<EnhancePromptResult>(
+      '/api/v1/dna/enhance-prompt',
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, mode }),
+      },
+      30000,
+    );
+  },
+
+  async synthesizeDna(
+    payload: DnaSynthesisPayload,
+  ): Promise<{ item: LibraryItem; saved_voice?: VoiceInfo | null }> {
+    const formData = new FormData();
+    formData.append('text', payload.text);
+    formData.append('engine_id', payload.engine_id);
+    formData.append('mode', payload.mode);
+    if (payload.voice_design_prompt) {
+      formData.append('voice_design_prompt', payload.voice_design_prompt);
+    }
+    if (payload.instruct_prompt) {
+      formData.append('instruct_prompt', payload.instruct_prompt);
+    }
+    if (payload.voice_id) {
+      formData.append('voice_id', payload.voice_id);
+    }
+    formData.append('speed', String(payload.speed));
+    if (payload.temperature !== undefined) {
+      formData.append('temperature', String(payload.temperature));
+    }
+    if (payload.save_as_custom) {
+      formData.append('save_as_custom', 'true');
+    }
+    if (payload.custom_voice_name) {
+      formData.append('custom_voice_name', payload.custom_voice_name);
+    }
+    if (payload.custom_voice_region) {
+      formData.append('custom_voice_region', payload.custom_voice_region);
+    }
+
+    return fetchJson<{ item: LibraryItem; saved_voice?: VoiceInfo | null }>(
+      '/api/v1/dna/synthesize',
+      {
+        method: 'POST',
+        body: formData,
+      },
+      180000,
     );
   },
 
