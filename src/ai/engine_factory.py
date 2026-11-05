@@ -16,7 +16,11 @@ from src.ai.base_engine import (
 from src.ai.cosyvoice_engine import CosyVoiceEngine
 from src.ai.kokoro_engine import KokoroEngine
 from src.ai.mms_engine import MMSSpanishEngine
-from src.ai.optional_engines import F5SpanishEngine, StyleTTS2SpanishEngine
+from src.ai.optional_engines import (
+    CoquiXTTS2Engine,
+    F5SpanishEngine,
+    StyleTTS2SpanishEngine,
+)
 from src.ai.piper_engine import PiperEngine
 from src.core.audio_dsp import (
     apply_pitch_shift,
@@ -60,6 +64,7 @@ class EngineOrchestrator:
             StyleTTS2SpanishEngine(**kwargs),
             F5SpanishEngine(**kwargs),
             CosyVoiceEngine(**kwargs),
+            CoquiXTTS2Engine(**kwargs),
         )
         for adapter in adapters:
             self._engines[adapter.engine_id] = adapter

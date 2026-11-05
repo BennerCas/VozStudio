@@ -24,11 +24,16 @@ test-results/
 models_link/*
 !models_link/.gitkeep
 
-# Medios dinamicos generados y temporales
+# Medios dinamicos generados, perfil kiosko y ejecutables locales
 biblioteca/*.wav
 biblioteca/*.mp3
 biblioteca/*.ogg
 biblioteca/*.json
 !biblioteca/.gitkeep
+.kiosk_profile/
+logs/
+*.exe
+*.lnk
+scripts/launcher/*.ico
 *.tmp
 *.log

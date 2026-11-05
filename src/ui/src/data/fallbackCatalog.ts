@@ -51,6 +51,13 @@ export const ENGINE_TECHNICAL_SPECS: Record<string, EngineTechnicalSpec> = {
     defaultSampleRate: 24000,
     zeroShot: true,
   },
+  xtts_v2: {
+    architecture: 'GPT-2 Style AR + HiFi-GAN / DVAE',
+    precision: 'FP32 Inferencia Zero-Shot 6s',
+    runtimeBackend: 'PyTorch / XTTS Local Runtime',
+    defaultSampleRate: 24000,
+    zeroShot: true,
+  },
 };
 
 export const FALLBACK_SYSTEM_STATUS: SystemStatus = {
@@ -143,6 +150,18 @@ export const FALLBACK_ENGINES: EngineInfo[] = [
     availability_note: 'Enlazado en models_link/CosyVoice3-ONNX',
     voices_count: 3,
     description: 'Clonacion multilingue zero-shot e instruct a 24 kHz libre de PyTorch.',
+  },
+  {
+    id: 'xtts_v2',
+    name: 'Coqui XTTS-v2',
+    category: 'CLONACION ZERO-SHOT',
+    available: true,
+    active: false,
+    license: 'CPML-1.0.0 (Uso Personal)',
+    estimated_mb: 1870,
+    availability_note: 'Enlazado en models_link/XTTS-v2',
+    voices_count: 1,
+    description: 'Clonacion de voz zero-shot con 6 segundos de referencia.',
   },
 ];
 
@@ -455,6 +474,20 @@ export const FALLBACK_VOICES_BY_ENGINE: Record<string, VoiceInfo[]> = {
       sample_rate: 24000,
       quality: 'ZERO-SHOT',
       description: 'Adaptacion prosodica guiada por contexto e instrucciones.',
+      supports_cloning: true,
+      supports_emotion: true,
+    },
+  ],
+  xtts_v2: [
+    {
+      id: 'xtts_es_clone',
+      name: 'XTTS Clonacion Zero-Shot',
+      engine: 'xtts_v2',
+      region: 'MULTI',
+      gender: 'MIX',
+      sample_rate: 24000,
+      quality: 'STUDIO',
+      description: 'Clonacion zero-shot de alta fidelidad con 6 segundos de referencia.',
       supports_cloning: true,
       supports_emotion: true,
     },

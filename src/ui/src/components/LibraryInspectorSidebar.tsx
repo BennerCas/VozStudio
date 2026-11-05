@@ -94,7 +94,7 @@ export function LibraryInspectorSidebar({
         },
         {
           key: 'PARAMETROS',
-          value: `vel ${String(activeItem.parametros?.speed ?? 1.0)}x | ${String(activeItem.parametros?.emotion ?? 'neutro')}`,
+          value: `vel ${String(activeItem.parametros?.speed ?? 1.0)}x | ${String(activeItem.parametros?.emotion_prompt ?? activeItem.parametros?.emotion ?? 'neutro')}`,
         },
         { key: 'PROMPT', value: activeItem.prompt_original },
       ];

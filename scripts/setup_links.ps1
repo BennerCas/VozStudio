@@ -25,12 +25,17 @@ $ModelMappings = @(
     @{ Link = "vits-piper-es_AR-daniela-high";    Base = $BrainsSpace;  Target = "vits-piper-es_AR-daniela-high"; Required = $true  },
     @{ Link = "vits-piper-es_ES-carlfm-x_low";    Base = $BrainsSpace;  Target = "vits-piper-es_ES-carlfm-x_low"; Required = $true  },
     @{ Link = "vits-piper-es_ES-davefx-medium";   Base = $BrainsSpace;  Target = "vits-piper-es_ES-davefx-medium";Required = $true  },
+    @{ Link = "vits-piper-es_ES-mls_10246-low";   Base = $BrainsSpace;  Target = "vits-piper-es_ES-mls_10246-low";Required = $false },
+    @{ Link = "vits-piper-es_ES-mls_9972-low";    Base = $BrainsSpace;  Target = "vits-piper-es_ES-mls_9972-low"; Required = $false },
+    @{ Link = "vits-piper-es_ES-miro-high";       Base = $BrainsSpace;  Target = "vits-piper-es_ES-miro-high";    Required = $false },
     @{ Link = "vits-piper-es_ES-sharvard-medium"; Base = $BrainsSpace;  Target = "vits-piper-es_ES-sharvard-medium"; Required = $true },
     @{ Link = "vits-piper-es_MX-ald-medium";      Base = $BrainsSpace;  Target = "vits-piper-es_MX-ald-medium";   Required = $true  },
     @{ Link = "vits-piper-es_MX-claude-high";     Base = $BrainsSpace;  Target = "vits-piper-es_MX-claude-high";  Required = $true  },
     @{ Link = "mms-tts-spa";                      Base = $BrainsSpace;  Target = "mms-tts-spa";                   Required = $false },
+    @{ Link = "mms-tts-spa-onnx";                 Base = $BrainsSpace;  Target = "mms-tts-spa-onnx";              Required = $false },
     @{ Link = "F5-Spanish";                       Base = $BrainsSpace;  Target = "F5-Spanish";                    Required = $false },
     @{ Link = "styletts2-spanish-multispeaker";   Base = $BrainsSpace;  Target = "styletts2-spanish-multispeaker";Required = $false },
+    @{ Link = "XTTS-v2";                          Base = $BrainsSpace;  Target = "XTTS-v2";                       Required = $false },
     @{ Link = "MeloTTS-Spanish";                  Base = $BrainsSpace;  Target = "MeloTTS-Spanish";               Required = $false }
 )
 

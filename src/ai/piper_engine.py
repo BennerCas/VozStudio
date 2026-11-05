@@ -120,6 +120,42 @@ _PIPER_SPECS: tuple[_PiperVoiceSpec, ...] = (
         description="Voz castellana ultraligera de latencia minima (16 kHz).",
         speaker_id=None,
     ),
+    _PiperVoiceSpec(
+        voice_id="es_ES-miro-high",
+        name="Miro",
+        region="ES",
+        gender="M",
+        sample_rate=22050,
+        quality="high",
+        dir_name="vits-piper-es_ES-miro-high",
+        onnx_filename="es_ES-miro-high.onnx",
+        description="Voz castellana de alta definicion de la comunidad OpenVoiceOS.",
+        speaker_id=None,
+    ),
+    _PiperVoiceSpec(
+        voice_id="es_ES-mls_10246-low",
+        name="Marcos MLS",
+        region="ES",
+        gender="M",
+        sample_rate=16000,
+        quality="low",
+        dir_name="vits-piper-es_ES-mls_10246-low",
+        onnx_filename="es_ES-mls_10246-low.onnx",
+        description="Voz masculina castellana del corpus Multilingual LibriSpeech.",
+        speaker_id=None,
+    ),
+    _PiperVoiceSpec(
+        voice_id="es_ES-mls_9972-low",
+        name="Carmen MLS",
+        region="ES",
+        gender="F",
+        sample_rate=16000,
+        quality="low",
+        dir_name="vits-piper-es_ES-mls_9972-low",
+        onnx_filename="es_ES-mls_9972-low.onnx",
+        description="Voz femenina castellana del corpus Multilingual LibriSpeech.",
+        speaker_id=None,
+    ),
 )
 
 _PIPER_SPEC_MAP: dict[str, _PiperVoiceSpec] = {spec.voice_id: spec for spec in _PIPER_SPECS}
@@ -134,8 +170,8 @@ class PiperEngine(BaseTTSEngine):
     estimated_mb = 120.0
     license_name = "MIT"
     description = (
-        "Sintesis VITS ultrarrapida con 7 voces regionales reales para Mexico (MX), "
-        "Argentina (AR) y Espana (ES), incluyendo modelos multi-hablante."
+        "Sintesis VITS ultrarrapida con 10 voces regionales reales para Mexico (MX), "
+        "Argentina (AR) y Espana (ES), incluyendo modelos multi-hablante y alta definicion."
     )
 
     def __init__(

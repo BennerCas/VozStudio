@@ -27,6 +27,7 @@ function normalizeRegionBadge(region: string): string {
 
 function normalizeGenderBadge(gender: string): string {
   const upper = (gender || '').toUpperCase();
+  if (upper.includes('MIX')) return 'MIX';
   if (upper.startsWith('F') || upper.includes('FEM')) return 'FEM';
   return 'MASC';
 }

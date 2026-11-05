@@ -398,3 +398,150 @@ class F5SpanishEngine(BaseTTSEngine):
             f"jpgallegoar/F5-Spanish ({selected_id})",
             self._provider or "CPUExecutionProvider",
         )
+
+
+class CoquiXTTS2Engine(BaseTTSEngine):
+    """Adaptador opcional para Coqui XTTS-v2 (CPML-1.0.0, solo uso personal)."""
+
+    engine_id = "xtts_v2"
+    display_name = "Coqui XTTS-v2 Zero-Shot"
+    category = "clone"
+    estimated_mb = 1870.0
+    license_name = "CPML-1.0.0 (Uso Personal)"
+    description = (
+        "Clonacion de voz zero-shot y sintesis multilingue con 6 segundos de referencia (coqui/XTTS-v2)."
+    )
+
+    def __init__(
+        self,
+        models_link_dir: Path | None = None,
+        brains_dir: Path | None = None,
+    ) -> None:
+        self._models_link_dir = models_link_dir if models_link_dir is not None else MODELS_LINK_DIR
+        self._brains_dir = brains_dir if brains_dir is not None else BRAINS_SPACE_DIR
+        self._model: Any = None
+        self._provider: str | None = None
+
+    def resolve_model_dir(self) -> Path | None:
+        """Localiza el directorio de pesos de XTTS-v2 en models_link/ o Modelos -ai-brains/."""
+        for base in (self._models_link_dir, self._brains_dir):
+            candidate = base / "XTTS-v2"
+            if not candidate.is_dir():
+                continue
+            if (candidate / "model.pth").is_file() and (candidate / "config.json").is_file():
+                return candidate
+        return None
+
+    def is_available(self) -> bool:
+        """Retorna True si los pesos locales de XTTS-v2 estan presentes."""
+        return self.resolve_model_dir() is not None
+
+    def availability_note(self) -> str:
+        """Detalla el estado de instalacion local de XTTS-v2."""
+        model_dir = self.resolve_model_dir()
+        if model_dir is not None:
+            return f"Pesos locales de XTTS-v2 detectados en: {model_dir}"
+        target = self._brains_dir / "XTTS-v2"
+        return (
+            "Modulo opcional no descargado. Descargue 'coqui/XTTS-v2' en "
+            f"'{target}' y ejecute scripts/setup_links.ps1."
+        )
+
+    def get_voices(self) -> list[VoiceDescriptor]:
+        """Perfil zero-shot multilingue para clonacion en espanol con XTTS-v2."""
+        return [
+            VoiceDescriptor(
+                id="xtts_es_clone",
+                name="XTTS Clonacion Zero-Shot",
+                engine=self.engine_id,
+                region="MULTI",
+                gender="MIX",
+                sample_rate=24000,
+                quality="studio",
+                description="Clonacion de alta fidelidad a partir de un fragmento de audio de 6 segundos.",
+                supports_cloning=True,
+                supports_emotion=True,
+            )
+        ]
+
+    def load(self) -> str:
+        """Carga perezosa de los pesos de XTTS-v2 si la libreria TTS esta presente."""
+        if self._model is not None and self._provider is not None:
+            return self._provider
+
+        model_dir = self.resolve_model_dir()
+        if model_dir is None:
+            raise FileNotFoundError(self.availability_note())
+
+        try:
+            import torch
+            from TTS.tts.configs.xtts_config import XttsConfig  # type: ignore[import-not-found]
+            from TTS.tts.models.xtts import Xtts  # type: ignore[import-not-found]
+
+            torch.set_num_threads(max(1, int(CPU_THREADS)))
+            config = XttsConfig()
+            config.load_json(str(model_dir / "config.json"))
+            model = Xtts.init_from_config(config)
+            model.load_checkpoint(config, checkpoint_dir=str(model_dir), eval=True)
+            self._model = model
+            self._provider = "CPUExecutionProvider"
+            return self._provider
+        except Exception as exc:
+            raise RuntimeError(
+                f"Pesos de XTTS-v2 presentes pero el runtime TTS genero error: {exc}"
+            ) from exc
+
+    def unload(self) -> None:
+        """Libera XTTS-v2 de memoria."""
+        self._model = None
+        self._provider = None
+        gc.collect()
+
+    def synthesize_raw(
+        self,
+        chunks: list[str],
+        voice_id: str,
+        params: SynthesisParams,
+    ) -> tuple[list[np.ndarray], int, str, str]:
+        """Ejecuta sintesis por clonacion de voz con Coqui XTTS-v2."""
+        if self._model is None:
+            self.load()
+
+        ref_wav = params.reference_wav_path
+        if not ref_wav:
+            raise ValueError("XTTS-v2 requiere 'reference_wav_path' con audio de referencia.")
+        ref_path = Path(ref_wav)
+        if not ref_path.is_file():
+            raise FileNotFoundError(f"Audio de referencia no encontrado: {ref_path}")
+
+        gpt_cond_latent, speaker_embedding = self._model.get_conditioning_latents(
+            audio_path=[str(ref_path)]
+        )
+        safe_speed = float(np.clip(float(params.speed), 0.5, 2.0))
+        audio_arrays: list[np.ndarray] = []
+
+        for chunk in chunks:
+            clean = chunk.strip()
+            if not clean:
+                continue
+            out = self._model.inference(
+                clean,
+                "es",
+                gpt_cond_latent,
+                speaker_embedding,
+                speed=safe_speed,
+            )
+            arr = np.asarray(out.get("wav", []), dtype=np.float32).reshape(-1)
+            if arr.size > 0:
+                audio_arrays.append(np.clip(arr, -1.0, 1.0))
+
+        if not audio_arrays:
+            raise ValueError("XTTS-v2 no produjo muestras de audio.")
+
+        return (
+            audio_arrays,
+            24000,
+            f"coqui/XTTS-v2 ({voice_id})",
+            self._provider or "CPUExecutionProvider",
+        )
+

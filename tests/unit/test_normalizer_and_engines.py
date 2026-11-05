@@ -151,18 +151,20 @@ class TestEngineOrchestratorAndRealSynthesis:
 
         engines = orch.list_engines()
         engine_ids = [item["id"] for item in engines]
-        assert engine_ids == ["kokoro", "piper", "mms", "styletts2", "f5_spanish", "cosyvoice"]
+        assert engine_ids == ["kokoro", "piper", "mms", "styletts2", "f5_spanish", "cosyvoice", "xtts_v2"]
 
         by_id = {item["id"]: item for item in engines}
         assert by_id["kokoro"]["available"] is True
         assert by_id["kokoro"]["voices_count"] == 5
         assert by_id["piper"]["available"] is True
-        assert by_id["piper"]["voices_count"] == 7
+        assert by_id["piper"]["voices_count"] == 10
         assert by_id["cosyvoice"]["available"] is True
         assert by_id["cosyvoice"]["voices_count"] == 3
+        assert by_id["xtts_v2"]["available"] is True
+        assert by_id["xtts_v2"]["voices_count"] == 1
 
         all_voices = orch.list_voices()
-        assert len(all_voices) >= 18
+        assert len(all_voices) >= 20
         for voice in all_voices:
             assert voice.region in VALID_REGIONS
             assert all(ch.isalnum() or ch in ("_", "-") for ch in voice.id)

@@ -77,6 +77,13 @@ def create_app(
             raise HTTPException(status_code=404, detail=str(exc)) from exc
         return FileResponse(path=str(wav_path), media_type="audio/wav", filename=wav_path.name)
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    async def serve_favicon() -> Response:
+        favicon_file = PROJECT_ROOT / "src" / "ui" / "dist" / "favicon.ico"
+        if favicon_file.is_file():
+            return FileResponse(str(favicon_file), media_type="image/x-icon")
+        return Response(status_code=204)
+
     ui_dist = PROJECT_ROOT / "src" / "ui" / "dist"
     if ui_dist.is_dir() and (ui_dist / "index.html").is_file():
         assets_dir = ui_dist / "assets"
@@ -86,6 +93,8 @@ def create_app(
         @app.get("/", include_in_schema=False)
         async def serve_spa_index() -> FileResponse:
             return FileResponse(str(ui_dist / "index.html"))
+
+        app.mount("/", StaticFiles(directory=str(ui_dist), html=True), name="ui-spa")
 
     return app
 

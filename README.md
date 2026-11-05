@@ -33,7 +33,20 @@ Conforme a `ESTRUCTURA.md`:
 - `scripts/`: Automatizacion de enlaces, validacion cero-emoji, arranque y limpieza.
 - `docs/`: Documentacion de arquitectura y auditoria industrial.
 
-## Ejecucion Rapida
+## Lanzador Nativo Kiosk-WorkArea (Sin Consolas)
+
+Para una experiencia de escritorio nativa e inmersiva sin barras de navegador, consolas visibles ni anuncios de extensiones:
+
+1. **Doble clic en el acceso directo del Escritorio:** `VozStudio Omni-ES.lnk`
+2. **O ejecucion directa del binario nativo Win64:**
+   ```powershell
+   .\VozStudio-Omni-ES.exe
+   ```
+   - Inicia silenciosamente el backend FastAPI sobre `pythonw.exe` sin abrir ventanas de terminal.
+   - Despliega la interfaz de usuario en ventana independiente con modo aplicacion (`--app`), ocupando la pantalla completa respetando unicamente la barra de tareas de Windows.
+   - Al cerrar la ventana, se liberan automaticamente los recursos de inferencia y se detiene el proceso backend.
+
+## Ejecucion Rapida para Desarrollo
 
 1. Vincular modelos locales:
    ```powershell
@@ -44,7 +57,7 @@ Conforme a `ESTRUCTURA.md`:
    pytest tests/unit
    pwsh -File .\scripts\check_no_emoji.ps1
    ```
-3. Iniciar estacion completa (Backend + UI):
+3. Iniciar estacion completa en modo desarrollo:
    ```powershell
    pwsh -File .\scripts\start_dev.ps1
    ```

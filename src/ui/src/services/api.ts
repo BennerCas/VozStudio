@@ -127,10 +127,12 @@ export const studioApi = {
 
   async getLibrary(engineId: string = '', query: string = ''): Promise<LibraryItem[]> {
     const params = new URLSearchParams();
-    params.set('engine_id', engineId);
-    params.set('query', query);
+    if (engineId.trim()) params.set('engine_id', engineId.trim());
+    if (query.trim()) params.set('query', query.trim());
+    const qs = params.toString();
+    const url = qs ? `/api/v1/library?${qs}` : '/api/v1/library';
     const res = await fetchJson<{ items: LibraryItem[] }>(
-      `/api/v1/library?${params.toString()}`,
+      url,
       { method: 'GET' },
       5000,
     );

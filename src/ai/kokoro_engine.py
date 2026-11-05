@@ -20,6 +20,11 @@ KOKORO_SAMPLE_RATE = 24000
 
 _EMOTION_SPEED_FACTOR: dict[str, float] = {
     "neutral": 1.0,
+    "neutro": 1.0,
+    "narrativo": 0.96,
+    "calido": 0.94,
+    "informativo": 1.03,
+    "expresivo": 1.08,
     "alegre": 1.06,
     "calmo": 0.92,
     "energico": 1.12,

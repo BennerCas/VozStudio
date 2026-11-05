@@ -1,5 +1,5 @@
 export type RegionBadge = 'ES' | 'MX' | 'AR' | 'LATAM' | 'MULTI';
-export type GenderBadge = 'FEM' | 'MASC';
+export type GenderBadge = 'FEM' | 'MASC' | 'MIX';
 
 export interface HardwareMetrics {
   ram_total_gb: number;

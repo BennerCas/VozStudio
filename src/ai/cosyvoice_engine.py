@@ -52,6 +52,11 @@ _REQUIRED_ONNX_SPECS: dict[str, tuple[str, ...]] = {
 
 _EMOTION_PROFILES: dict[str, dict[str, float | int]] = {
     "neutral": {"sampling_k": 25, "speed_factor": 1.00, "gain": 1.00},
+    "neutro": {"sampling_k": 25, "speed_factor": 1.00, "gain": 1.00},
+    "narrativo": {"sampling_k": 20, "speed_factor": 0.96, "gain": 0.98},
+    "calido": {"sampling_k": 18, "speed_factor": 0.94, "gain": 0.97},
+    "informativo": {"sampling_k": 22, "speed_factor": 1.02, "gain": 1.00},
+    "expresivo": {"sampling_k": 30, "speed_factor": 1.05, "gain": 1.00},
     "alegre": {"sampling_k": 30, "speed_factor": 1.06, "gain": 1.00},
     "calmo": {"sampling_k": 16, "speed_factor": 0.92, "gain": 0.96},
     "energico": {"sampling_k": 32, "speed_factor": 1.10, "gain": 1.00},
@@ -247,15 +252,33 @@ class _CosyVoiceOnnxPipeline:
                     f"Archivo ONNX requerido '{candidates[0]}' ausente en {model_dir}"
                 )
 
-            if use_dml:
-                sess, _ = create_onnx_session_with_fallback(onnx_file, prefer_dml=True)
-            else:
-                cpu_opts = build_session_options(for_dml=False, cpu_threads=CPU_THREADS)
-                sess = ort.InferenceSession(
-                    str(onnx_file),
-                    sess_options=cpu_opts,
-                    providers=["CPUExecutionProvider"],
-                )
+            is_fp16_graph = "fp16" in onnx_file.name.lower()
+            try:
+                if use_dml and not is_fp16_graph:
+                    sess, _ = create_onnx_session_with_fallback(onnx_file, prefer_dml=True)
+                else:
+                    sess_opts = build_session_options(for_dml=use_dml, cpu_threads=CPU_THREADS)
+                    if is_fp16_graph:
+                        # Mitiga regresion ORT >= 1.19 en SimplifiedLayerNormFusion + InsertedPrecisionFreeCast
+                        sess_opts.graph_optimization_level = (
+                            ort.GraphOptimizationLevel.ORT_ENABLE_BASIC
+                        )
+                    providers: list[Any] = (
+                        [("DmlExecutionProvider", {"device_id": 0}), "CPUExecutionProvider"]
+                        if use_dml
+                        else ["CPUExecutionProvider"]
+                    )
+                    sess = ort.InferenceSession(
+                        str(onnx_file),
+                        sess_options=sess_opts,
+                        providers=providers,
+                    )
+            except Exception as exc:
+                self.close()
+                raise RuntimeError(
+                    f"Fallo al inicializar subgrafo CosyVoice3 '{onnx_file.name}' en "
+                    f"ONNX Runtime {ort.__version__}: {exc}"
+                ) from exc
             self.sessions[key] = sess
 
         return selected_provider

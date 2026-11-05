@@ -288,13 +288,21 @@ export function App() {
     const fullText = joinDocumentBlocks(cloneBlocks);
     if (!fullText || isCloning) return;
 
+    const availableCloneEngine =
+      engines.find((e) => (e.id === 'cosyvoice' || e.id === 'f5_spanish') && e.available)?.id ??
+      'cosyvoice';
+
     const targetEngine =
       selectedEngineId === 'f5_spanish' || selectedEngineId === 'cosyvoice'
         ? selectedEngineId
-        : 'f5_spanish';
+        : availableCloneEngine;
 
+    let cloneVoiceId: string | null = selectedVoice?.id ?? null;
     if (targetEngine !== selectedEngineId) {
       handleSelectEngine(targetEngine);
+      const targetVoices =
+        voicesByEngine[targetEngine] ?? FALLBACK_VOICES_BY_ENGINE[targetEngine] ?? [];
+      cloneVoiceId = targetVoices[0]?.id ?? null;
     }
 
     setIsCloning(true);
@@ -305,7 +313,7 @@ export function App() {
         const item = await studioApi.cloneVoice({
           text: fullText,
           engine_id: targetEngine,
-          voice_id: selectedVoice?.id ?? null,
+          voice_id: cloneVoiceId,
           reference_text: referenceText.trim(),
           speed,
           emotion,
