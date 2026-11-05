@@ -303,15 +303,62 @@ namespace VozStudioLauncher
         private static void EnsureProductionUiBuild(string projectRoot, string logFile)
         {
             string distIndex = Path.Combine(projectRoot, "src", "ui", "dist", "index.html");
-            if (File.Exists(distIndex)) return;
-
             string uiDir = Path.Combine(projectRoot, "src", "ui");
+            if (!NeedsProductionUiBuild(uiDir, distIndex)) return;
+
             string npmCmd = FindExecutableInPath("npm.cmd") ?? "npm.cmd";
-            LogLine(logFile, "Compilando bundle UI de produccion en modo oculto...");
-            RunHiddenProcessAndWait(npmCmd, "run build", uiDir, 90000);
+            LogLine(logFile, "Compilando bundle UI de produccion actualizado en modo oculto...");
+            int exitCode = RunHiddenProcessAndWait(npmCmd, "run build", uiDir, 90000);
+            if (exitCode != 0 || NeedsProductionUiBuild(uiDir, distIndex))
+            {
+                throw new InvalidOperationException("No se pudo actualizar el bundle de interfaz de VozStudio.");
+            }
         }
 
-        private static void RunHiddenProcessAndWait(string fileName, string arguments, string workDir, int timeoutMs)
+        private static bool NeedsProductionUiBuild(string uiDir, string distIndex)
+        {
+            if (!File.Exists(distIndex)) return true;
+
+            DateTime buildTimeUtc = File.GetLastWriteTimeUtc(distIndex);
+            string[] rootInputs = new string[]
+            {
+                Path.Combine(uiDir, "index.html"),
+                Path.Combine(uiDir, "package.json"),
+                Path.Combine(uiDir, "package-lock.json"),
+                Path.Combine(uiDir, "vite.config.ts")
+            };
+
+            foreach (string input in rootInputs)
+            {
+                if (File.Exists(input) && File.GetLastWriteTimeUtc(input) > buildTimeUtc)
+                {
+                    return true;
+                }
+            }
+
+            string sourceDir = Path.Combine(uiDir, "src");
+            if (!Directory.Exists(sourceDir)) return false;
+
+            try
+            {
+                foreach (string sourceFile in Directory.GetFiles(sourceDir, "*", SearchOption.AllDirectories))
+                {
+                    if (File.GetLastWriteTimeUtc(sourceFile) > buildTimeUtc)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Ante una lectura parcial, recompilar es mas seguro que abrir una UI desactualizada.
+                return true;
+            }
+
+            return false;
+        }
+
+        private static int RunHiddenProcessAndWait(string fileName, string arguments, string workDir, int timeoutMs)
         {
             ProcessStartInfo psi = new ProcessStartInfo
             {
@@ -324,10 +371,16 @@ namespace VozStudioLauncher
             };
             using (Process p = Process.Start(psi))
             {
-                if (p != null)
+                if (p == null)
                 {
-                    p.WaitForExit(timeoutMs);
+                    throw new InvalidOperationException("No se pudo iniciar el proceso requerido: " + fileName);
                 }
+                if (!p.WaitForExit(timeoutMs))
+                {
+                    try { p.Kill(); } catch { }
+                    throw new TimeoutException("El proceso excedio el tiempo permitido: " + fileName);
+                }
+                return p.ExitCode;
             }
         }
 
