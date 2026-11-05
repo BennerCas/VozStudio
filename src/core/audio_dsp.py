@@ -279,6 +279,177 @@ def apply_pitch_shift(
         return np.clip(shifted_fb, -1.0, 1.0)
 
 
+def biquad_peaking_filter(
+    samples: np.ndarray,
+    sample_rate: int,
+    center_freq_hz: float,
+    gain_db: float,
+    q: float = 2.0,
+) -> np.ndarray:
+    """Aplica un filtro ecualizador parametrico biquad IIR de segundo orden (Cookbook RBJ)."""
+    from scipy import signal as sp_signal
+
+    mono = _to_mono_float32(samples)
+    if mono.size < 4 or abs(gain_db) < 0.05:
+        return mono
+
+    fs = float(sample_rate)
+    f0 = float(np.clip(center_freq_hz, 20.0, fs * 0.48))
+    q_val = max(0.1, float(q))
+    A = 10.0 ** (float(gain_db) / 40.0)
+    w0 = 2.0 * np.pi * f0 / fs
+    alpha = np.sin(w0) / (2.0 * q_val)
+
+    b0 = 1.0 + alpha * A
+    b1 = -2.0 * np.cos(w0)
+    b2 = 1.0 - alpha * A
+    a0 = 1.0 + alpha / A
+    a1 = -2.0 * np.cos(w0)
+    a2 = 1.0 - alpha / A
+
+    b = np.array([b0 / a0, b1 / a0, b2 / a0], dtype=np.float64)
+    a = np.array([1.0, a1 / a0, a2 / a0], dtype=np.float64)
+
+    filtered = sp_signal.lfilter(b, a, mono)
+    return np.asarray(filtered, dtype=np.float32)
+
+
+def apply_soft_noise_gate(
+    samples: np.ndarray,
+    sample_rate: int,
+    threshold_db: float = -42.0,
+    floor_gain: float = 0.12,
+    frame_ms: float = 25.0,
+) -> np.ndarray:
+    """Aplica una compuerta de ruido suave (soft-knee gating) para atenuar fondo en pausas."""
+    mono = _to_mono_float32(samples)
+    if mono.size < 128:
+        return mono
+
+    fs = float(sample_rate)
+    frame_len = max(32, int(fs * frame_ms / 1000.0))
+    hop_len = max(16, frame_len // 2)
+
+    num_frames = max(1, (mono.size - frame_len) // hop_len + 1)
+    gain_curve = np.ones(mono.size, dtype=np.float32)
+
+    thresh_linear = float(10.0 ** (threshold_db / 20.0))
+    floor_linear = float(np.clip(floor_gain, 0.0, 1.0))
+
+    for i in range(num_frames):
+        start = i * hop_len
+        end = start + frame_len
+        chunk = mono[start:end]
+        rms = float(np.sqrt(np.mean(chunk * chunk) + 1e-12))
+        if rms < thresh_linear:
+            ratio = max(0.0, min(1.0, rms / thresh_linear))
+            g = floor_linear + (1.0 - floor_linear) * (ratio ** 2)
+            gain_curve[start:end] = np.minimum(gain_curve[start:end], g)
+
+    from scipy.ndimage import uniform_filter1d
+    smooth_gain = uniform_filter1d(gain_curve, size=max(3, hop_len))
+    return np.asarray(mono * np.clip(smooth_gain, floor_linear, 1.0), dtype=np.float32)
+
+
+def clean_vocal_audio(
+    samples: np.ndarray,
+    sample_rate: int,
+    *,
+    remove_noise: bool = True,
+    anti_nasal: bool = True,
+    de_esser: bool = True,
+    enhance_presence: bool = True,
+    target_peak: float = 0.89,
+    anti_nasal_freq_hz: float = 1050.0,
+    anti_nasal_gain_db: float = -4.5,
+) -> tuple[np.ndarray, dict[str, Any]]:
+    """Cadena integral de post-procesamiento acustico vocal (DSP) de grado estudio."""
+    from scipy import signal as sp_signal
+
+    mono = _to_mono_float32(samples)
+    orig_peak = float(np.max(np.abs(mono))) if mono.size > 0 else 0.0
+    filters_applied: list[str] = []
+
+    if mono.size == 0:
+        return (
+            mono,
+            {
+                "duracion_seg": 0.0,
+                "pico_original": 0.0,
+                "pico_final": 0.0,
+                "filtros_aplicados": [],
+                "snr_mejora_db": 0.0,
+            },
+        )
+
+    fs = max(1, int(sample_rate))
+    processed = mono.copy()
+
+    # 1. Filtro Pasa-Altos (High-Pass Butterworth a 75 Hz para retumbos y ruido electrico)
+    if remove_noise:
+        nyquist = fs * 0.5
+        hp_cutoff = min(75.0, nyquist * 0.4)
+        if hp_cutoff > 10.0:
+            sos = sp_signal.butter(2, hp_cutoff, btype="highpass", fs=fs, output="sos")
+            processed = sp_signal.sosfilt(sos, processed).astype(np.float32)
+            filters_applied.append(f"HPF {int(hp_cutoff)}Hz")
+
+        # Compuerta de ruido suave para silencios y pausas
+        processed = apply_soft_noise_gate(processed, fs, threshold_db=-42.0)
+        filters_applied.append("Noise-Gate -42dB")
+
+    # 2. Filtro Anti-Nasal Quirurgico (Biquad Peaking Notch en 1050 Hz, Q=2.0)
+    if anti_nasal:
+        processed = biquad_peaking_filter(
+            processed,
+            fs,
+            center_freq_hz=anti_nasal_freq_hz,
+            gain_db=anti_nasal_gain_db,
+            q=2.0,
+        )
+        filters_applied.append(f"Anti-Nasal {int(anti_nasal_freq_hz)}Hz ({anti_nasal_gain_db:.1f}dB)")
+
+    # 3. De-Esser (Atenuacion de consonantes sibilantes estridentes en 7000 Hz)
+    if de_esser and fs >= 16000:
+        processed = biquad_peaking_filter(
+            processed,
+            fs,
+            center_freq_hz=7000.0,
+            gain_db=-3.5,
+            q=2.5,
+        )
+        filters_applied.append("De-Esser 7kHz (-3.5dB)")
+
+    # 4. Realce de Articulacion y Presencia Vocal (Campana en 3200 Hz)
+    if enhance_presence and fs >= 8000:
+        processed = biquad_peaking_filter(
+            processed,
+            fs,
+            center_freq_hz=3200.0,
+            gain_db=1.2,
+            q=1.6,
+        )
+        filters_applied.append("Presencia Vocal 3.2kHz (+1.2dB)")
+
+    # 5. Normalizacion True-Peak (-1.0 dBFS) y Cero Offset DC
+    processed = remove_dc_and_normalize(processed, target_peak=target_peak, trim_silence=False)
+    filters_applied.append(f"Normalizacion -1dBFS (pico {target_peak:.2f})")
+
+    final_peak = float(np.max(np.abs(processed))) if processed.size > 0 else 0.0
+    duration_sec = float(processed.size) / float(fs)
+
+    # Estimacion SNR aproximada pre/post
+    metrics: dict[str, Any] = {
+        "duracion_seg": round(duration_sec, 2),
+        "pico_original": round(orig_peak, 4),
+        "pico_final": round(final_peak, 4),
+        "filtros_aplicados": filters_applied,
+        "sample_rate": fs,
+    }
+
+    return processed, metrics
+
+
 def _resolve_contained_path(base_dir: Path, filename: str) -> Path:
     """Verifica estrictamente que ``filename`` resuelva dentro de ``base_dir`` (OWASP Path Traversal)."""
     canonical_base = base_dir.resolve()

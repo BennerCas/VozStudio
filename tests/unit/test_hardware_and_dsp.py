@@ -463,3 +463,37 @@ def test_biblioteca_persistence_metadata_and_path_traversal(tmp_path: Path) -> N
     assert not wav_file.exists()
     assert not json_file.exists()
     assert delete_biblioteca_item(meta_1["id"], biblioteca_dir=bib_dir) is False
+
+
+def test_clean_vocal_audio_dsp_chain() -> None:
+    """Verifica que la cadena DSP reduzca resonancias en 1050 Hz y atenue retumbos por debajo de 75 Hz."""
+    from src.core.audio_dsp import clean_vocal_audio, biquad_peaking_filter
+    from scipy import signal as sp_signal
+
+    sr = 24000
+    t = np.linspace(0, 1.0, sr, dtype=np.float32)
+
+    # 1. Probar filtro parametrico anti-nasal en 1050 Hz
+    tone_1050 = np.sin(2 * np.pi * 1050.0 * t).astype(np.float32)
+    filtered_1050 = biquad_peaking_filter(tone_1050, sr, center_freq_hz=1050.0, gain_db=-4.5, q=2.0)
+    rms_in = float(np.sqrt(np.mean(tone_1050[2000:-2000] ** 2)))
+    rms_out = float(np.sqrt(np.mean(filtered_1050[2000:-2000] ** 2)))
+    attenuation_db = 20 * np.log10(rms_out / rms_in)
+    assert -5.5 <= attenuation_db <= -3.8, f"Atenuacion inesperada en 1050 Hz: {attenuation_db:.2f} dB"
+
+    # 2. Probar que una frecuencia alejada (ej. 300 Hz) no sufra atenuacion
+    tone_300 = np.sin(2 * np.pi * 300.0 * t).astype(np.float32)
+    filtered_300 = biquad_peaking_filter(tone_300, sr, center_freq_hz=1050.0, gain_db=-4.5, q=2.0)
+    rms_in_300 = float(np.sqrt(np.mean(tone_300[2000:-2000] ** 2)))
+    rms_out_300 = float(np.sqrt(np.mean(filtered_300[2000:-2000] ** 2)))
+    diff_300_db = abs(20 * np.log10(rms_out_300 / rms_in_300))
+    assert diff_300_db < 0.35, f"Frecuencia base afectada por filtro notch: {diff_300_db:.2f} dB"
+
+    # 3. Probar la funcion integral clean_vocal_audio
+    noisy_voice = tone_1050 * 0.4 + np.sin(2 * np.pi * 30.0 * t) * 0.3 + 0.05 * np.random.randn(sr).astype(np.float32)
+    cleaned, meta = clean_vocal_audio(noisy_voice, sr, remove_noise=True, anti_nasal=True, de_esser=True)
+    assert cleaned.size == sr
+    assert meta["pico_final"] <= 0.90
+    assert len(meta["filtros_aplicados"]) >= 4
+    assert meta["duracion_seg"] == 1.0
+

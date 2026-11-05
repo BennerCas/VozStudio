@@ -98,6 +98,37 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     assert r_del.status_code == 200
     assert r_del.json()["deleted"] is True
 
+    # 8. Cadena de limpieza acustica vocal DSP (/api/v1/dsp/clean-voice)
+    import io
+    import numpy as np
+    import soundfile as sf
+
+    sr = 24000
+    t = np.linspace(0, 1.5, int(sr * 1.5), dtype=np.float32)
+    # Senal sintetica con componente nasal (1050 Hz) y ruido
+    synthetic_voice = 0.5 * np.sin(2 * np.pi * 1050 * t) + 0.05 * np.random.randn(len(t)).astype(np.float32)
+    buf = io.BytesIO()
+    sf.write(buf, synthetic_voice, sr, format="WAV", subtype="PCM_16")
+    buf.seek(0)
+
+    r_clean = client.post(
+        "/api/v1/dsp/clean-voice",
+        files={"audio_file": ("test_mic.wav", buf.read(), "audio/wav")},
+        data={"remove_noise": "true", "anti_nasal": "true", "de_esser": "true"},
+    )
+    assert r_clean.status_code == 200
+    clean_body = r_clean.json()
+    assert "audio_url" in clean_body
+    assert clean_body["metrics"]["duracion_seg"] > 1.0
+    assert "Anti-Nasal 1050Hz (-4.5dB)" in clean_body["metrics"]["filtros_aplicados"]
+    assert clean_body["metrics"]["pico_final"] <= 0.90
+
+    # Descarga del audio limpio procesado
+    r_clean_wav = client.get(clean_body["audio_url"])
+    assert r_clean_wav.status_code == 200
+    assert r_clean_wav.content[:4] == b"RIFF"
+
+
     r_unload = client.post("/api/v1/engines/unload")
     assert r_unload.status_code == 200
     assert r_unload.json()["unloaded"] is True

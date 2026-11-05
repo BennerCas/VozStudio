@@ -124,6 +124,13 @@ for (const viewport of DESKTOP_RESOLUTIONS) {
     // 3. Conmutacion a Laboratorio Zero-Shot (sin modal) y retorno a Sintesis Directa
     await page.getByTestId('mode-tab-clone').click();
     await expect(page.getByTestId('clone-lab-panel')).toBeVisible();
+    await expect(page.getByTestId('ref-mode-mic-btn')).toBeVisible();
+    await expect(page.getByTestId('dsp-toggle-nasal')).toBeVisible();
+    await expect(page.getByTestId('apply-dsp-clean-btn')).toBeVisible();
+    await page.getByTestId('dsp-toggle-nasal').click();
+    await page.getByTestId('ref-mode-upload-btn').click();
+    await expect(page.getByTestId('upload-ref-wav-btn')).toBeVisible();
+    await page.getByTestId('ref-mode-mic-btn').click();
     await assertZeroEmojisInVisibleDom(page);
     await assertStrictZeroScroll(page, `${viewport.label} - Laboratorio Zero-Shot`);
 

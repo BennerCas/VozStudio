@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 import logging
+import os
 from pathlib import Path
+import re
 import tempfile
 from typing import Any
 
@@ -15,6 +18,7 @@ from starlette.concurrency import run_in_threadpool
 from src.ai.base_engine import SynthesisParams
 from src.ai.engine_factory import EngineOrchestrator, orchestrator as default_orchestrator
 from src.core.audio_dsp import (
+    clean_vocal_audio,
     delete_biblioteca_item,
     get_biblioteca_item,
     list_biblioteca,
@@ -33,6 +37,8 @@ from src.models.schemas import (
     SynthesizeRequest,
     SystemStatusResponse,
     VoiceInfoResponse,
+    VocalCleanMetricsResponse,
+    VocalCleanResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -298,5 +304,74 @@ def create_api_router(
                 detail=f"Elemento no encontrado en biblioteca: {item_id}",
             )
         return {"deleted": True, "id": item_id}
+
+    @router.post("/dsp/clean-voice", response_model=VocalCleanResponse)
+    async def clean_vocal_audio_endpoint(
+        audio_file: UploadFile = File(...),
+        remove_noise: bool = Form(default=True),
+        anti_nasal: bool = Form(default=True),
+        de_esser: bool = Form(default=True),
+        enhance_presence: bool = Form(default=True),
+        target_peak: float = Form(default=0.89),
+    ) -> VocalCleanResponse:
+        content = await audio_file.read(MAX_REFERENCE_WAV_BYTES + 1)
+        if len(content) > MAX_REFERENCE_WAV_BYTES:
+            raise HTTPException(
+                status_code=413,
+                detail="El archivo de audio excede el limite de 15 MB.",
+            )
+        if len(content) < 64:
+            raise HTTPException(
+                status_code=400,
+                detail="El archivo de audio esta vacio o truncado.",
+            )
+
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_in:
+            tmp_in.write(content)
+            tmp_in_path = Path(tmp_in.name)
+
+        try:
+            samples, sr = sf.read(str(tmp_in_path), dtype="float32")
+        except Exception as exc:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Formato de audio no valido: {exc}",
+            ) from exc
+        finally:
+            try:
+                tmp_in_path.unlink()
+            except OSError:
+                pass
+
+        cleaned, metrics = clean_vocal_audio(
+            samples,
+            sr,
+            remove_noise=remove_noise,
+            anti_nasal=anti_nasal,
+            de_esser=de_esser,
+            enhance_presence=enhance_presence,
+            target_peak=target_peak,
+        )
+
+        clean_cache_dir = target_bib / ".dsp_cache"
+        clean_cache_dir.mkdir(parents=True, exist_ok=True)
+        filename = f"clean_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{os.urandom(3).hex()}.wav"
+        out_path = clean_cache_dir / filename
+        sf.write(str(out_path), cleaned, sr, subtype="PCM_16")
+
+        return VocalCleanResponse(
+            audio_url=f"/api/v1/dsp/cleaned-audio/{filename}",
+            metrics=VocalCleanMetricsResponse(**metrics),
+        )
+
+    @router.get("/dsp/cleaned-audio/{filename}")
+    async def get_cleaned_audio(filename: str) -> FileResponse:
+        clean_cache_dir = target_bib / ".dsp_cache"
+        if not re.match(r"^clean_[0-9]{8}_[0-9]{6}_[a-f0-9]{6}\.wav$", filename):
+            raise HTTPException(status_code=400, detail="Nombre de archivo DSP invalido.")
+        candidate = (clean_cache_dir / filename).resolve()
+        if not candidate.is_file() or candidate.parent != clean_cache_dir.resolve():
+            raise HTTPException(status_code=404, detail="Audio procesado no encontrado.")
+        return FileResponse(path=str(candidate), media_type="audio/wav", filename=filename)
 
     return router

@@ -121,3 +121,21 @@ class SynthesisEnvelopeResponse(BaseModel):
     """Respuesta estandar tras generar y archivar audio."""
 
     item: LibraryItemResponse
+
+
+class VocalCleanMetricsResponse(BaseModel):
+    """Metricas de la limpieza acustica vocal DSP."""
+
+    duracion_seg: float
+    pico_original: float
+    pico_final: float
+    filtros_aplicados: list[str]
+    sample_rate: int
+
+
+class VocalCleanResponse(BaseModel):
+    """Respuesta del endpoint de limpieza acustica vocal."""
+
+    audio_url: str
+    metrics: VocalCleanMetricsResponse
+

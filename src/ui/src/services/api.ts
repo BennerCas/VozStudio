@@ -18,6 +18,20 @@ export class ApiError extends Error {
   }
 }
 
+export interface VocalCleanMetrics {
+  duracion_seg: number;
+  pico_original: number;
+  pico_final: number;
+  filtros_aplicados: string[];
+  sample_rate: number;
+}
+
+export interface VocalCleanResult {
+  audio_url: string;
+  metrics: VocalCleanMetrics;
+}
+
+
 async function fetchJson<T>(
   input: string,
   init?: RequestInit,
@@ -152,6 +166,34 @@ export const studioApi = {
       '/api/v1/engines/unload',
       { method: 'POST' },
       8000,
+    );
+  },
+
+  async cleanVocalAudio(
+    audioFile: File | Blob,
+    options: {
+      removeNoise?: boolean;
+      antiNasal?: boolean;
+      deEsser?: boolean;
+      enhancePresence?: boolean;
+      targetPeak?: number;
+    } = {},
+  ): Promise<VocalCleanResult> {
+    const formData = new FormData();
+    formData.append('audio_file', audioFile, 'sample.wav');
+    formData.append('remove_noise', String(options.removeNoise ?? true));
+    formData.append('anti_nasal', String(options.antiNasal ?? true));
+    formData.append('de_esser', String(options.deEsser ?? true));
+    formData.append('enhance_presence', String(options.enhancePresence ?? true));
+    formData.append('target_peak', String(options.targetPeak ?? 0.89));
+
+    return fetchJson<VocalCleanResult>(
+      '/api/v1/dsp/clean-voice',
+      {
+        method: 'POST',
+        body: formData,
+      },
+      30000,
     );
   },
 };
