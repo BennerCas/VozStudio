@@ -568,3 +568,78 @@ export const PRESET_SCRIPTS: Array<{ id: string; label: string; text: string }> 
     text: '¿Escuchas esa resonancia limpia en la sala de control? ¡Cada silaba conserva su cadencia natural, respetando las pausas respiratorias y los matices propios de nuestra lengua!',
   },
 ];
+
+export interface CalibrationScript {
+  id: string;
+  category: 'fonetico' | 'narrativo' | 'comercial' | 'conversacional' | 'corporativo' | 'intimo';
+  label: string;
+  tag: string;
+  durationEst: string;
+  tone: string;
+  text: string;
+  tip: string;
+}
+
+export const CLONING_CALIBRATION_SCRIPTS: CalibrationScript[] = [
+  {
+    id: 'pangrama_fonetico',
+    category: 'fonetico',
+    label: 'Pangrama Fonetico',
+    tag: 'COBERTURA TOTAL',
+    durationEst: '8-10s',
+    tone: 'Neutro y Articulado',
+    text: 'El veloz murcielago hindu comia feliz cardillo y kiwi; la cigueña tocaba el saxofon detras del palenque de paja, exigiendo un ritmo exacto y brillante.',
+    tip: 'Pronuncie con diccion clara y velocidad media para capturar todos los fonemas y diptongos del espanol.',
+  },
+  {
+    id: 'narrativa_calida',
+    category: 'narrativo',
+    label: 'Narrativa Calida',
+    tag: 'AUDIOLIBRO / ENSAYO',
+    durationEst: '10-12s',
+    tone: 'Pausado y Reflexivo',
+    text: 'Al caer la tarde sobre el valle, el silencio revelaba antiguos secretos olvidados entre los robles; una leve brisa susurraba historias que el tiempo nunca logro borrar.',
+    tip: 'Respire con calma y enfatice las vocales medias y graves con cadencia pausada.',
+  },
+  {
+    id: 'conversacional_humano',
+    category: 'conversacional',
+    label: 'Conversacional Natural',
+    tag: 'PODCAST / DIALOGO',
+    durationEst: '9-11s',
+    tone: 'Espontaneo y Cercano',
+    text: '¿Te has fijado en lo rapido que pasa el dia cuando estas concentrado? A veces basta una buena conversacion y un cafe caliente para cambiarlo todo por completo.',
+    tip: 'Lea con tono amistoso, sonrisa vocal e inflexion interrogativa natural al inicio.',
+  },
+  {
+    id: 'comercial_energico',
+    category: 'comercial',
+    label: 'Comercial Dinamico',
+    tag: 'PUBLICIDAD / SPOT',
+    durationEst: '7-9s',
+    tone: 'Brillante y Seguro',
+    text: '¡Descubre una forma completamente nueva de crear contenido! Mas rapido, con potencia absoluta y sin limites tecnicos en tu flujo de trabajo diario.',
+    tip: 'Proyecte la voz hacia adelante con energia diafragmatica y tempo vivo.',
+  },
+  {
+    id: 'corporativo_firme',
+    category: 'corporativo',
+    label: 'Corporativo Formal',
+    tag: 'EJECUTIVO / NOTICIA',
+    durationEst: '9-11s',
+    tone: 'Autoridad y Aplomo',
+    text: 'La innovacion constante y el analisis riguroso de cada dato definen el rumbo estrategico hacia resultados solidos, sostenibles y confiables para el futuro.',
+    tip: 'Mantenga estabilidad timbrica, registro medio-grave y cierre asertivo.',
+  },
+  {
+    id: 'intimo_susurrado',
+    category: 'intimo',
+    label: 'Intimo y Serenidad',
+    tag: 'MEDITACION / PROXIMIDAD',
+    durationEst: '8-10s',
+    tone: 'Cercano y Suave',
+    text: 'Respira hondo y date este momento de calma; no hay prisa alguna, todo encaja con perfecta serenidad cuando escuchas tu propia voz interior.',
+    tip: 'Acerquese al microfono a 10 cm y proyecte con calidez y presencia armonica.',
+  },
+];
+

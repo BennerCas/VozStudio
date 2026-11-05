@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { CLONING_CALIBRATION_SCRIPTS, type CalibrationScript } from '../data/fallbackCatalog';
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder';
 import { AnimatedIcon } from '../icons/AnimatedIcon';
 import { studioApi } from '../services/api';
@@ -44,6 +45,7 @@ export function CloneLabPanel({
 }: CloneLabPanelProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [refSourceMode, setRefSourceMode] = useState<'upload' | 'mic'>('mic');
+  const [activeScriptId, setActiveScriptId] = useState<string>('pangrama_fonetico');
   const [isCleaning, setIsCleaning] = useState<boolean>(false);
   const [dspFeedback, setDspFeedback] = useState<string | null>(null);
   const [cleanNoise, setCleanNoise] = useState<boolean>(true);
@@ -69,17 +71,29 @@ export function CloneLabPanel({
     [cloneBlocks],
   );
 
+  const selectedScript = useMemo(
+    () => CLONING_CALIBRATION_SCRIPTS.find((s) => s.id === activeScriptId) ?? CLONING_CALIBRATION_SCRIPTS[0],
+    [activeScriptId],
+  );
+
+  // Inicializar transcripcion de referencia con el guion activo si el campo esta vacio
+  useEffect(() => {
+    if (!referenceText.trim() && selectedScript) {
+      onReferenceTextChange(selectedScript.text);
+    }
+  }, [selectedScript, referenceText, onReferenceTextChange]);
+
+  const handleSelectScript = (script: CalibrationScript) => {
+    setActiveScriptId(script.id);
+    onReferenceTextChange(script.text);
+  };
+
   // Cuando el microfono termina de grabar, asignar el archivo WAV generado como referencia
   useEffect(() => {
     if (recorder.recordedFile && refSourceMode === 'mic') {
       onReferenceFileChange(recorder.recordedFile);
-      if (!referenceText.trim()) {
-        onReferenceTextChange(
-          'Esta grabacion sirve como patron timbrico de referencia en espanol para transferencia vocal.',
-        );
-      }
     }
-  }, [recorder.recordedFile, refSourceMode, onReferenceFileChange, referenceText, onReferenceTextChange]);
+  }, [recorder.recordedFile, refSourceMode, onReferenceFileChange]);
 
   const handleApplyDspClean = async () => {
     if (!referenceFile || isCleaning) return;
@@ -95,7 +109,6 @@ export function CloneLabPanel({
         targetPeak: 0.89,
       });
 
-      // Descargar el WAV limpio procesado para actualizar la referencia local
       const res = await fetch(result.audio_url);
       const blob = await res.blob();
       const cleanedFile = new File([blob], `limpio_${referenceFile.name}`, {
@@ -119,11 +132,11 @@ export function CloneLabPanel({
 
   return (
     <div
-      className="flex h-full min-h-0 min-w-0 flex-col justify-between gap-[0.5cqh] overflow-hidden"
+      className="flex h-full min-h-0 min-w-0 flex-col justify-between gap-[0.45cqh] overflow-hidden"
       data-testid="clone-lab-panel"
     >
       {/* Cabecera de Estado Zero-Shot */}
-      <div className="flex shrink-0 items-center justify-between gap-[0.45cqw] rounded-[0.5cqh] border border-amber-400/25 bg-amber-500/8 px-[0.6cqw] py-[0.3cqh]">
+      <div className="flex shrink-0 items-center justify-between gap-[0.45cqw] rounded-[0.5cqh] border border-amber-400/25 bg-amber-500/8 px-[0.6cqw] py-[0.25cqh]">
         <div className="flex min-w-0 items-center gap-[0.35cqw]">
           <AnimatedIcon
             name="fingerprint"
@@ -138,14 +151,14 @@ export function CloneLabPanel({
           </span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-[0.25cqw]">
+        <div className="flex shrink-0 items-center gap-[0.22cqw]">
           {(['f5_spanish', 'cosyvoice', 'xtts_v2', 'qwen3_tts'] as const).map((eng) => (
             <button
               key={eng}
               type="button"
               data-testid={`switch-${eng}-btn`}
               onClick={() => onSwitchToCloningEngine(eng)}
-              className={`rounded-[0.35cqh] border px-[0.42cqw] py-[0.16cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,11px)] font-semibold transition ${
+              className={`rounded-[0.35cqh] border px-[0.42cqw] py-[0.14cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,11px)] font-semibold transition ${
                 selectedEngineId === eng
                   ? 'border-amber-300 bg-amber-400/25 text-amber-100'
                   : 'border-sky-400/20 bg-slate-900/80 text-slate-300 hover:border-amber-400/50'
@@ -163,20 +176,74 @@ export function CloneLabPanel({
         </div>
       </div>
 
-      {/* Fila 2: Grabacion de Microfono / Carga WAV y Cadena DSP */}
-      <div className="grid shrink-0 grid-cols-12 gap-[0.5cqw]">
+      {/* Selector de Guiones de Calibracion Fonetica y Tonal */}
+      <div className="flex shrink-0 items-center justify-between gap-[0.35cqw] rounded-[0.45cqh] border border-sky-400/20 bg-slate-950/70 px-[0.55cqw] py-[0.22cqh]">
+        <div className="flex min-w-0 items-center gap-[0.25cqw] overflow-hidden">
+          <AnimatedIcon name="book-open" className="text-cyan-300 shrink-0" />
+          <span className="font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold text-slate-300 shrink-0">
+            GUIONES DE CALIBRACION:
+          </span>
+          <div className="flex items-center gap-[0.2cqw] overflow-hidden">
+            {CLONING_CALIBRATION_SCRIPTS.map((script) => {
+              const active = activeScriptId === script.id;
+              return (
+                <button
+                  key={script.id}
+                  type="button"
+                  data-testid={`script-btn-${script.id}`}
+                  onClick={() => handleSelectScript(script)}
+                  title={`${script.tone} (${script.durationEst}) - ${script.tip}`}
+                  className={`rounded-[0.3cqh] border px-[0.38cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-medium transition whitespace-nowrap ${
+                    active
+                      ? 'border-cyan-400/80 bg-cyan-400/22 text-cyan-200'
+                      : 'border-sky-400/15 bg-slate-900/80 text-slate-400 hover:border-sky-400/40 hover:text-slate-200'
+                  }`}
+                >
+                  {script.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {selectedScript && (
+          <div className="flex shrink-0 items-center gap-[0.22cqw]">
+            <span className="badge-chip badge-cyan">{selectedScript.durationEst}</span>
+            <span className="badge-chip badge-amber">{selectedScript.tone}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Caja de Teleprompter con el texto a leer en voz alta */}
+      {selectedScript && (
+        <div
+          data-testid="teleprompter-box"
+          className="shrink-0 rounded-[0.4cqh] border border-cyan-400/30 bg-cyan-950/25 px-[0.55cqw] py-[0.22cqh]"
+        >
+          <div className="flex items-center justify-between text-[clamp(7px,0.76cqh,10px)] text-cyan-300 font-mono-tech mb-[0.1cqh]">
+            <span>LEER EN VOZ ALTA MIENTRAS GRABA:</span>
+            <span className="text-slate-400 truncate ml-2">{selectedScript.tip}</span>
+          </div>
+          <p className="text-[clamp(8px,0.92cqh,11.5px)] font-medium text-slate-100 italic leading-snug">
+            "{selectedScript.text}"
+          </p>
+        </div>
+      )}
+
+      {/* Fila: Grabacion de Microfono / Carga WAV y Transcripcion */}
+      <div className="grid shrink-0 grid-cols-12 gap-[0.45cqw]">
         {/* Modulo Semilla: Grabar en Vivo o Cargar Archivo */}
-        <div className="col-span-6 flex min-w-0 flex-col justify-between rounded-[0.55cqh] border border-sky-400/20 bg-slate-950/65 p-[0.4cqh_0.5cqw]">
+        <div className="col-span-6 flex min-w-0 flex-col justify-between rounded-[0.5cqh] border border-sky-400/20 bg-slate-950/65 p-[0.35cqh_0.45cqw]">
           <div className="flex items-center justify-between">
-            <span className="font-mono-tech text-[clamp(7.5px,0.85cqh,11px)] text-[var(--text-muted)]">
-              SEMILLA VOCAL (MICROFONO O WAV)
+            <span className="font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] text-[var(--text-muted)]">
+              SEMILLA VOCAL
             </span>
             <div className="flex items-center gap-[0.2cqw]">
               <button
                 type="button"
                 data-testid="ref-mode-mic-btn"
                 onClick={() => setRefSourceMode('mic')}
-                className={`rounded px-[0.4cqw] py-[0.1cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold transition ${
+                className={`rounded px-[0.35cqw] py-[0.08cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-semibold transition ${
                   refSourceMode === 'mic'
                     ? 'border border-cyan-400/70 bg-cyan-400/20 text-cyan-200'
                     : 'text-slate-400 hover:text-slate-200'
@@ -188,7 +255,7 @@ export function CloneLabPanel({
                 type="button"
                 data-testid="ref-mode-upload-btn"
                 onClick={() => setRefSourceMode('upload')}
-                className={`rounded px-[0.4cqw] py-[0.1cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold transition ${
+                className={`rounded px-[0.35cqw] py-[0.08cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-semibold transition ${
                   refSourceMode === 'upload'
                     ? 'border border-cyan-400/70 bg-cyan-400/20 text-cyan-200'
                     : 'text-slate-400 hover:text-slate-200'
@@ -199,37 +266,35 @@ export function CloneLabPanel({
             </div>
           </div>
 
-          {/* Area Interactiva segun modo */}
-          <div className="mt-[0.25cqh] flex min-w-0 items-center justify-between gap-[0.35cqw]">
+          <div className="mt-[0.2cqh] flex min-w-0 items-center justify-between gap-[0.3cqw]">
             {refSourceMode === 'mic' ? (
-              <div className="flex min-w-0 flex-1 items-center gap-[0.35cqw]">
+              <div className="flex min-w-0 flex-1 items-center gap-[0.3cqw]">
                 {!recorder.isRecording ? (
                   <button
                     type="button"
                     data-testid="start-mic-record-btn"
                     onClick={() => void recorder.startRecording()}
-                    className="flex min-w-0 flex-1 items-center justify-center gap-[0.3cqw] rounded-[0.4cqh] border border-rose-400/50 bg-rose-500/15 px-[0.45cqw] py-[0.25cqh] tx-xs font-semibold text-rose-200 transition hover:bg-rose-500/25"
+                    className="flex min-w-0 flex-1 items-center justify-center gap-[0.28cqw] rounded-[0.4cqh] border border-rose-400/50 bg-rose-500/15 px-[0.45cqw] py-[0.22cqh] tx-xs font-semibold text-rose-200 transition hover:bg-rose-500/25"
                   >
                     <AnimatedIcon name="mic" variant="pulse" trigger="hover" className="text-rose-400" />
-                    <span>{referenceFile ? 'Regrabar Voz en Vivo' : 'Grabar Voz en Vivo (15s)'}</span>
+                    <span>{referenceFile ? 'Regrabar Toma' : 'Grabar Voz en Vivo (15s)'}</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     data-testid="stop-mic-record-btn"
                     onClick={recorder.stopRecording}
-                    className="flex min-w-0 flex-1 items-center justify-center gap-[0.3cqw] rounded-[0.4cqh] border border-rose-400 bg-rose-600 px-[0.45cqw] py-[0.25cqh] tx-xs font-bold text-slate-950 transition animate-pulse"
+                    className="flex min-w-0 flex-1 items-center justify-center gap-[0.28cqw] rounded-[0.4cqh] border border-rose-400 bg-rose-600 px-[0.45cqw] py-[0.22cqh] tx-xs font-bold text-slate-950 transition animate-pulse"
                   >
                     <AnimatedIcon name="square" variant="none" className="text-slate-950" />
                     <span>Detener REC ({recorder.durationSec.toFixed(1)}s / 15s)</span>
                   </button>
                 )}
 
-                {/* Vumetro Reactivo durante grabacion */}
                 {recorder.isRecording && (
                   <div
                     aria-label="Medidor de nivel de voz"
-                    className="h-[1.8cqh] w-[4.5cqw] shrink-0 overflow-hidden rounded-[0.3cqh] border border-sky-400/30 bg-slate-900"
+                    className="h-[1.6cqh] w-[4.2cqw] shrink-0 overflow-hidden rounded-[0.3cqh] border border-sky-400/30 bg-slate-900"
                   >
                     <div
                       className="h-full bg-gradient-to-r from-emerald-400 via-cyan-400 to-amber-400 transition-all duration-75"
@@ -238,13 +303,12 @@ export function CloneLabPanel({
                   </div>
                 )}
 
-                {/* Boton Reproducir muestra capturada */}
                 {referenceFile && !recorder.isRecording && (
                   <button
                     type="button"
                     data-testid="play-recorded-btn"
                     onClick={() => (recorder.isPlaying ? recorder.stopPlayback() : recorder.playRecorded())}
-                    className="flex items-center gap-[0.25cqw] rounded-[0.4cqh] border border-cyan-400/40 bg-cyan-500/15 px-[0.45cqw] py-[0.25cqh] tx-xs font-semibold text-cyan-200 transition hover:bg-cyan-500/25"
+                    className="flex items-center gap-[0.22cqw] rounded-[0.4cqh] border border-cyan-400/40 bg-cyan-500/15 px-[0.4cqw] py-[0.22cqh] tx-xs font-semibold text-cyan-200 transition hover:bg-cyan-500/25"
                   >
                     <AnimatedIcon
                       name={recorder.isPlaying ? 'pause' : 'play'}
@@ -255,7 +319,7 @@ export function CloneLabPanel({
                 )}
               </div>
             ) : (
-              <div className="flex min-w-0 flex-1 items-center gap-[0.35cqw]">
+              <div className="flex min-w-0 flex-1 items-center gap-[0.3cqw]">
                 <input
                   ref={fileInputRef}
                   type="file"
@@ -270,7 +334,7 @@ export function CloneLabPanel({
                   type="button"
                   data-testid="upload-ref-wav-btn"
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex min-w-0 flex-1 items-center justify-center gap-[0.35cqw] rounded-[0.4cqh] border border-cyan-400/35 bg-cyan-500/12 px-[0.5cqw] py-[0.28cqh] tx-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20"
+                  className="flex min-w-0 flex-1 items-center justify-center gap-[0.3cqw] rounded-[0.4cqh] border border-cyan-400/35 bg-cyan-500/12 px-[0.45cqw] py-[0.25cqh] tx-xs font-medium text-cyan-200 transition hover:bg-cyan-500/20"
                 >
                   <AnimatedIcon name="upload" variant="bounce" trigger="hover" />
                   <span className="truncate">
@@ -282,7 +346,7 @@ export function CloneLabPanel({
                     type="button"
                     onClick={() => onReferenceFileChange(null)}
                     aria-label="Quitar audio de referencia"
-                    className="rounded border border-slate-700 px-[0.35cqw] py-[0.24cqh] tx-xs text-slate-400 hover:text-amber-300"
+                    className="rounded border border-slate-700 px-[0.3cqw] py-[0.2cqh] tx-xs text-slate-400 hover:text-amber-300"
                   >
                     Quitar
                   </button>
@@ -292,18 +356,18 @@ export function CloneLabPanel({
           </div>
         </div>
 
-        {/* Modulo Transcripcion y Barra de Limpieza DSP */}
-        <div className="col-span-6 flex min-w-0 flex-col justify-between rounded-[0.55cqh] border border-sky-400/20 bg-slate-950/65 p-[0.4cqh_0.5cqw]">
+        {/* Modulo Transcripcion Fiel */}
+        <div className="col-span-6 flex min-w-0 flex-col justify-between rounded-[0.5cqh] border border-sky-400/20 bg-slate-950/65 p-[0.35cqh_0.45cqw]">
           <div className="flex items-center justify-between">
             <label
               htmlFor="clone-ref-text"
-              className="font-mono-tech text-[clamp(7.5px,0.85cqh,11px)] text-[var(--text-muted)] truncate"
+              className="font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] text-[var(--text-muted)] truncate"
             >
-              TRANSCRIPCION DEL AUDIO DE REFERENCIA
+              TRANSCRIPCION DEL AUDIO
             </label>
             {referenceFile && (
-              <span className="font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] text-cyan-300">
-                {referenceFile.name.slice(0, 24)}
+              <span className="font-mono-tech text-[clamp(7px,0.78cqh,10px)] text-cyan-300 truncate">
+                {referenceFile.name.slice(0, 20)}
               </span>
             )}
           </div>
@@ -312,19 +376,19 @@ export function CloneLabPanel({
             id="clone-ref-text"
             type="text"
             data-testid="clone-reference-text"
-            maxLength={200}
+            maxLength={250}
             value={referenceText}
             onChange={(e) => onReferenceTextChange(e.target.value)}
-            placeholder="Escriba lo que dice el audio de referencia..."
-            className="mt-[0.2cqh] w-full rounded-[0.4cqh] border border-sky-400/20 bg-slate-900/90 px-[0.45cqw] py-[0.22cqh] tx-xs text-slate-100"
+            placeholder="Texto exacto pronunciado en el audio..."
+            className="mt-[0.18cqh] w-full rounded-[0.4cqh] border border-sky-400/20 bg-slate-900/90 px-[0.4cqw] py-[0.2cqh] tx-xs text-slate-100"
           />
         </div>
       </div>
 
       {/* Barra de Herramientas DSP: Limpiar Audio (Ruido, Anti-Nasal, De-Esser) */}
-      <div className="flex shrink-0 items-center justify-between gap-[0.4cqw] rounded-[0.5cqh] border border-cyan-400/25 bg-slate-950/80 px-[0.6cqw] py-[0.3cqh]">
-        <div className="flex min-w-0 items-center gap-[0.35cqw]">
-          <span className="font-mono-tech text-[clamp(7.5px,0.85cqh,11px)] font-semibold text-slate-300 shrink-0">
+      <div className="flex shrink-0 items-center justify-between gap-[0.35cqw] rounded-[0.45cqh] border border-cyan-400/25 bg-slate-950/80 px-[0.55cqw] py-[0.22cqh]">
+        <div className="flex min-w-0 items-center gap-[0.3cqw]">
+          <span className="font-mono-tech text-[clamp(7px,0.82cqh,10.5px)] font-semibold text-slate-300 shrink-0">
             TRATAMIENTO ACUSTICO:
           </span>
 
@@ -332,7 +396,7 @@ export function CloneLabPanel({
             type="button"
             data-testid="dsp-toggle-noise"
             onClick={() => setCleanNoise(!cleanNoise)}
-            className={`rounded px-[0.4cqw] py-[0.12cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold transition ${
+            className={`rounded px-[0.35cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-semibold transition ${
               cleanNoise
                 ? 'border border-cyan-400/60 bg-cyan-500/20 text-cyan-200'
                 : 'border border-slate-700/60 bg-slate-900 text-slate-400'
@@ -345,7 +409,7 @@ export function CloneLabPanel({
             type="button"
             data-testid="dsp-toggle-nasal"
             onClick={() => setCleanNasal(!cleanNasal)}
-            className={`rounded px-[0.4cqw] py-[0.12cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold transition ${
+            className={`rounded px-[0.35cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-semibold transition ${
               cleanNasal
                 ? 'border border-cyan-400/60 bg-cyan-500/20 text-cyan-200'
                 : 'border border-slate-700/60 bg-slate-900 text-slate-400'
@@ -358,7 +422,7 @@ export function CloneLabPanel({
             type="button"
             data-testid="dsp-toggle-deesser"
             onClick={() => setCleanDeEsser(!cleanDeEsser)}
-            className={`rounded px-[0.4cqw] py-[0.12cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] font-semibold transition ${
+            className={`rounded px-[0.35cqw] py-[0.1cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] font-semibold transition ${
               cleanDeEsser
                 ? 'border border-cyan-400/60 bg-cyan-500/20 text-cyan-200'
                 : 'border border-slate-700/60 bg-slate-900 text-slate-400'
@@ -373,7 +437,7 @@ export function CloneLabPanel({
           disabled={!referenceFile || isCleaning}
           data-testid="apply-dsp-clean-btn"
           onClick={() => void handleApplyDspClean()}
-          className="flex items-center gap-[0.3cqw] rounded-[0.4cqh] border border-cyan-300/70 bg-gradient-to-r from-cyan-400/25 to-sky-400/25 px-[0.6cqw] py-[0.25cqh] tx-xs font-semibold text-cyan-100 transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-40"
+          className="flex items-center gap-[0.25cqw] rounded-[0.4cqh] border border-cyan-300/70 bg-gradient-to-r from-cyan-400/25 to-sky-400/25 px-[0.55cqw] py-[0.22cqh] tx-xs font-semibold text-cyan-100 transition hover:brightness-125 disabled:cursor-not-allowed disabled:opacity-40"
         >
           <AnimatedIcon
             name={isCleaning ? 'loader' : 'wand'}
@@ -384,18 +448,18 @@ export function CloneLabPanel({
         </button>
       </div>
 
-      {/* Notificacion de retroalimentacion DSP discreta si existe */}
+      {/* Retroalimentacion DSP discreta */}
       {dspFeedback && (
         <div
           data-testid="dsp-feedback-banner"
-          className="shrink-0 truncate rounded-[0.4cqh] border border-sky-400/20 bg-slate-900/90 px-[0.5cqw] py-[0.15cqh] font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] text-cyan-200"
+          className="shrink-0 truncate rounded-[0.4cqh] border border-sky-400/20 bg-slate-900/90 px-[0.5cqw] py-[0.12cqh] font-mono-tech text-[clamp(7px,0.78cqh,10px)] text-cyan-200"
         >
           {dspFeedback}
         </div>
       )}
 
       {/* Texto Objetivo a Clonar con Chips sin Scroll */}
-      <div className="flex min-h-0 flex-1 flex-col gap-[0.3cqh] overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-[0.25cqh] overflow-hidden">
         <div className="flex shrink-0 items-center justify-between tx-xs">
           <div className="flex items-center gap-[0.3cqw] overflow-hidden">
             <span className="font-semibold text-slate-300">Texto Objetivo:</span>
@@ -404,7 +468,7 @@ export function CloneLabPanel({
                 key={idx}
                 type="button"
                 onClick={() => onSelectCloneBlock(idx)}
-                className={`rounded border px-[0.42cqw] py-[0.12cqh] font-mono-tech text-[clamp(8px,0.9cqh,11.5px)] ${
+                className={`rounded border px-[0.38cqw] py-[0.1cqh] font-mono-tech text-[clamp(7.5px,0.85cqh,11px)] ${
                   idx === safeIdx
                     ? 'border-amber-400/75 bg-amber-400/20 text-amber-200'
                     : 'border-sky-400/15 bg-slate-900 text-slate-400'
@@ -434,7 +498,7 @@ export function CloneLabPanel({
       </div>
 
       {/* Barra Inferior de Ejecucion Zero-Shot */}
-      <div className="grid shrink-0 grid-cols-12 items-center gap-[0.5cqw] rounded-[0.55cqh] border border-amber-400/20 bg-slate-950/65 px-[0.6cqw] py-[0.45cqh]">
+      <div className="grid shrink-0 grid-cols-12 items-center gap-[0.45cqw] rounded-[0.5cqh] border border-amber-400/20 bg-slate-950/65 px-[0.55cqw] py-[0.38cqh]">
         <div className="col-span-4 flex flex-col">
           <div className="flex justify-between font-mono-tech tx-xs">
             <span className="text-[var(--text-muted)]">CADENCIA</span>
@@ -448,7 +512,7 @@ export function CloneLabPanel({
             value={speed}
             onChange={(e) => onSpeedChange(Number(e.target.value))}
             aria-label="Cadencia de clonacion"
-            className="studio-slider mt-[0.25cqh]"
+            className="studio-slider mt-[0.2cqh]"
           />
         </div>
 
@@ -458,7 +522,7 @@ export function CloneLabPanel({
             value={emotion}
             onChange={(e) => onEmotionChange(e.target.value)}
             aria-label="Intencion vocal"
-            className="mt-[0.12cqh] rounded-[0.4cqh] border border-sky-400/25 bg-slate-900 px-[0.35cqw] py-[0.2cqh] tx-xs text-slate-100 uppercase"
+            className="mt-[0.1cqh] rounded-[0.4cqh] border border-sky-400/25 bg-slate-900 px-[0.3cqw] py-[0.18cqh] tx-xs text-slate-100 uppercase"
           >
             <option value="neutro">NEUTRO</option>
             <option value="narrativo">NARRATIVO</option>
@@ -473,7 +537,7 @@ export function CloneLabPanel({
             disabled={isCloning || totalChars === 0}
             onClick={onRunClone}
             data-testid="execute-clone-btn"
-            className="flex w-full items-center justify-center gap-[0.4cqw] rounded-[0.55cqh] border border-amber-300/70 bg-gradient-to-r from-amber-400 to-orange-400 px-[0.75cqw] py-[0.55cqh] tx-xs font-bold text-slate-950 shadow-[0_0_18px_rgba(245,166,35,0.28)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+            className="flex w-full items-center justify-center gap-[0.35cqw] rounded-[0.5cqh] border border-amber-300/70 bg-gradient-to-r from-amber-400 to-orange-400 px-[0.7cqw] py-[0.5cqh] tx-xs font-bold text-slate-950 shadow-[0_0_18px_rgba(245,166,35,0.28)] transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
           >
             <AnimatedIcon
               name={isCloning ? 'loader' : 'fingerprint'}

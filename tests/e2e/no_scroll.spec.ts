@@ -131,6 +131,9 @@ for (const viewport of DESKTOP_RESOLUTIONS) {
     await page.getByTestId('ref-mode-upload-btn').click();
     await expect(page.getByTestId('upload-ref-wav-btn')).toBeVisible();
     await page.getByTestId('ref-mode-mic-btn').click();
+    await expect(page.getByTestId('teleprompter-box')).toBeVisible();
+    await page.getByTestId('script-btn-narrativa_calida').click();
+    await expect(page.getByTestId('clone-reference-text')).toHaveValue(/Al caer la tarde/);
     await assertZeroEmojisInVisibleDom(page);
     await assertStrictZeroScroll(page, `${viewport.label} - Laboratorio Zero-Shot`);
 
