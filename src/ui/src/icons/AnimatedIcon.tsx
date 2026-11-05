@@ -170,6 +170,10 @@ export function getEngineIconConfig(engineId: string): {
       return { name: 'fingerprint', variant: 'pulse' };
     case 'cosyvoice':
       return { name: 'audio-waveform', variant: 'oscillate' };
+    case 'xtts_v2':
+      return { name: 'sparkles', variant: 'pulse' };
+    case 'qwen3_tts':
+      return { name: 'cpu', variant: 'draw' };
     default:
       return { name: 'audio-lines', variant: 'pulse' };
   }

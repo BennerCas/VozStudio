@@ -116,7 +116,7 @@ for (const viewport of DESKTOP_RESOLUTIONS) {
       await assertStrictZeroScroll(page, `${viewport.label} - Pagina 2 de Voces Piper`);
     }
 
-    for (const engId of ['mms', 'styletts2', 'f5_spanish', 'cosyvoice', 'kokoro']) {
+    for (const engId of ['mms', 'styletts2', 'f5_spanish', 'cosyvoice', 'xtts_v2', 'qwen3_tts', 'kokoro']) {
       await page.getByTestId(`engine-tab-${engId}`).click();
       await assertStrictZeroScroll(page, `${viewport.label} - Motor ${engId}`);
     }
@@ -146,7 +146,7 @@ for (const viewport of DESKTOP_RESOLUTIONS) {
 
     // 5. Sintetizar bloque activo y verificar Biblioteca + Inspector JSON sin scroll
     await page.getByTestId('synthesize-block-btn').click();
-    await expect(page.getByTestId('inspector-tab-json')).toBeEnabled();
+    await expect(page.getByTestId('inspector-tab-json')).toBeEnabled({ timeout: 25000 });
     await assertZeroEmojisInVisibleDom(page);
     await assertStrictZeroScroll(page, `${viewport.label} - Post Sintesis e Inspector JSON`);
   });

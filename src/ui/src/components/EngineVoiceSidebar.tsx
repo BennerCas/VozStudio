@@ -82,12 +82,12 @@ export function EngineVoiceSidebar({
       className="flex h-full min-h-0 min-w-0 flex-col justify-between gap-[0.7cqh] overflow-hidden"
       data-panel="left-sidebar"
     >
-      {/* Modulo Superior: Matriz de 6 Motores Neurales */}
+      {/* Modulo Superior: Matriz de 8 Motores Neurales */}
       <section
-        className="glass-panel flex shrink-0 flex-col justify-between p-[0.75cqh_0.7cqw]"
+        className="glass-panel flex shrink-0 flex-col justify-between p-[0.6cqh_0.6cqw]"
         data-panel="engines-panel"
       >
-        <div className="mb-[0.55cqh] flex items-center justify-between">
+        <div className="mb-[0.4cqh] flex items-center justify-between">
           <span className="font-display tx-sm font-semibold tracking-wide text-slate-100">
             MOTORES NEURALES
           </span>
@@ -97,13 +97,17 @@ export function EngineVoiceSidebar({
         <div
           role="tablist"
           aria-label="Motores TTS disponibles"
-          className="grid grid-cols-2 gap-[0.45cqh_0.45cqw]"
+          className="grid grid-cols-2 gap-[0.35cqh_0.4cqw]"
         >
-          {engines.slice(0, 6).map((engine) => {
+          {engines.map((engine) => {
             const isSelected = engine.id === selectedEngineId;
             const iconCfg = getEngineIconConfig(engine.id);
             const triggerMode =
-              engine.id === 'piper' || engine.id === 'f5_spanish' || engine.id === 'cosyvoice'
+              engine.id === 'piper' ||
+              engine.id === 'f5_spanish' ||
+              engine.id === 'cosyvoice' ||
+              engine.id === 'xtts_v2' ||
+              engine.id === 'qwen3_tts'
                 ? 'active'
                 : 'hover';
 
@@ -115,7 +119,7 @@ export function EngineVoiceSidebar({
                 aria-selected={isSelected}
                 data-testid={`engine-tab-${engine.id}`}
                 onClick={() => onSelectEngine(engine.id)}
-                className={`group flex min-w-0 flex-col justify-between rounded-[0.6cqh] border p-[0.55cqh_0.55cqw] text-left transition ${
+                className={`group flex min-w-0 flex-col justify-between rounded-[0.5cqh] border p-[0.4cqh_0.45cqw] text-left transition ${
                   isSelected
                     ? 'border-cyan-400/75 bg-cyan-500/16 shadow-[0_0_14px_rgba(12,211,245,0.16)]'
                     : 'border-sky-400/15 bg-slate-950/55 hover:border-sky-400/40 hover:bg-slate-900/75'
@@ -135,7 +139,7 @@ export function EngineVoiceSidebar({
                     />
                   </span>
                   <span
-                    className={`font-mono-tech tx-xs ${
+                    className={`font-mono-tech text-[clamp(7.5px,0.82cqh,10.5px)] ${
                       engine.available ? 'text-emerald-300' : 'text-amber-300'
                     }`}
                   >
@@ -143,9 +147,11 @@ export function EngineVoiceSidebar({
                   </span>
                 </div>
 
-                <div className="mt-[0.35cqh] min-w-0">
-                  <div className="tx-xs truncate font-semibold text-slate-100">{engine.name}</div>
-                  <div className="font-mono-tech truncate text-[clamp(7.5px,0.88cqh,11px)] text-[var(--text-muted)]">
+                <div className="mt-[0.2cqh] min-w-0">
+                  <div className="text-[clamp(8px,0.92cqh,11.5px)] truncate font-semibold text-slate-100 leading-tight">
+                    {engine.name}
+                  </div>
+                  <div className="font-mono-tech truncate text-[clamp(7px,0.78cqh,10px)] text-[var(--text-muted)]">
                     {engine.category}
                   </div>
                 </div>
