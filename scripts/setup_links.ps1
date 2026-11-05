@@ -36,7 +36,10 @@ $ModelMappings = @(
     @{ Link = "F5-Spanish";                       Base = $BrainsSpace;  Target = "F5-Spanish";                    Required = $false },
     @{ Link = "styletts2-spanish-multispeaker";   Base = $BrainsSpace;  Target = "styletts2-spanish-multispeaker";Required = $false },
     @{ Link = "XTTS-v2";                          Base = $BrainsSpace;  Target = "XTTS-v2";                       Required = $false },
-    @{ Link = "MeloTTS-Spanish";                  Base = $BrainsSpace;  Target = "MeloTTS-Spanish";               Required = $false }
+    @{ Link = "MeloTTS-Spanish";                  Base = $BrainsSpace;  Target = "MeloTTS-Spanish";               Required = $false },
+    @{ Link = "Qwen3-TTS-12Hz-0.6B-Base";         Base = $BrainsSpace;  Target = "Qwen3-TTS-12Hz-0.6B-Base";      Required = $false },
+    @{ Link = "Qwen3-TTS-12Hz-0.6B-CustomVoice";  Base = $BrainsSpace;  Target = "Qwen3-TTS-12Hz-0.6B-CustomVoice"; Required = $false },
+    @{ Link = "Qwen3-TTS-12Hz-1.7B-VoiceDesign";  Base = $BrainsSpace;  Target = "Qwen3-TTS-12Hz-1.7B-VoiceDesign"; Required = $false }
 )
 
 $LinkedCount = 0

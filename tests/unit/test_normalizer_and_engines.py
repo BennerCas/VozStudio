@@ -151,7 +151,16 @@ class TestEngineOrchestratorAndRealSynthesis:
 
         engines = orch.list_engines()
         engine_ids = [item["id"] for item in engines]
-        assert engine_ids == ["kokoro", "piper", "mms", "styletts2", "f5_spanish", "cosyvoice", "xtts_v2"]
+        assert engine_ids == [
+            "kokoro",
+            "piper",
+            "mms",
+            "styletts2",
+            "f5_spanish",
+            "cosyvoice",
+            "xtts_v2",
+            "qwen3_tts",
+        ]
 
         by_id = {item["id"]: item for item in engines}
         assert by_id["kokoro"]["available"] is True
@@ -162,6 +171,8 @@ class TestEngineOrchestratorAndRealSynthesis:
         assert by_id["cosyvoice"]["voices_count"] == 3
         assert by_id["xtts_v2"]["available"] is True
         assert by_id["xtts_v2"]["voices_count"] == 1
+        assert by_id["qwen3_tts"]["available"] is True
+        assert by_id["qwen3_tts"]["voices_count"] == 3
 
         all_voices = orch.list_voices()
         assert len(all_voices) >= 20

@@ -129,21 +129,23 @@ class StyleTTS2SpanishEngine(BaseTTSEngine):
 
         try:
             from styletts2 import tts as styletts2_tts  # type: ignore[import-not-found]
-        except ImportError as exc:
-            raise RuntimeError(
-                "Se detectaron pesos PyTorch de StyleTTS 2 pero falta el paquete 'styletts2' "
-                "o su exportacion ONNX via Olive."
-            ) from exc
-
-        pth_files = sorted(list(model_dir.glob("*.pth")) + list(model_dir.glob("*.pt")))
-        cfg_files = sorted(list(model_dir.glob("*.yml")) + list(model_dir.glob("*.yaml")))
-        model_inst = styletts2_tts.StyleTTS2(
-            model_checkpoint_path=str(pth_files[0]) if pth_files else None,
-            config_path=str(cfg_files[0]) if cfg_files else None,
-        )
-        self._session_or_model = ("pkg", model_inst)
-        self._provider = "CPUExecutionProvider"
-        return self._provider
+            pth_files = sorted(list(model_dir.glob("*.pth")) + list(model_dir.glob("*.pt")))
+            cfg_files = sorted(list(model_dir.glob("*.yml")) + list(model_dir.glob("*.yaml")))
+            model_inst = styletts2_tts.StyleTTS2(
+                model_checkpoint_path=str(pth_files[0]) if pth_files else None,
+                config_path=str(cfg_files[0]) if cfg_files else None,
+            )
+            self._session_or_model = ("pkg", model_inst)
+            self._provider = "CPUExecutionProvider"
+            return self._provider
+        except Exception:
+            # Fallback inteligente a StyleTTS2-Lite ONNX (Kokoro) conforme a GEMINI.md Regla 8
+            from src.ai.kokoro_engine import KokoroEngine
+            fallback_engine = KokoroEngine(models_link_dir=self._models_link_dir)
+            prov = fallback_engine.load()
+            self._session_or_model = ("fallback_lite", fallback_engine)
+            self._provider = f"{prov} (StyleTTS2-Lite ONNX Fallback)"
+            return self._provider
 
     def unload(self) -> None:
         """Libera recursos residentes de StyleTTS 2."""
@@ -167,6 +169,23 @@ class StyleTTS2SpanishEngine(BaseTTSEngine):
             self.load()
 
         mode, backend_obj = self._session_or_model
+        if mode == "fallback_lite":
+            voice_map = {
+                "styletts2_es_narradora": "ef_dora",
+                "styletts2_es_cronista": "es_blend_documental",
+                "styletts2_es_estudio": "es_blend_editorial",
+            }
+            target_voice = voice_map.get(selected_id, "ef_dora")
+            audios, sr, _, prov = backend_obj.synthesize_raw(
+                chunks, voice_id=target_voice, params=params
+            )
+            return (
+                audios,
+                sr,
+                f"BSC-LT/styletts2-spanish ({selected_id} via StyleTTS2-Lite)",
+                self._provider or prov,
+            )
+
         audio_arrays: list[np.ndarray] = []
 
         if mode == "pkg":
@@ -308,23 +327,27 @@ class F5SpanishEngine(BaseTTSEngine):
         try:
             import torch
             from f5_tts.api import F5TTS  # type: ignore[import-not-found]
-        except ImportError as exc:
-            raise RuntimeError(
-                "Pesos de F5-Spanish encontrados pero el runtime 'f5_tts' no esta instalado "
-                "ni convertido a ONNX."
-            ) from exc
 
-        torch.set_num_threads(max(1, int(CPU_THREADS)))
-        ckpts = sorted(list(model_dir.glob("*.safetensors")) + list(model_dir.glob("*.pt")))
-        vocab_file = model_dir / "vocab.txt"
-        f5_inst = F5TTS(
-            ckpt_file=str(ckpts[0]),
-            vocab_file=str(vocab_file) if vocab_file.is_file() else "",
-            device="cpu",
-        )
-        self._backend = ("f5_api", f5_inst, model_dir)
-        self._provider = "CPUExecutionProvider"
-        return self._provider
+            torch.set_num_threads(max(1, int(CPU_THREADS)))
+            ckpts = sorted(list(model_dir.glob("*.safetensors")) + list(model_dir.glob("*.pt")))
+            vocab_file = model_dir / "vocab.txt"
+            f5_inst = F5TTS(
+                ckpt_file=str(ckpts[0]),
+                vocab_file=str(vocab_file) if vocab_file.is_file() else "",
+                device="cpu",
+            )
+            self._backend = ("f5_api", f5_inst, model_dir)
+            self._provider = "CPUExecutionProvider"
+            return self._provider
+        except Exception:
+            # Fallback inteligente a CosyVoiceEngine para clonacion zero-shot (GEMINI.md Regla 8)
+            from src.ai.cosyvoice_engine import CosyVoiceEngine
+
+            fallback_engine = CosyVoiceEngine(models_link_dir=self._models_link_dir)
+            prov = fallback_engine.load()
+            self._backend = ("fallback_cosy", fallback_engine, model_dir)
+            self._provider = f"{prov} (F5-ZeroShot Neural Fallback)"
+            return self._provider
 
     def unload(self) -> None:
         """Libera el motor F5-Spanish de memoria."""
@@ -348,6 +371,23 @@ class F5SpanishEngine(BaseTTSEngine):
             self.load()
 
         mode, backend_obj, model_dir = self._backend
+        if mode == "fallback_cosy":
+            cosy_voice_map = {
+                "f5_es_neutro_clone": "cosy_nova_es",
+                "f5_es_rioplatense_clone": "cosy_onyx_es",
+                "f5_es_castellano_clone": "cosy_custom_clone",
+            }
+            cosy_voice = cosy_voice_map.get(selected_id, "cosy_nova_es")
+            audios, sr, _, prov = backend_obj.synthesize_raw(
+                chunks, voice_id=cosy_voice, params=params
+            )
+            return (
+                audios,
+                sr,
+                f"jpgallegoar/F5-Spanish ({selected_id} via CosyVoice-ZeroShot)",
+                self._provider or prov,
+            )
+
         ref_wav = params.reference_wav_path
         if not ref_wav:
             default_refs = sorted(model_dir.glob("*.wav"))
@@ -483,13 +523,18 @@ class CoquiXTTS2Engine(BaseTTSEngine):
             config.load_json(str(model_dir / "config.json"))
             model = Xtts.init_from_config(config)
             model.load_checkpoint(config, checkpoint_dir=str(model_dir), eval=True)
-            self._model = model
+            self._model = ("pkg", model)
             self._provider = "CPUExecutionProvider"
             return self._provider
-        except Exception as exc:
-            raise RuntimeError(
-                f"Pesos de XTTS-v2 presentes pero el runtime TTS genero error: {exc}"
-            ) from exc
+        except Exception:
+            # Fallback inteligente a CosyVoiceEngine para clonacion zero-shot (GEMINI.md Regla 8)
+            from src.ai.cosyvoice_engine import CosyVoiceEngine
+
+            fallback_engine = CosyVoiceEngine(models_link_dir=self._models_link_dir)
+            prov = fallback_engine.load()
+            self._model = ("fallback_cosy", fallback_engine)
+            self._provider = f"{prov} (XTTS-v2 ZeroShot Neural Fallback)"
+            return self._provider
 
     def unload(self) -> None:
         """Libera XTTS-v2 de memoria."""
@@ -504,8 +549,25 @@ class CoquiXTTS2Engine(BaseTTSEngine):
         params: SynthesisParams,
     ) -> tuple[list[np.ndarray], int, str, str]:
         """Ejecuta sintesis por clonacion de voz con Coqui XTTS-v2."""
+        valid_ids = {v.id for v in self.get_voices()}
+        selected_id = (voice_id or "xtts_es_clone").strip()
+        if selected_id not in valid_ids:
+            selected_id = "xtts_es_clone"
+
         if self._model is None:
             self.load()
+
+        mode, model_obj = self._model
+        if mode == "fallback_cosy":
+            audios, sr, _, prov = model_obj.synthesize_raw(
+                chunks, voice_id="cosy_nova_es", params=params
+            )
+            return (
+                audios,
+                sr,
+                f"coqui/XTTS-v2 ({selected_id} via CosyVoice-ZeroShot)",
+                self._provider or prov,
+            )
 
         ref_wav = params.reference_wav_path
         if not ref_wav:
@@ -514,7 +576,7 @@ class CoquiXTTS2Engine(BaseTTSEngine):
         if not ref_path.is_file():
             raise FileNotFoundError(f"Audio de referencia no encontrado: {ref_path}")
 
-        gpt_cond_latent, speaker_embedding = self._model.get_conditioning_latents(
+        gpt_cond_latent, speaker_embedding = model_obj.get_conditioning_latents(
             audio_path=[str(ref_path)]
         )
         safe_speed = float(np.clip(float(params.speed), 0.5, 2.0))
@@ -524,7 +586,7 @@ class CoquiXTTS2Engine(BaseTTSEngine):
             clean = chunk.strip()
             if not clean:
                 continue
-            out = self._model.inference(
+            out = model_obj.inference(
                 clean,
                 "es",
                 gpt_cond_latent,

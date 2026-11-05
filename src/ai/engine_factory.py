@@ -22,6 +22,7 @@ from src.ai.optional_engines import (
     StyleTTS2SpanishEngine,
 )
 from src.ai.piper_engine import PiperEngine
+from src.ai.qwen3_engine import Qwen3TTSEngine
 from src.core.audio_dsp import (
     apply_pitch_shift,
     concat_audio_chunks,
@@ -37,7 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class EngineOrchestrator:
-    """Registro y coordinador de los 6 motores neurales TTS de VozStudio Omni-ES."""
+    """Registro y coordinador de los 8 motores neurales TTS de VozStudio Omni-ES."""
 
     def __init__(
         self,
@@ -65,6 +66,7 @@ class EngineOrchestrator:
             F5SpanishEngine(**kwargs),
             CosyVoiceEngine(**kwargs),
             CoquiXTTS2Engine(**kwargs),
+            Qwen3TTSEngine(**kwargs),
         )
         for adapter in adapters:
             self._engines[adapter.engine_id] = adapter

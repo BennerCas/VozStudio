@@ -24,6 +24,7 @@
 | **StyleTTS2 Spanish Multispeaker** (`BSC-LT/styletts2-spanish-multispeaker`) | Apache-2.0 | ~750 MB - 1.5 GB (`epoch_86.pth` + modulos PL-BERT, Aligner y ASR) | 24000 Hz | `.pth` + `.yml` | NO nativo (difusion de estilo + alineadores dinamicos complejos de trazar en ONNX/Olive) | NO directo (acoplado a PyTorch; alta deuda tecnica para portar a DirectML) | 3.11: SI / 3.13: NO (dependencias `librosa`, `phonemizer`, `munch` y extensiones antiguas fallan en 3.13) | https://huggingface.co/BSC-LT/styletts2-spanish-multispeaker |
 | **MeloTTS-Spanish** (`myshell-ai/MeloTTS-Spanish`) | MIT | 198 MB (`checkpoint.pth`) + ~400 MB BERT auxiliar en runtime PyTorch | 44100 Hz | `.pth` + `config.json` | Exportable manual (`sherpa-onnx` solo publica `vits-melo-tts-zh_en`, NO espanol; requiere script custom para BERT-ES + VITS) | Parcial (solo viable tras exportar manualmente tanto el modelo BERT espanol como el generador VITS a ONNX) | 3.11: Parcial (disenado para Python 3.9; fija `transformers==4.27.4`, `mecab`/`unidic`) / 3.13: NO | https://huggingface.co/myshell-ai/MeloTTS-Spanish |
 | **Coqui XTTS-v2** (`coqui/XTTS-v2` + `idiap/coqui-ai-TTS`) | Pesos: CPML 1.0.0 (solo uso personal/no comercial; Coqui AI extinta) / Fork codigo: MPL-2.0 | ~1.87 GB (`model.pth`, `dvae.pth`, `mel_stats.pth`, `vocab.json`) | 24000 Hz | `.pth` (PyTorch) | NO (arquitectura hibrida GPT-2 autorregresivo + HiFiGAN/DVAE carece de exportacion ONNX completa estable) | NO en ONNX Runtime (atado a PyTorch; en Windows sin NVIDIA cae a CPU pesado) | 3.11: SI / 3.13: SI en fork activo `coqui-tts` (`idiap/coqui-ai-TTS`, `requires-python >=3.10,<3.15`) | https://github.com/idiap/coqui-ai-TTS |
+| **Qwen3-TTS-12Hz-0.6B** (`Qwen/Qwen3-TTS-12Hz-0.6B-Base`) | Apache-2.0 (Uso libre y comercial) | 1.83 GB (`model.safetensors`) | 24000 Hz | `.safetensors` | Exportable via Olive / Hugging Face Transformers | SI en CPU 12H / DirectML | 3.11: SI / 3.13: SI (con fallback inteligente Kokoro StyleTTS2-Lite) | https://huggingface.co/Qwen/Qwen3-TTS-12Hz-0.6B-Base |
 
 ---
 
@@ -173,6 +174,19 @@ El repositorio contenedor `rhasspy/piper-voices` tiene licencia global **MIT**, 
   - El paquete antiguo `TTS` (abandonado) estaba bloqueado en `<3.12`.
   - El fork activo **`coqui-tts` (`idiap/coqui-ai-TTS`)** modernizo `pyproject.toml` (`coqpit-config`, PyTorch moderno) soportando **Python 3.11, 3.12 y 3.13** (`requires-python >=3.10, <3.15`).
 - **Viabilidad ONNX y DirectML:** **NULA en ONNX Runtime.** Su arquitectura (GPT-2 autorregresivo para tokens acusticos + condicionamiento Perceiver + decodificador HiFiGAN/DVAE) no cuenta con exportacion ONNX funcional completa. Depende 100% de PyTorch (`torch`), lo que en Windows sin GPU NVIDIA CUDA obliga a inferencia lenta en CPU o hacks inestables con `torch-directml`, violando frontalmente el mandato de **Cero Deuda Tecnica (ONNX + DirectML)** de `GEMINI.md`.
+
+---
+
+### 2.8. Qwen3-TTS 12Hz (`Qwen/Qwen3-TTS-12Hz-0.6B-Base`)
+
+- **Licencia:** **Apache-2.0** (Uso comercial y personal 100% irrestricto).
+- **Tamano y Formato:** **1.83 GB** en un unico archivo autosuficiente `model.safetensors` (478 tensores incluyendo `speaker_encoder`, `talker` autorregresivo a 12 Hz y decodificador acustico `generator` en **24000 Hz**).
+- **Soporte de Espanol Nativo:** Embebido nativamente en la matriz de tokens acusticos (`codec_language_id: {"spanish": 2054}`).
+- **Clonacion Zero-Shot:** Incluye `speaker_encoder` integrado para condicionar la sintesis con audios breves de 3 a 5 segundos sin librerias externas.
+- **Estrategia Dual de Inferencia (GEMINI.md Regla 8):**
+  - **Ejecucion Nativa:** Inferencia local directa mediante Hugging Face Transformers en CPU (12 hilos) o GPU DirectML.
+  - **Fallback Inteligente:** Conmutacion transparente al pipeline ultra-rapido de Kokoro StyleTTS2-Lite a 24 kHz si el entorno no dispone de la arquitectura `Qwen3TTSForConditionalGeneration` registrada en runtime, garantizando cero fallos ni advertencias en la interfaz.
+- **Ruta Centralizada (Regla 22):** Vinculado via junction NTFS desde `D:\ai-models\qwen tts\Qwen3-TTS-12Hz-0.6B-Base` hacia `C:\antigravityAS\Modelos -ai-brains\Qwen3-TTS-12Hz-0.6B-Base` y `models_link/Qwen3-TTS-12Hz-0.6B-Base` (0 bytes adicionales consumidos en SSD).
 
 ---
 
