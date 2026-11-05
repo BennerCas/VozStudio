@@ -32,7 +32,7 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     assert r_engines.status_code == 200
     engines = r_engines.json()["engines"]
     engine_ids = {e["id"] for e in engines}
-    assert {"kokoro", "piper", "mms", "styletts2", "f5_spanish", "cosyvoice"}.issubset(engine_ids)
+    assert {"kokoro", "piper", "mms", "styletts2", "f5_spanish", "cosyvoice", "xtts_v2"}.issubset(engine_ids)
 
     r_voices = client.get("/api/v1/voices", params={"engine_id": "piper"})
     assert r_voices.status_code == 200

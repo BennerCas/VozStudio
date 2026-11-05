@@ -231,3 +231,51 @@ class TestEngineOrchestratorAndRealSynthesis:
 
         orch.unload_active_engine()
         assert local_mm.active_engine_id is None
+
+    @pytest.mark.parametrize(
+        ("engine_id", "voice_id"),
+        [
+            ("styletts2", "styletts2_es_narradora"),
+            ("f5_spanish", "f5_es_neutro_clone"),
+            ("xtts_v2", "xtts_es_clone"),
+        ],
+    )
+    def test_real_offline_synthesis_optional_engines(
+        self,
+        tmp_path: Path,
+        engine_id: str,
+        voice_id: str,
+    ) -> None:
+        local_mm = MemoryManager()
+        orch = EngineOrchestrator(mem_manager=local_mm, biblioteca_dir=tmp_path)
+
+        sample_text = "Sintesis neuronal en espanol a veinticuatro kilohercios."
+        result = orch.synthesize(
+            text=sample_text,
+            engine_id=engine_id,
+            voice_id=voice_id,
+            params=SynthesisParams(speed=1.0, max_chunk_chars=260),
+            save_to_library=True,
+        )
+
+        wav_path = Path(result["wav_path"])
+        json_path = Path(result["json_path"])
+        assert wav_path.is_file()
+        assert json_path.is_file()
+
+        samples, sample_rate = sf.read(str(wav_path), dtype="float32")
+        duration_sec = float(samples.shape[0]) / float(sample_rate)
+        peak_amplitude = float(np.max(np.abs(samples)))
+
+        assert sample_rate == 24000
+        assert duration_sec > 0.5, f"Duracion insuficiente ({duration_sec:.2f}s) para {voice_id}"
+        assert peak_amplitude > 0.05, f"Amplitud demasiado baja ({peak_amplitude:.4f}) para {voice_id}"
+
+        saved_meta = json.loads(json_path.read_text(encoding="utf-8"))
+        assert saved_meta["motor"] == engine_id
+        assert saved_meta["voz_id"] == voice_id
+        assert saved_meta["metricas"]["rtf"] > 0.0
+        assert saved_meta["metricas"]["duracion_audio_seg"] > 0.5
+
+        orch.unload_active_engine()
+        assert local_mm.active_engine_id is None
