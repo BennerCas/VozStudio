@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { studioApi } from "./services/api"
 import { FALLBACK_ENGINES, FALLBACK_VOICES_BY_ENGINE } from "./data/fallbackCatalog"
+import {
+  LAST_PRESET_STORAGE_KEY,
+  PENDING_PRESET_STORAGE_KEY,
+  STUDIO_PRESETS,
+  type PresetCategory,
+  type StudioPreset,
+} from "./data/presetCatalog"
 import type { EngineInfo, LibraryItem, VoiceInfo } from "./types/tts"
 
 type IconName = "wave" | "home" | "folder" | "mic" | "layers" | "sparkles" | "sliders" | "search" | "plus" | "play" | "pause" | "arrow" | "clock" | "more" | "check" | "upload" | "settings" | "bell" | "chevron" | "wand" | "copy" | "trash" | "volume" | "refresh"
@@ -627,29 +634,6 @@ const projects = [
     time: "Ayer, 09:15",
     color: "#8b7cff",
   },
-]
-
-const presetNames = [
-  "Documental íntimo",
-  "Tráiler cinematográfico",
-  "Podcast natural",
-  "Comercial premium",
-  "Audiolibro cálido",
-  "Noticias preciso",
-  "Corporativo moderno",
-  "Personaje juvenil",
-  "Narrador épico",
-  "Meditación suave",
-  "Radio enérgica",
-  "E-learning claro",
-  "Entrevista cercana",
-  "Doblaje neutro",
-  "Crónica nocturna",
-  "Tecnología futura",
-  "Historia emocional",
-  "Deportes dinámico",
-  "Lujo sereno",
-  "Asistente amable",
 ]
 
 function loadLocal<T>(key: string, fallback: T): T {
@@ -1377,81 +1361,159 @@ function BatchPage({
   )
 }
 
-function PresetsPage({ onNavigate }: { onNavigate: (page: string) => void }) {
-  const categories = [
+function PresetsPage({
+  onNavigate,
+  notify,
+}: {
+  onNavigate: (page: string) => void
+  notify: (message: string) => void
+}) {
+  const categories: Array<"Todos" | PresetCategory> = [
     "Todos",
     "Narración",
     "Comercial",
     "Personajes",
     "Corporativo",
   ]
-  const [category, setCategory] = useState("Todos")
-  const colors = ["#00c2d7", "#8b7cff", "#ffb547", "#37cfa2", "#f57878"]
+  const [category, setCategory] = useState<"Todos" | PresetCategory>("Todos")
+  const [previewingId, setPreviewingId] = useState<string | null>(null)
+  const [lastAppliedId, setLastAppliedId] = useState(() =>
+    loadLocal<string>(LAST_PRESET_STORAGE_KEY, ""),
+  )
+  const previewAudio = useRef<HTMLAudioElement | null>(null)
+  const visiblePresets =
+    category === "Todos"
+      ? STUDIO_PRESETS
+      : STUDIO_PRESETS.filter((preset) => preset.category === category)
+
+  useEffect(() => () => previewAudio.current?.pause(), [])
+
+  const applyPreset = (preset: StudioPreset) => {
+    window.localStorage.setItem(PENDING_PRESET_STORAGE_KEY, JSON.stringify(preset))
+    window.localStorage.setItem(LAST_PRESET_STORAGE_KEY, JSON.stringify(preset.id))
+    setLastAppliedId(preset.id)
+    onNavigate("Estudio neural")
+  }
+
+  const previewPreset = async (preset: StudioPreset) => {
+    setPreviewingId(preset.id)
+    try {
+      const item = await studioApi.synthesize({
+        text: preset.script,
+        engine_id: preset.engineId,
+        voice_id: preset.voiceId,
+        speed: preset.speed,
+        pitch_semitones: preset.pitch,
+        emotion: preset.emotion === "NEUTRO" ? null : preset.emotion.toLowerCase(),
+      })
+      previewAudio.current?.pause()
+      const audio = new Audio(item.audio_url)
+      audio.volume = 0.86
+      previewAudio.current = audio
+      try {
+        await audio.play()
+      } catch {
+        // La síntesis se completó aunque el navegador no autorice la reproducción.
+      }
+      notify(`Muestra real generada · ${preset.name}`)
+    } catch (error) {
+      notify(
+        `No se pudo generar la muestra de ${preset.name}: ${
+          error instanceof Error ? error.message : "error local"
+        }`,
+      )
+    } finally {
+      setPreviewingId(null)
+    }
+  }
+
   return (
     <Page
       title="Presets profesionales"
-      description="20 cadenas de voz calibradas para acelerar tu flujo de producción."
+      description="20 recetas operativas: timbre, velocidad, tono, matiz y guión listos para síntesis local."
+      action={<span className="preset-ready">20 / 20 OPERATIVOS</span>}
     >
-      <div className="filter-row">
-        {categories.map((c) => (
-          <button
-            key={c}
-            className={`filter ${category === c ? "active" : ""}`}
-            onClick={() => setCategory(c)}
-          >
-            {c}
-          </button>
-        ))}
-      </div>
-      <div className="preset-grid">
-        {presetNames.map((name, i) => (
-          <article
-            className="preset-card"
-            key={name}
-            style={
-              { "--preset": colors[i % colors.length] } as React.CSSProperties
-            }
-          >
-            <header>
-              <span className="preset-icon">
-                <Icon
-                  name={i % 3 === 0 ? "mic" : i % 3 === 1 ? "wave" : "sliders"}
-                />
-              </span>
-              <button>
-                <Icon name="more" />
-              </button>
-            </header>
-            <p>PRESET {String(i + 1).padStart(2, "0")}</p>
-            <h3>{name}</h3>
-            <span className="preset-meta">
-              {i % 2 ? "Equilibrado · Natural" : "Cálido · Dinámico"}
-            </span>
-            <footer>
-              <button>
-                <Icon name="play" size={15} />
-                Previsualizar
-              </button>
+      <section className="presets-workspace" aria-label="Catálogo de presets">
+        <div className="preset-toolbar">
+          <div className="filter-row" aria-label="Filtrar presets">
+            {categories.map((item) => (
               <button
-                className="use-preset"
-                onClick={() => {
-                  window.localStorage.setItem(
-                    "vozstudio-pending-preset",
-                    JSON.stringify({
-                      name,
-                      script: `${name}. Guión preparado desde el preset profesional de VozStudio Omni.`,
-                      emotion: i % 2 ? "NARRATIVO" : "CÁLIDO",
-                    }),
-                  )
-                  onNavigate("Estudio neural")
-                }}
+                key={item}
+                className={`filter ${category === item ? "active" : ""}`}
+                onClick={() => setCategory(item)}
               >
-                Usar <Icon name="arrow" size={15} />
+                {item}
               </button>
-            </footer>
-          </article>
-        ))}
-      </div>
+            ))}
+          </div>
+          <p>
+            <b>Kokoro ONNX · 24 kHz</b>
+            <span>Previsualiza un WAV real o aplica la receta al Estudio.</span>
+          </p>
+        </div>
+        <div className="preset-grid">
+          {visiblePresets.map((preset, index) => {
+            const pitch = `${preset.pitch > 0 ? "+" : ""}${preset.pitch.toFixed(1)} st`
+            const isApplied = lastAppliedId === preset.id
+            const icon: IconName =
+              preset.category === "Comercial"
+                ? "wave"
+                : preset.category === "Personajes"
+                  ? "sparkles"
+                  : preset.category === "Corporativo"
+                    ? "sliders"
+                    : "mic"
+            return (
+              <article
+                className={`preset-card ${isApplied ? "applied" : ""}`}
+                data-testid={`preset-card-${preset.id}`}
+                data-preset-id={preset.id}
+                key={preset.id}
+                style={{ "--preset": preset.color } as React.CSSProperties}
+              >
+                <header>
+                  <span className="preset-icon">
+                    <Icon name={icon} size={18} />
+                  </span>
+                  {isApplied ? (
+                    <span className="preset-applied-mark" title="Último preset aplicado">
+                      <Icon name="check" size={15} />
+                    </span>
+                  ) : (
+                    <span>#{String(index + 1).padStart(2, "0")}</span>
+                  )}
+                </header>
+                <p>{preset.category.toUpperCase()}</p>
+                <h3>{preset.name}</h3>
+                <span className="preset-meta">{preset.voiceName} · {preset.emotion}</span>
+                <div className="preset-config" aria-label={`Configuración de ${preset.name}`}>
+                  <span>{preset.speed.toFixed(2)}×</span>
+                  <span>{pitch}</span>
+                  <span>24 kHz</span>
+                </div>
+                <footer>
+                  <button
+                    aria-label={`Generar muestra real de ${preset.name}`}
+                    data-testid={`preview-preset-${preset.id}`}
+                    disabled={previewingId !== null}
+                    onClick={() => void previewPreset(preset)}
+                  >
+                    <Icon name={previewingId === preset.id ? "refresh" : "play"} size={14} />
+                    {previewingId === preset.id ? "Generando" : "Escuchar"}
+                  </button>
+                  <button
+                    className="use-preset"
+                    data-testid={`apply-preset-${preset.id}`}
+                    onClick={() => applyPreset(preset)}
+                  >
+                    {isApplied ? "Aplicado" : "Aplicar"} <Icon name="arrow" size={14} />
+                  </button>
+                </footer>
+              </article>
+            )
+          })}
+        </div>
+      </section>
     </Page>
   )
 }
@@ -1484,6 +1546,10 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
   const [libraryFiles, setLibraryFiles] = useState<LibraryItem[]>([])
   const [lastItem, setLastItem] = useState<LibraryItem | null>(null)
   const [isBusy, setIsBusy] = useState(false)
+  const [activePreset, setActivePreset] = useState<StudioPreset | null>(null)
+  const [pendingPreset, setPendingPreset] = useState<StudioPreset | null>(() =>
+    loadLocal<StudioPreset | null>(PENDING_PRESET_STORAGE_KEY, null),
+  )
   const [referenceAudio, setReferenceAudio] = useState<File | null>(null)
   const [referenceText, setReferenceText] = useState(
     "El veloz murciélago hindú comía feliz cardillo y kiwi; la cigüeña tocaba el saxofón detrás del palenque.",
@@ -1528,6 +1594,15 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
     engineVoices[Math.min(voiceIndex, Math.max(0, engineVoices.length - 1))]
   const selectedVoiceInfo = voicesByEngine[engineId]?.find(
     (voice) => voice.id === selectedVoice?.id,
+  )
+  const activePresetIsExact = Boolean(
+    activePreset &&
+      engineId === activePreset.engineId &&
+      selectedVoice?.id === activePreset.voiceId &&
+      speed === activePreset.speed &&
+      pitch === activePreset.pitch &&
+      emotion === activePreset.emotion &&
+      script === activePreset.script,
   )
   const visibleLibrary = libraryFiles.filter((file) => {
     const queryMatch = `${file.archivo} ${file.prompt_original}`
@@ -1602,18 +1677,36 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
   }, [selectedVoiceInfo?.id])
 
   useEffect(() => {
-    const pending = loadLocal<{
-      name?: string
-      script?: string
-      emotion?: string
-    } | null>("vozstudio-pending-preset", null)
-    if (!pending) return
-    if (pending.script) setScript(pending.script)
-    if (pending.emotion) setEmotion(pending.emotion)
+    if (!pendingPreset) return
+    const presetEngine = engines.find(
+      (item) => item.id === pendingPreset.engineId && item.available,
+    )
+    const presetVoices = voicesByEngine[pendingPreset.engineId] ?? []
+    const presetVoiceIndex = presetVoices.findIndex(
+      (voice) => voice.id === pendingPreset.voiceId,
+    )
+
+    if (!presetEngine || presetVoiceIndex < 0) {
+      notify(`No se pudo activar ${pendingPreset.name}: falta su motor o timbre local`)
+      window.localStorage.removeItem(PENDING_PRESET_STORAGE_KEY)
+      setPendingPreset(null)
+      return
+    }
+
+    setEngineId(pendingPreset.engineId)
+    setVoiceIndex(presetVoiceIndex)
+    setRegion("TODOS")
+    setSpeed(pendingPreset.speed)
+    setPitch(pendingPreset.pitch)
+    setEmotion(pendingPreset.emotion)
+    setScript(pendingPreset.script)
     setMode("direct")
-    window.localStorage.removeItem("vozstudio-pending-preset")
-    if (pending.name) notify(`Preset aplicado: ${pending.name}`)
-  }, [])
+    setActivePreset(pendingPreset)
+    window.localStorage.removeItem(PENDING_PRESET_STORAGE_KEY)
+    window.localStorage.setItem(LAST_PRESET_STORAGE_KEY, JSON.stringify(pendingPreset.id))
+    setPendingPreset(null)
+    notify(`Preset activo: ${pendingPreset.name}`)
+  }, [engines, notify, pendingPreset, voicesByEngine])
 
   const adoptOutput = (item: LibraryItem, message: string) => {
     setLastItem(item)
@@ -2301,6 +2394,22 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
 
           {mode === "direct" && (
             <div className="work-module">
+              {activePreset && (
+                <div
+                  className={`active-preset-status ${activePresetIsExact ? "exact" : "edited"}`}
+                  data-testid="active-preset-status"
+                  data-preset-id={activePreset.id}
+                >
+                  <span>
+                    <Icon name={activePresetIsExact ? "check" : "sliders"} size={14} />
+                    {activePresetIsExact ? "RECETA ACTIVA" : "RECETA EDITADA"}
+                  </span>
+                  <strong>{activePreset.name}</strong>
+                  <small>
+                    {activePreset.voiceName} · {activePreset.speed.toFixed(2)}× · {activePreset.emotion}
+                  </small>
+                </div>
+              )}
               <div className="preset-strip">
                 <span>GUIÓN</span>
                 {[
@@ -4089,7 +4198,11 @@ export default function App() {
         </div>
         <div
           className={`content ${
-            page === "Estudio neural" ? "studio-content" : ""
+            page === "Estudio neural"
+              ? "studio-content"
+              : page === "Presets"
+                ? "presets-content"
+                : ""
           }`}
         >
           {page === "Inicio" && <Dashboard onNavigate={navigate} />}
@@ -4099,7 +4212,7 @@ export default function App() {
           {page === "Mis voces" && <VoicesPage onNavigate={navigate} notify={notify} />}
           {page === "Clonación en lote" && <BatchPage notify={notify} />}
           {page === "Diseño de voz" && <BatchPage design notify={notify} />}
-          {page === "Presets" && <PresetsPage onNavigate={navigate} />}
+          {page === "Presets" && <PresetsPage onNavigate={navigate} notify={notify} />}
           {page === "Configuración" && <SettingsPage notify={notify} />}
         </div>
         <footer className="app-footer">

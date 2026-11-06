@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import { STUDIO_PRESETS } from '../../src/ui/src/data/presetCatalog';
 
 const BACKEND_URL = 'http://127.0.0.1:8880';
 const PROJECT_ROOT = 'C:\\antigravityAS\\VozStudio-Omni-ES';
@@ -107,6 +108,55 @@ test.describe('flujo Figma conectado al backend local', () => {
     } finally {
       await page.request.delete(
         `${BACKEND_URL}/api/v1/library/${encodeURIComponent(payload.item.id)}`,
+      );
+    }
+  });
+
+  test('las 20 recetas de presets ejecutan su configuración real y dejan auditoría exacta', async ({ page }) => {
+    const generatedIds: string[] = [];
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto(`${BACKEND_URL}/`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Iniciar VozStudio' }).click();
+    await page.locator('.splash-screen').waitFor({ state: 'hidden' });
+    await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
+
+    try {
+      for (const preset of STUDIO_PRESETS) {
+        const synthesis = page.waitForResponse(
+          (response) =>
+            response.url().includes('/api/v1/synthesize') && response.request().method() === 'POST',
+          { timeout: 150000 },
+        );
+        await page.getByTestId(`preview-preset-${preset.id}`).click();
+        const response = await synthesis;
+        expect(response.status()).toBe(200);
+
+        const payload = (await response.json()) as {
+          item: {
+            id: string;
+            motor: string;
+            voz_id: string;
+            parametros: {
+              speed?: number;
+              pitch_semitones?: number;
+              emotion_prompt?: string | null;
+            };
+          };
+        };
+        generatedIds.push(payload.item.id);
+        expect(payload.item.motor).toBe(preset.engineId);
+        expect(payload.item.voz_id).toBe(preset.voiceId);
+        expect(payload.item.parametros.speed).toBe(preset.speed);
+        expect(payload.item.parametros.pitch_semitones).toBe(preset.pitch);
+        expect(payload.item.parametros.emotion_prompt).toBe(
+          preset.emotion === 'NEUTRO' ? null : preset.emotion.toLowerCase(),
+        );
+      }
+    } finally {
+      await Promise.all(
+        generatedIds.map((id) =>
+          page.request.delete(`${BACKEND_URL}/api/v1/library/${encodeURIComponent(id)}`),
+        ),
       );
     }
   });
