@@ -368,7 +368,7 @@ kbd { color: #688084; font: 10px 'DM Sans'; border: 1px solid var(--line); borde
 .memory-btn .icon, .memory-btn span { color: var(--amber); }
 .memory-btn span { border-left: 1px solid rgba(255,181,71,.2); padding-left: 8px; }
 .studio-console { display: grid; grid-template-columns: minmax(240px,.72fr) minmax(540px,1.8fr) minmax(270px,.82fr); gap: 14px; align-items: stretch; }
-.studio-content .studio-console { height: calc(100vh - 232px - var(--studio-footer-gap)); min-height: 631px; max-height: 900px; margin-bottom: var(--studio-footer-gap); }
+.studio-content .studio-console { height: calc(100vh - 232px - var(--studio-footer-gap)); min-height: 631px; margin-bottom: var(--studio-footer-gap); }
 .studio-column, .studio-center { min-width: 0; border: 1px solid var(--line); border-radius: 15px; background: linear-gradient(145deg,rgba(13,28,31,.96),rgba(8,18,20,.96)); overflow: hidden; }
 .studio-column { padding: 14px; }
 .engine-column, .audit-column { display: flex; min-height: 0; flex-direction: column; }
