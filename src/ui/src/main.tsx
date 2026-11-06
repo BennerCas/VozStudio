@@ -1,8 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { WorkspaceHub } from './WorkspaceHub';
-import './styles/studio.css';
-import './styles/workspace-hub.css';
+import FigmaMakeApp from './FigmaMakeApp';
+import './styles/figma-make.css';
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -11,6 +10,6 @@ if (!rootEl) {
 
 createRoot(rootEl).render(
   <StrictMode>
-    <WorkspaceHub />
+    <FigmaMakeApp />
   </StrictMode>,
 );
