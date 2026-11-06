@@ -136,7 +136,7 @@
 .app-shell[data-theme='light'] :where(.settings-grid select,.path-list input,.voice-meta-form input,.voice-meta-form select,.voice-meta-form textarea,.save-seed input,.save-seed select,.dna-options input,.dna-options select,.four-select select,.save-clone-inline input,.save-clone-inline select) { color: #203237; background: #f6fafb; }
 .app-shell[data-theme='light'] .app-footer { color: #5d7378; box-shadow: 0 -8px 25px rgba(20,54,60,.06); }
 .app-shell[data-theme='light'] .app-footer span { color: #31494e; }
-.app-shell[data-theme='light'] .sidebar-brand-copy strong { color: white; }
+.app-shell[data-theme='light'] .sidebar-app-name { color: white; }
 .app-shell[data-theme='light'] .sidebar-brand-copy small { color: #00e5ff; }
 .app-shell[data-theme='light'] .topbar { box-shadow: 0 4px 20px rgba(20,54,60,.06); }
 .app-shell[data-theme='amoled'] :where(.project-card,.voice-card,.preset-card,.studio-wave,.system-card) { background: #020202; }
@@ -149,20 +149,21 @@
 .brand strong, h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; }
 .brand strong { display: block; font-size: 17px; letter-spacing: .04em; }
 .brand small { display: block; color: var(--cyan); font-size: 10px; font-weight: 700; letter-spacing: .18em; }
-.sidebar-animated-header { min-height: 88px; position: relative; display: flex; align-items: center; gap: 12px; overflow: hidden; border: 1px solid rgba(36,199,213,.1); border-radius: 13px; background: radial-gradient(circle at 18% 50%,rgba(0,229,255,.08),transparent 45%),linear-gradient(135deg,#071215,#09171b); padding: 13px 11px; margin-bottom: 17px; isolation: isolate; animation: splash-reveal .8s cubic-bezier(.16,1,.3,1) forwards; }
+.sidebar-animated-header { width: 100%; aspect-ratio: 1; min-height: 0; position: relative; display: grid; grid-template-rows: 1fr auto; align-items: center; flex: 0 0 auto; overflow: hidden; border: 1px solid rgba(36,199,213,.16); border-radius: 15px; background: radial-gradient(circle at 50% 32%,rgba(0,229,255,.12),transparent 42%),linear-gradient(135deg,#071215,#09171b); padding: 20px; margin-bottom: 17px; isolation: isolate; animation: splash-reveal .8s cubic-bezier(.16,1,.3,1) forwards; }
 .sidebar-animated-header:after { content: ''; position: absolute; inset: auto 10px 0; height: 1px; background: linear-gradient(90deg,transparent,rgba(0,229,255,.35),transparent); }
-.sidebar-brand-wave { position: absolute; top: 50%; left: 0; z-index: -1; width: 200%; display: flex; opacity: .11; mix-blend-mode: screen; animation: splash-wave-slide 14s linear infinite; pointer-events: none; }
-.sidebar-brand-wave svg { width: 50%; height: 74px; flex: none; }
-.sidebar-neural-mark { width: 51px; height: 51px; position: relative; display: grid; place-items: center; flex: none; filter: drop-shadow(0 0 9px rgba(0,229,255,.11)); }
-.sidebar-neural-mark > svg { width: 43px; height: 43px; }
+.sidebar-brand-wave { position: absolute; top: 43%; left: 0; z-index: -1; width: 200%; display: flex; opacity: .16; mix-blend-mode: screen; animation: splash-wave-slide 14s linear infinite; pointer-events: none; }
+.sidebar-brand-wave svg { width: 50%; height: 128px; flex: none; }
+.sidebar-brand-primary { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.sidebar-neural-mark { width: 76px; height: 76px; position: relative; display: grid; place-items: center; flex: none; filter: drop-shadow(0 0 14px rgba(0,229,255,.2)); }
+.sidebar-neural-mark > svg { width: 64px; height: 64px; }
 .sidebar-logo-ring { position: absolute; border-radius: 50%; pointer-events: none; }
 .sidebar-logo-ring.ring-one { inset: 0; border: 1px solid rgba(0,229,255,.13); border-top-color: transparent; border-bottom-color: transparent; animation: spin 10s linear infinite; }
-.sidebar-logo-ring.ring-two { inset: 7px; border: 1px solid rgba(0,229,255,.08); border-left-color: transparent; border-right-color: transparent; animation: spin 7s linear infinite reverse; }
-.sidebar-brand-copy { min-width: 0; position: relative; z-index: 2; }
-.sidebar-brand-copy strong { display: block; color: white; font: 900 16px/.95 'Montserrat',sans-serif; letter-spacing: -.045em; white-space: nowrap; animation: splash-text-breathe 3s ease-in-out infinite alternate; }
-.sidebar-brand-copy strong span { color: transparent; background: linear-gradient(90deg,#fff 20%,#00e5ff 50%,#fff 80%); background-size: 200% auto; background-clip: text; -webkit-background-clip: text; animation: splash-sweep 5s linear infinite; }
-.sidebar-brand-copy small { display: block; color: #00e5ff; overflow: hidden; margin-top: 7px; font: 600 7px 'Inter',sans-serif; letter-spacing: .06em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; filter: drop-shadow(0 0 5px rgba(0,229,255,.25)); }
-.sidebar-brand-copy b { display: block; color: #647d81; margin-top: 4px; font: 700 6px 'Inter',sans-serif; letter-spacing: .16em; }
+.sidebar-logo-ring.ring-two { inset: 10px; border: 1px solid rgba(0,229,255,.08); border-left-color: transparent; border-right-color: transparent; animation: spin 7s linear infinite reverse; }
+.sidebar-app-name { display: block; color: white; font: 900 23px/.95 'Montserrat',sans-serif; letter-spacing: -.055em; white-space: nowrap; animation: splash-text-breathe 3s ease-in-out infinite alternate; }
+.sidebar-app-name span { color: transparent; background: linear-gradient(90deg,#fff 20%,#00e5ff 50%,#fff 80%); background-size: 200% auto; background-clip: text; -webkit-background-clip: text; animation: splash-sweep 5s linear infinite; }
+.sidebar-brand-copy { width: 100%; position: relative; z-index: 2; border: 1px solid rgba(0,229,255,.12); border-radius: 9px; background: rgba(3,14,18,.5); padding: 9px 11px; text-align: center; backdrop-filter: blur(5px); }
+.sidebar-brand-copy small { display: block; color: #00e5ff; overflow: hidden; font: 600 8px 'Inter',sans-serif; letter-spacing: .065em; text-transform: uppercase; white-space: nowrap; text-overflow: ellipsis; filter: drop-shadow(0 0 5px rgba(0,229,255,.25)); }
+.sidebar-brand-copy b { display: block; color: #879c9f; margin-top: 5px; font: 700 7px 'Inter',sans-serif; letter-spacing: .16em; }
 .workspace-switch { display: flex; align-items: center; gap: 10px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.018); margin-bottom: 24px; }
 .workspace-avatar, .profile-avatar { display: grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; color: #0b1416; background: #d8b47a; font-weight: 800; font-size: 12px; }
 .workspace-switch div { min-width: 0; flex: 1; }

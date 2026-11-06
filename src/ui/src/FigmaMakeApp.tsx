@@ -3841,51 +3841,53 @@ function SidebarAnimatedHeader() {
           />
         </svg>
       </div>
-      <div className="sidebar-neural-mark">
-        <div className="sidebar-logo-ring ring-one" />
-        <div className="sidebar-logo-ring ring-two" />
-        <svg
-          overflow="visible"
-          width="100%"
-          height="100%"
-          viewBox="0 0 100 100"
-          fill="none"
-          aria-hidden="true"
-        >
-          <line
-            x1="5"
-            y1="50"
-            x2="95"
-            y2="50"
-            stroke="rgba(0,229,255,.15)"
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-          {[
-            [18, 35, 30],
-            [31, 20, 60],
-            [44, 10, 80],
-            [57, 25, 50],
-            [70, 15, 70],
-            [83, 30, 40],
-          ].map(([x, y, height], index) => (
-            <rect
-              className={`splash-eq-bar splash-bar-${index + 1}`}
-              key={x}
-              x={x}
-              y={y}
-              width="6"
-              height={height}
-              rx="3"
-              fill="#00e5ff"
+      <div className="sidebar-brand-primary">
+        <div className="sidebar-neural-mark">
+          <div className="sidebar-logo-ring ring-one" />
+          <div className="sidebar-logo-ring ring-two" />
+          <svg
+            overflow="visible"
+            width="100%"
+            height="100%"
+            viewBox="0 0 100 100"
+            fill="none"
+            aria-hidden="true"
+          >
+            <line
+              x1="5"
+              y1="50"
+              x2="95"
+              y2="50"
+              stroke="rgba(0,229,255,.15)"
+              strokeWidth="2"
+              strokeLinecap="round"
             />
-          ))}
-        </svg>
-      </div>
-      <div className="sidebar-brand-copy">
-        <strong>
+            {[
+              [18, 35, 30],
+              [31, 20, 60],
+              [44, 10, 80],
+              [57, 25, 50],
+              [70, 15, 70],
+              [83, 30, 40],
+            ].map(([x, y, height], index) => (
+              <rect
+                className={`splash-eq-bar splash-bar-${index + 1}`}
+                key={x}
+                x={x}
+                y={y}
+                width="6"
+                height={height}
+                rx="3"
+                fill="#00e5ff"
+              />
+            ))}
+          </svg>
+        </div>
+        <strong className="sidebar-app-name">
           VOZ<span>STUDIO</span>
         </strong>
+      </div>
+      <div className="sidebar-brand-copy">
         <small>Producción de voz neuronal</small>
         <b>OMNI-ES · LOCAL</b>
       </div>
