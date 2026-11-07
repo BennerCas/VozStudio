@@ -58,6 +58,9 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
             "voice_id": "es_ES-carlfm-x_low",
             "speed": 1.05,
             "pitch_semitones": 0.0,
+            "voice_design_prompt": "Locutor profesional de español latino, seco y cercano.",
+            "instruct_prompt": "Dicción clara, sin eco y con pausas breves entre ideas.",
+            "temperature": 0.65,
         },
     )
     assert r_syn.status_code == 200
@@ -66,6 +69,9 @@ def test_api_v1_full_lifecycle_and_owasp_guards(tmp_path: Path) -> None:
     assert item["motor"] == "piper"
     assert item["metricas"]["duracion_audio_seg"] > 0.5
     assert item["audio_url"] == f"/api/v1/library/{item_id}/audio"
+    assert item["parametros"]["voice_design_prompt"] == "Locutor profesional de español latino, seco y cercano."
+    assert item["parametros"]["instruct_prompt"] == "Dicción clara, sin eco y con pausas breves entre ideas."
+    assert item["parametros"]["temperature"] == 0.65
 
     # 5. Listado y descarga streaming del WAV generado
     r_lib = client.get("/api/v1/library")

@@ -3,15 +3,23 @@
 from __future__ import annotations
 
 import gc
+import json
 import logging
+import os
 from pathlib import Path
+import socket
+import subprocess
+import tempfile
+import time
 from typing import Any
+from urllib.error import URLError
+from urllib.request import Request, urlopen
 
 import numpy as np
 import soundfile as sf
 
 from src.ai.base_engine import BaseTTSEngine, SynthesisParams, VoiceDescriptor
-from src.core.config import BRAINS_SPACE_DIR, CPU_THREADS, MODELS_LINK_DIR
+from src.core.config import BRAINS_SPACE_DIR, CPU_THREADS, MODELS_LINK_DIR, PROJECT_ROOT
 from src.core.hardware import create_onnx_session_with_fallback
 
 logger = logging.getLogger(__name__)
@@ -236,6 +244,17 @@ class F5SpanishEngine(BaseTTSEngine):
         self._brains_dir = brains_dir if brains_dir is not None else BRAINS_SPACE_DIR
         self._backend: Any = None
         self._provider: str | None = None
+        self._runtime_process: subprocess.Popen[bytes] | None = None
+        self._runtime_port: int | None = None
+
+    @staticmethod
+    def _runtime_python() -> Path | None:
+        configured = os.environ.get("VOZSTUDIO_F5_RUNTIME_PYTHON", "").strip()
+        candidates = (
+            Path(configured) if configured else None,
+            PROJECT_ROOT / ".runtimes" / "f5-tts" / "python.exe",
+        )
+        return next((path for path in candidates if path is not None and path.is_file()), None)
 
     def resolve_model_dir(self) -> Path | None:
         """Verifica presencia de pesos locales en models_link/F5-Spanish o Modelos -ai-brains/F5-Spanish."""
@@ -252,14 +271,16 @@ class F5SpanishEngine(BaseTTSEngine):
         return None
 
     def is_available(self) -> bool:
-        """Retorna True unicamente cuando los pesos de F5-Spanish existen localmente."""
-        return self.resolve_model_dir() is not None
+        """Expone F5 solo cuando sus pesos y runtime oficial están instalados."""
+        return self.resolve_model_dir() is not None and self._runtime_python() is not None
 
     def availability_note(self) -> str:
         """Estado honesto de disponibilidad local e instrucciones de enlace."""
         model_dir = self.resolve_model_dir()
+        if model_dir is not None and self._runtime_python() is not None:
+            return "Pesos F5-Spanish y runtime oficial aislado instalados localmente."
         if model_dir is not None:
-            return f"Pesos locales de F5-Spanish disponibles en: {model_dir}"
+            return "Pesos F5-Spanish detectados, pero falta el runtime .runtimes/f5-tts/python.exe."
         target = self._brains_dir / "F5-Spanish"
         return (
             "Modulo opcional de clonacion no instalado localmente. Descargue "
@@ -309,7 +330,7 @@ class F5SpanishEngine(BaseTTSEngine):
         ]
 
     def load(self) -> str:
-        """Inicializa F5-TTS local (paquete f5_tts o sesiones ONNX) cuando los pesos existen."""
+        """Inicializa el runtime residente oficial de F5-TTS Spanish."""
         if self._backend is not None and self._provider is not None:
             return self._provider
 
@@ -317,40 +338,57 @@ class F5SpanishEngine(BaseTTSEngine):
         if model_dir is None:
             raise FileNotFoundError(self.availability_note())
 
-        onnx_files = sorted(model_dir.glob("*.onnx"))
-        if onnx_files:
-            sess, provider = create_onnx_session_with_fallback(onnx_files[0], prefer_dml=True)
-            self._backend = ("onnx", sess, model_dir)
-            self._provider = provider
-            return provider
+        runtime_python = self._runtime_python()
+        if runtime_python is None:
+            raise FileNotFoundError(self.availability_note())
 
-        try:
-            import torch
-            from f5_tts.api import F5TTS  # type: ignore[import-not-found]
-
-            torch.set_num_threads(max(1, int(CPU_THREADS)))
-            ckpts = sorted(list(model_dir.glob("*.safetensors")) + list(model_dir.glob("*.pt")))
-            vocab_file = model_dir / "vocab.txt"
-            f5_inst = F5TTS(
-                ckpt_file=str(ckpts[0]),
-                vocab_file=str(vocab_file) if vocab_file.is_file() else "",
-                device="cpu",
-            )
-            self._backend = ("f5_api", f5_inst, model_dir)
-            self._provider = "CPUExecutionProvider"
-            return self._provider
-        except Exception:
-            # Fallback inteligente a CosyVoiceEngine para clonacion zero-shot (GEMINI.md Regla 8)
-            from src.ai.cosyvoice_engine import CosyVoiceEngine
-
-            fallback_engine = CosyVoiceEngine(models_link_dir=self._models_link_dir)
-            prov = fallback_engine.load()
-            self._backend = ("fallback_cosy", fallback_engine, model_dir)
-            self._provider = f"{prov} (F5-ZeroShot Neural Fallback)"
-            return self._provider
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            probe.bind(("127.0.0.1", 0))
+            port = int(probe.getsockname()[1])
+        worker_path = Path(__file__).with_name("f5_runtime_server.py")
+        self._runtime_process = subprocess.Popen(
+            [str(runtime_python), str(worker_path), "--port", str(port)],
+            cwd=str(PROJECT_ROOT),
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
+        )
+        self._runtime_port = port
+        deadline = time.monotonic() + 75.0
+        while time.monotonic() < deadline:
+            try:
+                with urlopen(f"http://127.0.0.1:{port}/health", timeout=1.0) as response:
+                    if response.status == 200:
+                        self._backend = ("native_runtime", None, model_dir)
+                        self._provider = "CPUExecutionProvider (F5-TTS native Python 3.11)"
+                        return self._provider
+            except URLError:
+                time.sleep(0.15)
+        self.unload()
+        raise RuntimeError("El runtime oficial F5-TTS no inició correctamente.")
 
     def unload(self) -> None:
-        """Libera el motor F5-Spanish de memoria."""
+        """Libera el proceso residente y la memoria usada por F5-Spanish."""
+        if self._runtime_port is not None:
+            try:
+                request = Request(
+                    f"http://127.0.0.1:{self._runtime_port}/shutdown",
+                    data=b"{}",
+                    method="POST",
+                    headers={"Content-Type": "application/json"},
+                )
+                with urlopen(request, timeout=2.0):
+                    pass
+            except (URLError, TimeoutError):
+                pass
+        if self._runtime_process is not None:
+            try:
+                self._runtime_process.wait(timeout=3.0)
+            except subprocess.TimeoutExpired:
+                self._runtime_process.terminate()
+        self._runtime_process = None
+        self._runtime_port = None
         self._backend = None
         self._provider = None
         gc.collect()
@@ -370,23 +408,7 @@ class F5SpanishEngine(BaseTTSEngine):
         if self._backend is None:
             self.load()
 
-        mode, backend_obj, model_dir = self._backend
-        if mode == "fallback_cosy":
-            cosy_voice_map = {
-                "f5_es_neutro_clone": "cosy_nova_es",
-                "f5_es_rioplatense_clone": "cosy_onyx_es",
-                "f5_es_castellano_clone": "cosy_custom_clone",
-            }
-            cosy_voice = cosy_voice_map.get(selected_id, "cosy_nova_es")
-            audios, sr, _, prov = backend_obj.synthesize_raw(
-                chunks, voice_id=cosy_voice, params=params
-            )
-            return (
-                audios,
-                sr,
-                f"jpgallegoar/F5-Spanish ({selected_id} via CosyVoice-ZeroShot)",
-                self._provider or prov,
-            )
+        mode, _, model_dir = self._backend
 
         ref_wav = params.reference_wav_path
         if not ref_wav:
@@ -402,41 +424,47 @@ class F5SpanishEngine(BaseTTSEngine):
         if not ref_path.is_file():
             raise FileNotFoundError(f"Audio de referencia no encontrado: {ref_path}")
 
-        ref_text = (params.reference_text or "").strip()
+        if mode != "native_runtime" or self._runtime_port is None:
+            raise RuntimeError("El runtime F5-TTS no está activo.")
+
         safe_speed = float(np.clip(float(params.speed), 0.5, 2.0))
-
-        if mode != "f5_api":
-            raise RuntimeError(
-                "Pipeline ONNX personalizado de F5-Spanish requiere grafo completo de vocoder Vocos."
+        with tempfile.NamedTemporaryFile(prefix="vozstudio_f5_", suffix=".wav", delete=False) as tmp:
+            output_path = Path(tmp.name)
+        payload = {
+            "model_dir": str(model_dir),
+            "reference_wav_path": str(ref_path),
+            "reference_text": (params.reference_text or "").strip(),
+            "chunks": chunks,
+            "speed": safe_speed,
+            "output_path": str(output_path),
+        }
+        try:
+            request = Request(
+                f"http://127.0.0.1:{self._runtime_port}/synthesize",
+                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                method="POST",
+                headers={"Content-Type": "application/json; charset=utf-8"},
             )
-
-        audio_arrays: list[np.ndarray] = []
-        sample_rate = 24000
-        for chunk_text in chunks:
-            clean = chunk_text.strip()
-            if not clean:
-                continue
-            wav, sr, _ = backend_obj.infer(
-                ref_file=str(ref_path),
-                ref_text=ref_text,
-                gen_text=clean,
-                speed=safe_speed,
-            )
-            sample_rate = int(sr)
-            arr = np.asarray(wav, dtype=np.float32).reshape(-1)
-            if arr.size > 0:
-                audio_arrays.append(np.clip(arr, -1.0, 1.0))
-
-        if not audio_arrays:
-            raise ValueError("F5-Spanish no produjo muestras de audio.")
+            with urlopen(request, timeout=3600.0) as response:
+                answer = json.loads(response.read().decode("utf-8"))
+            if not bool(answer.get("ok")):
+                raise RuntimeError(str(answer.get("error", "F5-TTS no produjo audio.")))
+            raw_audio, sample_rate = sf.read(str(output_path), dtype="float32", always_2d=False)
+            arr = np.asarray(raw_audio, dtype=np.float32).reshape(-1)
+            if arr.size == 0:
+                raise ValueError("F5-Spanish no produjo muestras de audio.")
+        except URLError as exc:
+            raise RuntimeError(f"Runtime F5-TTS no disponible: {exc}") from exc
+        finally:
+            output_path.unlink(missing_ok=True)
 
         # Validar lectura basica de referencia si fuese requerido por auditoria
         _ = sf.info(str(ref_path))
         return (
-            audio_arrays,
-            sample_rate,
+            [np.clip(arr, -1.0, 1.0)],
+            int(sample_rate),
             f"jpgallegoar/F5-Spanish ({selected_id})",
-            self._provider or "CPUExecutionProvider",
+            self._provider or "CPUExecutionProvider (F5-TTS native Python 3.11)",
         )
 
 
@@ -606,4 +634,3 @@ class CoquiXTTS2Engine(BaseTTSEngine):
             f"coqui/XTTS-v2 ({voice_id})",
             self._provider or "CPUExecutionProvider",
         )
-

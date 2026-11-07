@@ -248,11 +248,11 @@ const engineCatalog = [
   {
     id: "f5_spanish",
     short: "F5",
-    name: "F5-Spanish ONNX",
-    type: "ZERO-SHOT GPU",
+    name: "F5-TTS Spanish",
+    type: "CLONACIÓN CON REFERENCIA",
     size: "1.35 GB",
     license: "CC-BY-NC-4.0",
-    provider: "DirectML · 3 grafos",
+    provider: "Python 3.11 · CPU nativo",
     color: "#ffb547",
   },
   {
@@ -282,7 +282,7 @@ const engineCatalog = [
     type: "VOICE DESIGN",
     size: "1.83 GB",
     license: "Apache-2.0",
-    provider: "DirectML / CPU",
+    provider: "Python 3.12 · CPU nativo",
     color: "#5ad4a5",
   },
 ]
@@ -445,7 +445,7 @@ const studioVoices: Record<string, StudioVoice[]> = {
       region: "LATAM",
       gender: "MIX",
       rate: "24 kHz",
-      detail: "Flow-Matching DirectML",
+      detail: "Flow-Matching nativo",
       clone: true,
     },
     {
@@ -1380,17 +1380,108 @@ function PresetsPage({
   const [category, setCategory] = useState<"Todos" | PresetCategory>("Todos")
   const [collection, setCollection] = useState<PresetCollection>("Fundamentos")
   const [previewingId, setPreviewingId] = useState<string | null>(null)
+  const [customPresets, setCustomPresets] = useState<StudioPreset[]>(() =>
+    loadLocal<StudioPreset[]>("vozstudio-custom-presets", []),
+  )
   const [lastAppliedId, setLastAppliedId] = useState(() =>
     loadLocal<string>(LAST_PRESET_STORAGE_KEY, ""),
   )
+  const [selectedPresetId, setSelectedPresetId] = useState(STUDIO_PRESETS[0].id)
+  const [draft, setDraft] = useState<StudioPreset>(STUDIO_PRESETS[0])
+  const [draftText, setDraftText] = useState(STUDIO_PRESETS[0].script)
+  const [draftInstruction, setDraftInstruction] = useState(STUDIO_PRESETS[0].designInstruction)
+  const [lastGeneration, setLastGeneration] = useState<LibraryItem | null>(null)
+  const [presetVoices, setPresetVoices] = useState<Record<string, VoiceInfo[]>>({})
   const previewAudio = useRef<HTMLAudioElement | null>(null)
-  const collectionPresets = STUDIO_PRESETS.filter((preset) => preset.collection === collection)
+  const allPresets = useMemo(() => [...STUDIO_PRESETS, ...customPresets], [customPresets])
+  const selectedPreset = allPresets.find((preset) => preset.id === selectedPresetId) ?? allPresets[0]
+  const collections = useMemo<PresetCollection[]>(
+    () => (customPresets.length ? [...PRESET_COLLECTIONS, "Mis variantes"] : [...PRESET_COLLECTIONS]),
+    [customPresets.length],
+  )
+  const collectionPresets = allPresets.filter((preset) => preset.collection === collection)
   const visiblePresets =
     category === "Todos"
       ? collectionPresets
       : collectionPresets.filter((preset) => preset.category === category)
+  const voiceOptions = presetVoices[draft.engineId] ?? []
+  const modelOptions = [
+    { id: "kokoro", label: "Kokoro ONNX", note: "nativo verificado · 5 voces" },
+    { id: "cosyvoice", label: "CosyVoice3 ONNX", note: "nativo verificado · 2 perfiles" },
+    { id: "qwen3_tts", label: "Qwen3 VoiceDesign", note: "nativo verificado · diseño por instrucción" },
+    { id: "f5_spanish", label: "F5-Spanish", note: "nativo · requiere referencia en Clonación", disabled: true },
+  ]
 
   useEffect(() => () => previewAudio.current?.pause(), [])
+
+  useEffect(() => {
+    if (!selectedPreset) return
+    setDraft(selectedPreset)
+    setDraftText(selectedPreset.script)
+    setDraftInstruction(selectedPreset.designInstruction)
+  }, [selectedPreset])
+
+  useEffect(() => {
+    let active = true
+    void studioApi
+      .getVoices(draft.engineId)
+      .then((voices) => {
+        if (active) setPresetVoices((current) => ({ ...current, [draft.engineId]: voices }))
+      })
+      .catch(() => undefined)
+    return () => {
+      active = false
+    }
+  }, [draft.engineId])
+
+  const persistCustomPresets = (next: StudioPreset[]) => {
+    setCustomPresets(next)
+    window.localStorage.setItem("vozstudio-custom-presets", JSON.stringify(next))
+  }
+
+  const makePresetFromDraft = (): StudioPreset => ({
+    ...draft,
+    script: draftText.trim() || draft.script,
+    designInstruction: draftInstruction.trim() || draft.designInstruction,
+  })
+
+  const isFallbackGeneration = (item: LibraryItem) =>
+    /fallback| via /i.test(`${item.modelo_origen} ${String(item.contexto?.backend ?? "")}`)
+
+  const playGeneratedAudio = async (item: LibraryItem) => {
+    previewAudio.current?.pause()
+    const audio = new Audio(item.audio_url)
+    audio.volume = 0.86
+    previewAudio.current = audio
+    try {
+      await audio.play()
+    } catch {
+      // La síntesis se guardó aunque el navegador no autorice la reproducción automática.
+    }
+  }
+
+  const synthesizeRecipe = async (preset: StudioPreset, text: string, instruction: string) => {
+    const item = await studioApi.synthesize({
+      text,
+      engine_id: preset.engineId,
+      voice_id: preset.voiceId,
+      speed: preset.speed,
+      pitch_semitones: preset.pitch,
+      emotion: preset.emotion === "NEUTRO" ? null : preset.emotion.toLowerCase(),
+      max_chunk_chars: 520,
+      voice_design_prompt: preset.engineId === "qwen3_tts" ? instruction : null,
+      instruct_prompt: instruction,
+      temperature: 0.7,
+    })
+    setLastGeneration(item)
+    await playGeneratedAudio(item)
+    if (isFallbackGeneration(item)) {
+      notify(`Audio generado con reserva detectada · revisa procedencia antes de usarlo`)
+    } else {
+      notify(`WAV nativo generado · ${item.motor} · ${preset.voiceName}`)
+    }
+    return item
+  }
 
   const applyPreset = (preset: StudioPreset) => {
     window.localStorage.setItem(PENDING_PRESET_STORAGE_KEY, JSON.stringify(preset))
@@ -1402,24 +1493,7 @@ function PresetsPage({
   const previewPreset = async (preset: StudioPreset) => {
     setPreviewingId(preset.id)
     try {
-      const item = await studioApi.synthesize({
-        text: preset.script,
-        engine_id: preset.engineId,
-        voice_id: preset.voiceId,
-        speed: preset.speed,
-        pitch_semitones: preset.pitch,
-        emotion: preset.emotion === "NEUTRO" ? null : preset.emotion.toLowerCase(),
-      })
-      previewAudio.current?.pause()
-      const audio = new Audio(item.audio_url)
-      audio.volume = 0.86
-      previewAudio.current = audio
-      try {
-        await audio.play()
-      } catch {
-        // La síntesis se completó aunque el navegador no autorice la reproducción.
-      }
-      notify(`Muestra real generada · ${preset.name}`)
+      await synthesizeRecipe(preset, preset.script, preset.designInstruction)
     } catch (error) {
       notify(
         `No se pudo generar la muestra de ${preset.name}: ${
@@ -1431,107 +1505,283 @@ function PresetsPage({
     }
   }
 
+  const generateFromLab = async () => {
+    const recipe = makePresetFromDraft()
+    if (!recipe.script.trim()) {
+      notify("Escribe el texto que quieres sintetizar")
+      return
+    }
+    setPreviewingId("preset-lab")
+    try {
+      await synthesizeRecipe(recipe, recipe.script, recipe.designInstruction)
+    } catch (error) {
+      notify(`No se pudo generar el audio: ${error instanceof Error ? error.message : "error local"}`)
+    } finally {
+      setPreviewingId(null)
+    }
+  }
+
+  const duplicateDraft = () => {
+    if (customPresets.length >= 20) {
+      notify("Mis variantes admite hasta 20 tarjetas para mantener la cuadrícula 5 × 4")
+      return
+    }
+    const base = makePresetFromDraft()
+    const id = `custom-${Date.now().toString(36)}`
+    const copy: StudioPreset = {
+      ...base,
+      id,
+      name: `${base.name} · variante`,
+      collection: "Mis variantes",
+    }
+    persistCustomPresets([...customPresets, copy])
+    setCollection("Mis variantes")
+    setCategory("Todos")
+    setSelectedPresetId(id)
+    notify("Tarjeta duplicada en Mis variantes")
+  }
+
+  const atomizeDraft = () => {
+    const remaining = 20 - customPresets.length
+    if (remaining < 1) {
+      notify("Mis variantes ya alcanzó el límite de 20 tarjetas")
+      return
+    }
+    const base = makePresetFromDraft()
+    const variants = [
+      { name: "Femenina", voiceId: "ef_dora", voiceName: "Dora Neural", speed: Math.max(0.75, base.speed - 0.05), pitch: base.pitch + 0.5, emotion: "CÁLIDO" as const, extra: "Variante femenina adulta: conserva cercanía y brillo moderado." },
+      { name: "Masculina", voiceId: "em_alex", voiceName: "Alex Neural", speed: base.speed, pitch: base.pitch - 0.5, emotion: "NARRATIVO" as const, extra: "Variante masculina adulta: conserva peso medio y articulación precisa." },
+      { name: "Madura", voiceId: "em_santa", voiceName: "Santa Neural", speed: Math.max(0.75, base.speed - 0.08), pitch: Math.min(base.pitch, -0.5), emotion: "NARRATIVO" as const, extra: "Variante madura: añade gravedad serena sin efectos de eco." },
+    ]
+      .slice(0, remaining)
+      .map((variant, index): StudioPreset => ({
+        ...base,
+        id: `custom-${Date.now().toString(36)}-${index}`,
+        name: `${base.name} · ${variant.name}`,
+        collection: "Mis variantes",
+        engineId: "kokoro",
+        voiceId: variant.voiceId,
+        voiceName: variant.voiceName,
+        speed: variant.speed,
+        pitch: variant.pitch,
+        emotion: variant.emotion,
+        designInstruction: `${base.designInstruction} ${variant.extra}`,
+      }))
+    persistCustomPresets([...customPresets, ...variants])
+    setCollection("Mis variantes")
+    setCategory("Todos")
+    setSelectedPresetId(variants[0].id)
+    notify(`${variants.length} variantes reales listas para ajustar o sintetizar`)
+  }
+
+  const deleteSelectedVariant = () => {
+    if (selectedPreset?.collection !== "Mis variantes") return
+    const next = customPresets.filter((preset) => preset.id !== selectedPreset.id)
+    persistCustomPresets(next)
+    setSelectedPresetId(STUDIO_PRESETS[0].id)
+    setCollection("Fundamentos")
+    notify("Variante eliminada de este equipo")
+  }
+
   return (
     <Page
       title="Presets profesionales"
-      description="40 recetas neuronales en español latino, organizadas en dos colecciones aplicables al Estudio."
+      description="40 recetas con modelo, voz e instrucción auditables; crea y conserva variantes locales sin perder la vista 16:9."
       action={<span className="preset-ready">40 OPERATIVOS</span>}
     >
       <section className="presets-workspace" aria-label="Catálogo de presets">
-        <div className="preset-toolbar">
-          <div className="preset-collection-switch" aria-label="Colecciones de presets">
-            {PRESET_COLLECTIONS.map((item) => (
-              <button
-                key={item}
-                data-testid={`preset-collection-${item === "Fundamentos" ? "Fundamentos" : "Latino-neural"}`}
-                className={collection === item ? "active" : ""}
-                onClick={() => {
-                  setCollection(item)
-                  setCategory("Todos")
+        <div className="preset-catalog">
+          <div className="preset-toolbar">
+            <div className="preset-collection-switch" aria-label="Colecciones de presets">
+              {collections.map((item) => {
+                const testId = item === "Fundamentos" ? "Fundamentos" : item === "Latino neural" ? "Latino-neural" : "Mis-variantes"
+                const count = allPresets.filter((preset) => preset.collection === item).length
+                return (
+                  <button
+                    key={item}
+                    data-testid={`preset-collection-${testId}`}
+                    className={collection === item ? "active" : ""}
+                    onClick={() => {
+                      setCollection(item)
+                      setCategory("Todos")
+                      setSelectedPresetId(
+                        allPresets.find((preset) => preset.collection === item)?.id ?? selectedPresetId,
+                      )
+                    }}
+                  >
+                    {item} <small>{count}</small>
+                  </button>
+                )
+              })}
+            </div>
+            <div className="filter-row" aria-label="Filtrar presets">
+              {categories.map((item) => (
+                <button
+                  key={item}
+                  className={`filter ${category === item ? "active" : ""}`}
+                  onClick={() => setCategory(item)}
+                >
+                  {item}
+                </button>
+              ))}
+            </div>
+            <p>
+              <b>{collection} · configuración audible</b>
+              <span>Selecciona una tarjeta para editar texto e instrucción.</span>
+            </p>
+          </div>
+          <div className="preset-grid">
+            {visiblePresets.map((preset, index) => {
+              const pitch = `${preset.pitch > 0 ? "+" : ""}${preset.pitch.toFixed(1)} st`
+              const isApplied = lastAppliedId === preset.id
+              const icon: IconName =
+                preset.category === "Comercial"
+                  ? "wave"
+                  : preset.category === "Personajes"
+                    ? "sparkles"
+                    : preset.category === "Corporativo"
+                      ? "sliders"
+                      : "mic"
+              return (
+                <article
+                  className={`preset-card ${isApplied ? "applied" : ""} ${selectedPresetId === preset.id ? "selected" : ""}`}
+                  data-testid={`preset-card-${preset.id}`}
+                  data-preset-id={preset.id}
+                  key={preset.id}
+                  style={{ "--preset": preset.color } as React.CSSProperties}
+                  tabIndex={0}
+                  onClick={() => setSelectedPresetId(preset.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") setSelectedPresetId(preset.id)
+                  }}
+                >
+                  <header>
+                    <span className="preset-icon">
+                      <Icon name={icon} size={18} />
+                    </span>
+                    {isApplied ? (
+                      <span className="preset-applied-mark" title="Último preset aplicado">
+                        <Icon name="check" size={15} />
+                      </span>
+                    ) : (
+                      <span>#{String(index + 1).padStart(2, "0")}</span>
+                    )}
+                  </header>
+                  <p>{preset.category.toUpperCase()}</p>
+                  <h3>{preset.name}</h3>
+                  <span className="preset-meta">{preset.voiceName} · {preset.engineId === "cosyvoice" ? "COSY NATIVE" : preset.engineId === "qwen3_tts" ? "QWEN NATIVE" : "KOKORO NATIVE"}</span>
+                  <div className="preset-config" aria-label={`Configuración de ${preset.name}`}>
+                    <span>{preset.speed.toFixed(2)}×</span>
+                    <span>{pitch}</span>
+                    <span>{preset.emotion}</span>
+                  </div>
+                  <footer>
+                    <button
+                      aria-label={`Generar muestra real de ${preset.name}`}
+                      data-testid={`preview-preset-${preset.id}`}
+                      disabled={previewingId !== null}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        void previewPreset(preset)
+                      }}
+                    >
+                      <Icon name={previewingId === preset.id ? "refresh" : "play"} size={14} />
+                      {previewingId === preset.id ? "Generando" : "Escuchar"}
+                    </button>
+                    <button
+                      className="use-preset"
+                      data-testid={`apply-preset-${preset.id}`}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        applyPreset(preset)
+                      }}
+                    >
+                      {isApplied ? "Aplicado" : "Aplicar"} <Icon name="arrow" size={14} />
+                    </button>
+                  </footer>
+                </article>
+              )
+            })}
+          </div>
+        </div>
+        <aside className="preset-lab" aria-label="Laboratorio del preset seleccionado">
+          <header className="preset-lab-head">
+            <span><Icon name="wand" size={15} /> LABORATORIO DE PRESET</span>
+            <b>{draft.designFamily.toUpperCase()}</b>
+          </header>
+          <div className="preset-lab-title">
+            <strong>{draft.name}</strong>
+            <small>{draft.voiceName} · {draft.engineId}</small>
+          </div>
+          <div className="preset-lab-selects">
+            <label>
+              MODELO
+              <select
+                value={draft.engineId}
+                onChange={(event) => {
+                  const engineId = event.target.value
+                  const firstVoice = presetVoices[engineId]?.[0]
+                  setDraft((current) => ({
+                    ...current,
+                    engineId,
+                    voiceId: firstVoice?.id ?? current.voiceId,
+                    voiceName: firstVoice?.name ?? current.voiceName,
+                  }))
                 }}
               >
-                {item} <small>20</small>
-              </button>
-            ))}
-          </div>
-          <div className="filter-row" aria-label="Filtrar presets">
-            {categories.map((item) => (
-              <button
-                key={item}
-                className={`filter ${category === item ? "active" : ""}`}
-                onClick={() => setCategory(item)}
+                {modelOptions.map((model) => <option value={model.id} key={model.id} disabled={model.disabled}>{model.label}</option>)}
+              </select>
+              <small>{modelOptions.find((model) => model.id === draft.engineId)?.note}</small>
+            </label>
+            <label>
+              VOZ
+              <select
+                value={draft.voiceId}
+                onChange={(event) => {
+                  const nextVoice = voiceOptions.find((voice) => voice.id === event.target.value)
+                  setDraft((current) => ({ ...current, voiceId: event.target.value, voiceName: nextVoice?.name ?? current.voiceName }))
+                }}
               >
-                {item}
-              </button>
-            ))}
+                {!voiceOptions.some((voice) => voice.id === draft.voiceId) && <option value={draft.voiceId}>{draft.voiceName}</option>}
+                {voiceOptions.map((voice) => <option value={voice.id} key={voice.id}>{voice.name}</option>)}
+              </select>
+            </label>
           </div>
-          <p>
-            <b>{collection} · Kokoro ONNX · 24 kHz</b>
-            <span>Previsualiza un WAV real o aplica la receta exacta al Estudio.</span>
-          </p>
-        </div>
-        <div className="preset-grid">
-          {visiblePresets.map((preset, index) => {
-            const pitch = `${preset.pitch > 0 ? "+" : ""}${preset.pitch.toFixed(1)} st`
-            const isApplied = lastAppliedId === preset.id
-            const icon: IconName =
-              preset.category === "Comercial"
-                ? "wave"
-                : preset.category === "Personajes"
-                  ? "sparkles"
-                  : preset.category === "Corporativo"
-                    ? "sliders"
-                    : "mic"
-            return (
-              <article
-                className={`preset-card ${isApplied ? "applied" : ""}`}
-                data-testid={`preset-card-${preset.id}`}
-                data-preset-id={preset.id}
-                key={preset.id}
-                style={{ "--preset": preset.color } as React.CSSProperties}
-              >
-                <header>
-                  <span className="preset-icon">
-                    <Icon name={icon} size={18} />
-                  </span>
-                  {isApplied ? (
-                    <span className="preset-applied-mark" title="Último preset aplicado">
-                      <Icon name="check" size={15} />
-                    </span>
-                  ) : (
-                    <span>#{String(index + 1).padStart(2, "0")}</span>
-                  )}
-                </header>
-                <p>{preset.category.toUpperCase()}</p>
-                <h3>{preset.name}</h3>
-                <span className="preset-meta">{preset.voiceName} · {preset.emotion}</span>
-                <div className="preset-config" aria-label={`Configuración de ${preset.name}`}>
-                  <span>{preset.speed.toFixed(2)}×</span>
-                  <span>{pitch}</span>
-                  <span>24 kHz</span>
-                </div>
-                <footer>
-                  <button
-                    aria-label={`Generar muestra real de ${preset.name}`}
-                    data-testid={`preview-preset-${preset.id}`}
-                    disabled={previewingId !== null}
-                    onClick={() => void previewPreset(preset)}
-                  >
-                    <Icon name={previewingId === preset.id ? "refresh" : "play"} size={14} />
-                    {previewingId === preset.id ? "Generando" : "Escuchar"}
-                  </button>
-                  <button
-                    className="use-preset"
-                    data-testid={`apply-preset-${preset.id}`}
-                    onClick={() => applyPreset(preset)}
-                  >
-                    {isApplied ? "Aplicado" : "Aplicar"} <Icon name="arrow" size={14} />
-                  </button>
-                </footer>
-              </article>
-            )
-          })}
-        </div>
+          <div className="preset-lab-controls">
+            <label>VEL.
+              <input type="number" min="0.5" max="2" step="0.05" value={draft.speed} onChange={(event) => setDraft((current) => ({ ...current, speed: Number(event.target.value) }))} />
+            </label>
+            <label>TONO
+              <input type="number" min="-6" max="6" step="0.5" value={draft.pitch} onChange={(event) => setDraft((current) => ({ ...current, pitch: Number(event.target.value) }))} />
+            </label>
+            <label>MATIZ
+              <select value={draft.emotion} onChange={(event) => setDraft((current) => ({ ...current, emotion: event.target.value as StudioPreset["emotion"] }))}>
+                <option>NEUTRO</option><option>NARRATIVO</option><option>CÁLIDO</option><option>INFORMATIVO</option><option>EXPRESIVO</option>
+              </select>
+            </label>
+          </div>
+          <label className="preset-lab-editor instruction-editor">
+            <span>INSTRUCCIÓN DE DISEÑO <small>{draftInstruction.length}/1500</small></span>
+            <textarea value={draftInstruction} maxLength={1500} onChange={(event) => setDraftInstruction(event.target.value)} />
+          </label>
+          <label className="preset-lab-editor text-editor">
+            <span>TEXTO A GENERAR <small>{draftText.length}/6000</small></span>
+            <textarea value={draftText} maxLength={6000} onChange={(event) => setDraftText(event.target.value)} placeholder="Pega aquí hasta 6.000 caracteres en español…" />
+          </label>
+          <div className="preset-lab-actions">
+            <button className="preset-lab-generate" data-testid="generate-preset-lab" onClick={() => void generateFromLab()} disabled={previewingId !== null}>
+              <Icon name={previewingId === "preset-lab" ? "refresh" : "play"} size={15} />
+              {previewingId === "preset-lab" ? "Generando WAV" : "Generar WAV real"}
+            </button>
+            <button onClick={duplicateDraft}><Icon name="copy" size={14} /> Duplicar</button>
+            <button onClick={atomizeDraft}><Icon name="sparkles" size={14} /> 3 variantes</button>
+            {selectedPreset?.collection === "Mis variantes" && <button className="danger" onClick={deleteSelectedVariant}><Icon name="trash" size={14} /> Eliminar</button>}
+          </div>
+          <div className="preset-lab-audit" data-testid="preset-lab-audit">
+            <b>{lastGeneration ? (isFallbackGeneration(lastGeneration) ? "RESERVA DETECTADA" : "AUDIO NATIVO AUDITADO") : "PROCEDENCIA ANTES DE GENERAR"}</b>
+            <span>{lastGeneration ? `${lastGeneration.motor} · ${lastGeneration.modelo_origen}` : "Qwen3 VoiceDesign está listo para instrucciones; F5 nativo se usa desde Clonación con una referencia."}</span>
+          </div>
+        </aside>
       </section>
     </Page>
   )
@@ -1705,12 +1955,9 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
       (voice) => voice.id === pendingPreset.voiceId,
     )
 
-    if (!presetEngine || presetVoiceIndex < 0) {
-      notify(`No se pudo activar ${pendingPreset.name}: falta su motor o timbre local`)
-      window.localStorage.removeItem(PENDING_PRESET_STORAGE_KEY)
-      setPendingPreset(null)
-      return
-    }
+    // El catálogo de respaldo se pinta antes de que termine de llegar el inventario real.
+    // Conservar la receta pendiente evita descartarla por una carrera de carga de voces.
+    if (!presetEngine || presetVoiceIndex < 0) return
 
     setEngineId(pendingPreset.engineId)
     setVoiceIndex(presetVoiceIndex)
@@ -2515,7 +2762,7 @@ function StudioPage({ notify }: { notify: (message: string) => void }) {
                 <Icon name="mic" />
                 <span>
                   <strong>Arquitectura de clonación recomendada</strong>
-                  <small>F5-Spanish DirectML · CosyVoice · XTTS · Qwen3</small>
+                  <small>F5-Spanish nativo · CosyVoice · XTTS · Qwen3</small>
                 </span>
                 <b>{engine.short}</b>
               </div>

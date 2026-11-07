@@ -281,6 +281,9 @@ class EngineOrchestrator:
                 else None
             ),
             "max_chunk_chars": int(syn_params.max_chunk_chars),
+            "voice_design_prompt": syn_params.voice_design_prompt,
+            "instruct_prompt": syn_params.instruct_prompt,
+            "temperature": float(syn_params.temperature),
         }
 
         target_bib_dir = (

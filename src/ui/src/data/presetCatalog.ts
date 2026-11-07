@@ -1,5 +1,18 @@
 export type PresetCategory = 'Narración' | 'Comercial' | 'Personajes' | 'Corporativo'
-export type PresetCollection = 'Fundamentos' | 'Latino neural'
+export type PresetCollection = 'Fundamentos' | 'Latino neural' | 'Mis variantes'
+export type PresetDesignFamily =
+  | 'documental'
+  | 'conversacional'
+  | 'comercial'
+  | 'formativo'
+  | 'personaje'
+  | 'poetico'
+  | 'deportivo'
+  | 'romantico'
+  | 'suspenso'
+  | 'urbano'
+  | 'tropical'
+  | 'periodistico'
 
 export type PresetEmotion =
   | 'NEUTRO'
@@ -13,21 +26,25 @@ export interface StudioPreset {
   name: string
   collection: PresetCollection
   category: PresetCategory
-  engineId: 'kokoro'
-  voiceId: 'ef_dora' | 'em_alex' | 'em_santa' | 'es_blend_editorial' | 'es_blend_documental'
+  engineId: string
+  voiceId: string
   voiceName: string
   speed: number
   pitch: number
   emotion: PresetEmotion
   color: string
   script: string
+  designFamily: PresetDesignFamily
+  designInstruction: string
 }
 
 export const PENDING_PRESET_STORAGE_KEY = 'vozstudio-pending-preset'
 export const LAST_PRESET_STORAGE_KEY = 'vozstudio-last-preset'
 export const PRESET_COLLECTIONS: readonly PresetCollection[] = ['Fundamentos', 'Latino neural']
 
-const FUNDAMENTAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
+type PresetSeed = Omit<StudioPreset, 'collection' | 'designFamily' | 'designInstruction'>
+
+const FUNDAMENTAL_PRESETS: readonly PresetSeed[] = [
   {
     id: 'documental-intimo', name: 'Documental íntimo', category: 'Narración', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.9, pitch: -0.5, emotion: 'NARRATIVO', color: '#00c2d7',
     script: 'En el silencio de la cordillera, cada paso revela una historia que la naturaleza ha guardado durante siglos.',
@@ -110,7 +127,7 @@ const FUNDAMENTAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
   },
 ]
 
-const LATINO_NEURAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
+const LATINO_NEURAL_PRESETS: readonly PresetSeed[] = [
   {
     id: 'poeta-latino', name: 'Poeta latino', category: 'Narración', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 0.85, pitch: 0.5, emotion: 'CÁLIDO', color: '#b38cff',
     script: 'La lluvia toca los balcones de la ciudad y en cada gota despierta una palabra que todavía no sabía decir.',
@@ -193,7 +210,129 @@ const LATINO_NEURAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
   },
 ]
 
+export const PRESET_DESIGN_FAMILIES: Record<
+  PresetDesignFamily,
+  { label: string; instruction: string }
+> = {
+  documental: {
+    label: 'Documental humano',
+    instruction: 'Cadencia reflexiva, pausas breves entre ideas, intención observadora y cierre sereno.',
+  },
+  conversacional: {
+    label: 'Conversación cercana',
+    instruction: 'Ritmo natural de conversación, sonrisa leve, respiración discreta y énfasis cálido en las preguntas.',
+  },
+  comercial: {
+    label: 'Comercial contemporáneo',
+    instruction: 'Energía medida, articulación precisa, intención persuasiva sin gritar y remate memorable.',
+  },
+  formativo: {
+    label: 'Formación clara',
+    instruction: 'Velocidad didáctica, pronunciación limpia, pausas antes de los conceptos y tono que acompaña.',
+  },
+  personaje: {
+    label: 'Personaje controlado',
+    instruction: 'Interpretación reconocible y expresiva, sin caricatura extrema, conservando inteligibilidad en español latino.',
+  },
+  poetico: {
+    label: 'Poesía íntima',
+    instruction: 'Fraseo musical suave, silencios con intención, consonantes delicadas y una emoción contenida.',
+  },
+  deportivo: {
+    label: 'Deportivo en vivo',
+    instruction: 'Impulso ascendente, dicción rápida pero nítida, energía de estadio y énfasis en las acciones decisivas.',
+  },
+  romantico: {
+    label: 'Romántico cercano',
+    instruction: 'Timbre próximo, volumen moderado, pausas afectivas y una sonrisa audible sin susurrar artificialmente.',
+  },
+  suspenso: {
+    label: 'Suspenso cinematográfico',
+    instruction: 'Ritmo contenido, graves controlados, pausas tensas y finales de frase que dejen expectativa.',
+  },
+  urbano: {
+    label: 'Urbano rítmico',
+    instruction: 'Ataque ágil, acentos rítmicos limpios, confianza de calle y consonantes definidas sin perder claridad.',
+  },
+  tropical: {
+    label: 'Tropical festivo',
+    instruction: 'Sonrisa abierta, energía bailable, frases luminosas y pulsación alegre sin saturar la voz.',
+  },
+  periodistico: {
+    label: 'Periodismo de campo',
+    instruction: 'Entrega directa, datos claros, urgencia moderada y una presencia confiable de reportaje en español latino.',
+  },
+}
+
+type PresetDesignSpec = {
+  family: PresetDesignFamily
+  persona: string
+  model?: Pick<PresetSeed, 'engineId' | 'voiceId' | 'voiceName'>
+}
+
+const PRESET_DESIGN_SPECS: Record<string, PresetDesignSpec> = {
+  'documental-intimo': { family: 'documental', persona: 'narrador masculino maduro, cercano y profundo', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'trailer-cinematografico': { family: 'suspenso', persona: 'narrador masculino de registro grave, épico y contenido', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'podcast-natural': { family: 'conversacional', persona: 'locutora adulta, amable y espontánea', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'comercial-premium': { family: 'comercial', persona: 'locutora elegante, segura y sobria', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'audiolibro-calido': { family: 'poetico', persona: 'narradora adulta con intimidad de lectura nocturna', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'noticias-preciso': { family: 'periodistico', persona: 'locutor masculino preciso, objetivo y estable', model: { engineId: 'kokoro', voiceId: 'es_blend_documental', voiceName: 'Mateo Documental' } },
+  'corporativo-moderno': { family: 'formativo', persona: 'locutor masculino moderno, calmo y competente', model: { engineId: 'kokoro', voiceId: 'es_blend_editorial', voiceName: 'Sofía Editorial' } },
+  'personaje-juvenil': { family: 'personaje', persona: 'voz joven, ágil y optimista', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'narrador-epico': { family: 'documental', persona: 'narrador masculino amplio, noble y de gran presencia', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'meditacion-suave': { family: 'conversacional', persona: 'guía femenina serena, respirada y sin teatralidad', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'radio-energica': { family: 'comercial', persona: 'animador masculino joven, dinámico y sonriente', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'elearning-claro': { family: 'formativo', persona: 'tutora paciente, clara y muy articulada' },
+  'entrevista-cercana': { family: 'conversacional', persona: 'entrevistadora empática, curiosa y relajada', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'doblaje-neutro': { family: 'personaje', persona: 'protagonista masculino natural, neutro y versátil' },
+  'cronica-nocturna': { family: 'suspenso', persona: 'cronista masculino sobrio, nocturno y reflexivo', model: { engineId: 'kokoro', voiceId: 'es_blend_documental', voiceName: 'Mateo Documental' } },
+  'tecnologia-futura': { family: 'formativo', persona: 'presentador editorial de tecnología, claro y curioso' },
+  'historia-emocional': { family: 'romantico', persona: 'narradora sensible, madura y luminosa', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'deportes-dinamico': { family: 'deportivo', persona: 'relator masculino de ritmo alto y entusiasmo controlado', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'lujo-sereno': { family: 'comercial', persona: 'locutora de lujo, pausada, segura y silenciosa', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'asistente-amable': { family: 'conversacional', persona: 'asistente femenina cordial, clara y resolutiva' },
+  'poeta-latino': { family: 'poetico', persona: 'poeta femenina latinoamericana, íntima y contemplativa', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'mc-rapero-latino': { family: 'urbano', persona: 'MC masculino joven, rítmico, seguro y expresivo', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'locutor-futbol': { family: 'deportivo', persona: 'narrador deportivo masculino, intenso y muy inteligible', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'romantico-intimo': { family: 'romantico', persona: 'voz femenina adulta, afectiva y próxima', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'terror-nocturno': { family: 'suspenso', persona: 'narrador masculino veterano, oscuro y contenido', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'cumbia-tropical': { family: 'tropical', persona: 'animadora femenina tropical, alegre y luminosa', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'salsa-brava': { family: 'tropical', persona: 'animador masculino salsero, rápido y entusiasta', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'relato-regional-mexicano': { family: 'documental', persona: 'narrador mayor con cercanía regional y pausa familiar', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'relato-caribeno': { family: 'tropical', persona: 'narradora caribeña cálida, brillante y pausada', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'locutora-urbana': { family: 'urbano', persona: 'locutora urbana contemporánea, directa y carismática', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'viaje-latinoamericano': { family: 'documental', persona: 'presentador viajero, curioso y amable', model: { engineId: 'kokoro', voiceId: 'es_blend_documental', voiceName: 'Mateo Documental' } },
+  'comedia-cotidiana': { family: 'personaje', persona: 'personaje femenina con humor cotidiano y sonrisa audible', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'suspenso-policial': { family: 'suspenso', persona: 'detective masculino sereno, analítico y tenso', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'mito-latinoamericano': { family: 'poetico', persona: 'abuelo narrador, grave, misterioso y cálido', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'coach-motivacional': { family: 'comercial', persona: 'coach masculino cálido, firme y sin agresividad', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'streamer-gaming': { family: 'personaje', persona: 'streamer masculino joven, reaccionando con energía clara', model: { engineId: 'cosyvoice', voiceId: 'cosy_onyx_es', voiceName: 'Onyx CosyVoice' } },
+  'poeta-romantico': { family: 'romantico', persona: 'poeta masculino maduro, vulnerable y elegante', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'crianza-cercana': { family: 'conversacional', persona: 'orientadora femenina de crianza, paciente y protectora', model: { engineId: 'cosyvoice', voiceId: 'cosy_nova_es', voiceName: 'Nova CosyVoice' } },
+  'reportera-calle': { family: 'periodistico', persona: 'reportera femenina de campo, directa y confiable', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+  'animador-fiesta': { family: 'tropical', persona: 'animador masculino festivo, potente y cercano', model: { engineId: 'qwen3_tts', voiceId: 'qwen3_voice_design', voiceName: 'Qwen3 VoiceDesign' } },
+}
+
+function materializePreset(preset: PresetSeed, collection: PresetCollection): StudioPreset {
+  const spec = PRESET_DESIGN_SPECS[preset.id]
+  const family = spec ? PRESET_DESIGN_FAMILIES[spec.family] : PRESET_DESIGN_FAMILIES.conversacional
+  const model = spec?.model ?? {}
+  const resolved = { ...preset, ...model }
+  return {
+    ...resolved,
+    collection,
+    designFamily: spec?.family ?? 'conversacional',
+    designInstruction: [
+      `Diseña ${preset.name} para español latino con ${spec?.persona ?? 'una voz natural y reconocible'}.`,
+      `Interpretación: ${family.instruction}`,
+      'Micrófono cercano y seco, sin música, sin reverberación, sin eco y sin efectos de sala.',
+      `Ejecuta con ${resolved.voiceName} en ${resolved.engineId}, velocidad ${resolved.speed.toFixed(2)}x, tono ${resolved.pitch >= 0 ? '+' : ''}${resolved.pitch.toFixed(1)} semitonos y matiz ${resolved.emotion.toLowerCase()}.`,
+      'Mantén dicción latinoamericana natural, respiraciones discretas y pausas sólo donde ayuden al sentido.',
+    ].join(' '),
+  }
+}
+
 export const STUDIO_PRESETS: readonly StudioPreset[] = [
-  ...FUNDAMENTAL_PRESETS.map((preset) => ({ ...preset, collection: 'Fundamentos' as const })),
-  ...LATINO_NEURAL_PRESETS.map((preset) => ({ ...preset, collection: 'Latino neural' as const })),
+  ...FUNDAMENTAL_PRESETS.map((preset) => materializePreset(preset, 'Fundamentos')),
+  ...LATINO_NEURAL_PRESETS.map((preset) => materializePreset(preset, 'Latino neural')),
 ]

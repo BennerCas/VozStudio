@@ -159,6 +159,11 @@ def create_api_router(
             pitch_semitones=payload.pitch_semitones,
             emotion=payload.emotion,
             max_chunk_chars=payload.max_chunk_chars,
+            voice_design_prompt=(
+                payload.voice_design_prompt.strip() if payload.voice_design_prompt else None
+            ),
+            instruct_prompt=payload.instruct_prompt.strip() if payload.instruct_prompt else None,
+            temperature=payload.temperature,
         )
         try:
             raw_meta = await run_in_threadpool(

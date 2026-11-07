@@ -110,6 +110,10 @@ export interface SynthesizePayload {
   speed: number;
   pitch_semitones: number;
   emotion: string | null;
+  max_chunk_chars?: number;
+  voice_design_prompt?: string | null;
+  instruct_prompt?: string | null;
+  temperature?: number;
 }
 
 export interface ClonePayload {

@@ -112,7 +112,7 @@ test.describe('flujo Figma conectado al backend local', () => {
     }
   });
 
-  test('las 40 recetas de presets ejecutan su configuración real y dejan auditoría exacta', async ({ page }) => {
+  test('las rutas nativas de preset ejecutan su configuración real, instrucción y auditoría exactas', async ({ page }) => {
     const generatedIds: string[] = [];
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto(`${BACKEND_URL}/`, { waitUntil: 'networkidle' });
@@ -121,8 +121,13 @@ test.describe('flujo Figma conectado al backend local', () => {
     await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
 
     try {
+      const nativeRecipes = ['kokoro', 'cosyvoice', 'qwen3_tts'].map((engineId) => {
+        const preset = STUDIO_PRESETS.find((entry) => entry.engineId === engineId);
+        if (!preset) throw new Error(`Falta una receta nativa para ${engineId}.`);
+        return preset;
+      });
       let activeCollection: string | null = null;
-      for (const preset of STUDIO_PRESETS) {
+      for (const preset of nativeRecipes) {
         if (preset.collection !== activeCollection) {
           const collectionTestId = `preset-collection-${preset.collection === 'Fundamentos' ? 'Fundamentos' : 'Latino-neural'}`;
           await page.getByTestId(collectionTestId).click();
@@ -146,7 +151,10 @@ test.describe('flujo Figma conectado al backend local', () => {
               speed?: number;
               pitch_semitones?: number;
               emotion_prompt?: string | null;
+              instruct_prompt?: string | null;
             };
+            modelo_origen: string;
+            contexto: { backend?: string };
           };
         };
         generatedIds.push(payload.item.id);
@@ -157,7 +165,54 @@ test.describe('flujo Figma conectado al backend local', () => {
         expect(payload.item.parametros.emotion_prompt).toBe(
           preset.emotion === 'NEUTRO' ? null : preset.emotion.toLowerCase(),
         );
+        expect(payload.item.parametros.instruct_prompt).toBe(preset.designInstruction);
+        expect(`${payload.item.modelo_origen} ${payload.item.contexto.backend}`).not.toMatch(/fallback| via /i);
       }
+    } finally {
+      await Promise.all(
+        generatedIds.map((id) =>
+          page.request.delete(`${BACKEND_URL}/api/v1/library/${encodeURIComponent(id)}`),
+        ),
+      );
+    }
+  });
+
+  test('el laboratorio conserva una instrucción editable, limita el texto a 6.000 caracteres y crea variantes', async ({ page }) => {
+    const generatedIds: string[] = [];
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.goto(`${BACKEND_URL}/`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: 'Iniciar VozStudio' }).click();
+    await page.locator('.splash-screen').waitFor({ state: 'hidden' });
+    await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
+    await page.getByTestId('preset-collection-Latino-neural').click();
+    await page.getByTestId('preset-card-terror-nocturno').click();
+
+    const instruction = 'Voz masculina madura, seca y cercana; sin eco, con suspense contenido y pausas breves.';
+    await page.locator('.instruction-editor textarea').fill(instruction);
+    await expect(page.locator('.text-editor textarea')).toHaveAttribute('maxlength', '6000');
+    await page.locator('.text-editor textarea').fill('La puerta volvió a cerrarse, aunque nadie estaba en el pasillo.');
+
+    try {
+      const synthesis = page.waitForResponse(
+        (response) => response.url().includes('/api/v1/synthesize') && response.request().method() === 'POST',
+        { timeout: 150000 },
+      );
+      await page.getByTestId('generate-preset-lab').click();
+      const response = await synthesis;
+      expect(response.status()).toBe(200);
+      const payload = (await response.json()) as {
+        item: { id: string; motor: string; parametros: { instruct_prompt?: string | null } };
+      };
+      generatedIds.push(payload.item.id);
+      expect(payload.item.motor).toBe('qwen3_tts');
+      expect(payload.item.parametros.instruct_prompt).toBe(instruction);
+      await expect(page.getByTestId('preset-lab-audit')).toContainText('AUDIO NATIVO AUDITADO');
+
+      await page.getByRole('button', { name: /Duplicar/ }).click();
+      await expect(page.getByTestId('preset-collection-Mis-variantes')).toBeVisible();
+      await expect(page.locator('[data-preset-id]')).toHaveCount(1);
+      await page.getByRole('button', { name: /3 variantes/ }).click();
+      await expect(page.locator('[data-preset-id]')).toHaveCount(4);
     } finally {
       await Promise.all(
         generatedIds.map((id) =>

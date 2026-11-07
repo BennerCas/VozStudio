@@ -9,7 +9,8 @@ Estacion de trabajo de sintesis de voz neural en espanol 100 % offline para escr
   - **Piper VITS ONNX (Multiacento Regional)**: Voces nativas de Espana (`ES`), Mexico (`MX`) y Argentina (`AR`) con inferencia instantanea.
   - **Meta MMS-TTS (`mms-tts-spa`)**: Motor VITS ultraligero para sintesis inmediata en CPU.
   - **CosyVoice 3 ONNX**: Clonacion zero-shot multilingue con deteccion automatica de espanol y control de estilo sin dependencias de PyTorch.
-  - **F5-TTS Spanish / StyleTTS 2 BSC**: Adaptadores preparados para clonacion multiacento hispano y narracion expresiva.
+  - **Qwen3-TTS VoiceDesign 1.7B**: Runtime oficial aislado para diseño de timbre por instrucción en español, con procedencia auditada.
+  - **F5-TTS Spanish**: Runtime oficial aislado para clonación multiacento con audio de referencia; no se presenta como una voz directa.
 - **Interfaz 16:9 Cero Scroll**:
   - Lienzo proporcional `16:9` sin barras de desplazamiento (`overflow: hidden`) ni espacios vacios.
   - Paginacion calculada dinamicamente mediante `ResizeObserver` y segmentacion automatica de textos extensos.
@@ -61,6 +62,20 @@ Para una experiencia de escritorio nativa e inmersiva sin barras de navegador, c
    ```powershell
    pwsh -File .\scripts\start_dev.ps1
    ```
+
+## Runtimes nativos opcionales
+
+Los runtimes de Qwen3, F5 y PyTorch DirectML se mantienen en `.runtimes/`, fuera
+del control de versiones, para no cambiar el Python del backend. En un equipo
+nuevo se instalan con:
+
+```powershell
+pwsh -File .\scripts\install_native_runtimes.ps1
+```
+
+Después de instalar, cierre y vuelva a abrir el lanzador de VozStudio. Qwen3
+VoiceDesign y F5 se exponen como motores nativos solo cuando sus pesos locales
+y sus runtimes están presentes; F5 requiere siempre un audio de referencia.
 
 ---
 

@@ -18,6 +18,9 @@ class SynthesizeRequest(BaseModel):
     pitch_semitones: float = Field(default=0.0, ge=-6.0, le=6.0)
     emotion: str | None = Field(default=None, max_length=40)
     max_chunk_chars: int = Field(default=260, ge=80, le=600)
+    voice_design_prompt: str | None = Field(default=None, max_length=1500)
+    instruct_prompt: str | None = Field(default=None, max_length=1500)
+    temperature: float = Field(default=0.7, ge=0.1, le=1.5)
 
     @field_validator("voice_id")
     @classmethod
