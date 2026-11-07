@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { STUDIO_PRESETS } from '../../src/ui/src/data/presetCatalog';
+import { PRESET_COLLECTIONS, STUDIO_PRESETS } from '../../src/ui/src/data/presetCatalog';
 
 async function enterFigmaApp(page: import('@playwright/test').Page): Promise<void> {
   await page.goto('/');
@@ -48,34 +48,40 @@ test('aplica un preset de Figma al estudio real sin cambiar la interfaz', async 
   await expect(page.locator('.toast')).toContainText('Preset activo');
 });
 
-test('los 20 presets aplican su receta completa en una cuadrícula 5 por 4 sin scroll 16:9', async ({ page }) => {
+test('las dos colecciones de 20 presets aplican su receta completa en una cuadrícula 5 por 4 sin scroll 16:9', async ({ page }) => {
   await page.setViewportSize({ width: 1600, height: 900 });
   await enterFigmaApp(page);
   await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
 
-  const grid = page.locator('.preset-grid');
-  const cards = page.locator('[data-preset-id]');
-  await expect(cards).toHaveCount(STUDIO_PRESETS.length);
+  for (const collection of PRESET_COLLECTIONS) {
+    const collectionTestId = `preset-collection-${collection === 'Fundamentos' ? 'Fundamentos' : 'Latino-neural'}`;
+    const collectionPresets = STUDIO_PRESETS.filter((preset) => preset.collection === collection);
+    await page.getByTestId(collectionTestId).click();
 
-  const gridGeometry = await grid.evaluate((element) => {
-    const styles = getComputedStyle(element);
-    const columns = styles.gridTemplateColumns.split(' ').filter(Boolean).length;
-    const rows = styles.gridTemplateRows.split(' ').filter(Boolean).length;
-    const rect = element.getBoundingClientRect();
-    return { columns, rows, bottom: rect.bottom, viewport: window.innerHeight };
-  });
-  expect(gridGeometry.columns).toBe(5);
-  expect(gridGeometry.rows).toBe(4);
-  expect(gridGeometry.bottom).toBeLessThanOrEqual(gridGeometry.viewport - 37);
+    const grid = page.locator('.preset-grid');
+    const cards = page.locator('[data-preset-id]');
+    await expect(cards).toHaveCount(collectionPresets.length);
+    const gridGeometry = await grid.evaluate((element) => {
+      const styles = getComputedStyle(element);
+      const columns = styles.gridTemplateColumns.split(' ').filter(Boolean).length;
+      const rows = styles.gridTemplateRows.split(' ').filter(Boolean).length;
+      const rect = element.getBoundingClientRect();
+      return { columns, rows, bottom: rect.bottom, viewport: window.innerHeight };
+    });
+    expect(gridGeometry.columns).toBe(5);
+    expect(gridGeometry.rows).toBe(4);
+    expect(gridGeometry.bottom).toBeLessThanOrEqual(gridGeometry.viewport - 37);
 
-  for (const preset of STUDIO_PRESETS) {
-    await page.getByTestId(`apply-preset-${preset.id}`).click();
-    await expect(page.locator('main h1').first()).toHaveText('Estudio neural');
-    await expect(page.getByTestId('active-preset-status')).toHaveAttribute('data-preset-id', preset.id);
-    await expect(page.locator('.direct-editor textarea')).toHaveValue(preset.script);
-    await expect(page.locator('.pro-controls input[type="range"]').nth(0)).toHaveValue(String(preset.speed));
-    await expect(page.locator('.pro-controls input[type="range"]').nth(1)).toHaveValue(String(preset.pitch));
-    await expect(page.locator('.pro-controls select')).toHaveValue(preset.emotion);
-    await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
+    for (const preset of collectionPresets) {
+      await page.getByTestId(`apply-preset-${preset.id}`).click();
+      await expect(page.locator('main h1').first()).toHaveText('Estudio neural');
+      await expect(page.getByTestId('active-preset-status')).toHaveAttribute('data-preset-id', preset.id);
+      await expect(page.locator('.direct-editor textarea')).toHaveValue(preset.script);
+      await expect(page.locator('.pro-controls input[type="range"]').nth(0)).toHaveValue(String(preset.speed));
+      await expect(page.locator('.pro-controls input[type="range"]').nth(1)).toHaveValue(String(preset.pitch));
+      await expect(page.locator('.pro-controls select')).toHaveValue(preset.emotion);
+      await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
+      await page.getByTestId(collectionTestId).click();
+    }
   }
 });

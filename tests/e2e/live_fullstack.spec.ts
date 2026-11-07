@@ -38,7 +38,7 @@ async function waitForBackend(): Promise<void> {
 }
 
 test.describe('flujo Figma conectado al backend local', () => {
-  test.describe.configure({ timeout: 180000 });
+  test.describe.configure({ timeout: 360000 });
   let spawned: ChildProcessLike | null = null;
 
   test.beforeAll(async () => {
@@ -112,7 +112,7 @@ test.describe('flujo Figma conectado al backend local', () => {
     }
   });
 
-  test('las 20 recetas de presets ejecutan su configuración real y dejan auditoría exacta', async ({ page }) => {
+  test('las 40 recetas de presets ejecutan su configuración real y dejan auditoría exacta', async ({ page }) => {
     const generatedIds: string[] = [];
     await page.setViewportSize({ width: 1600, height: 900 });
     await page.goto(`${BACKEND_URL}/`, { waitUntil: 'networkidle' });
@@ -121,7 +121,13 @@ test.describe('flujo Figma conectado al backend local', () => {
     await page.locator('.sidebar nav button').filter({ hasText: 'Presets' }).first().click();
 
     try {
+      let activeCollection: string | null = null;
       for (const preset of STUDIO_PRESETS) {
+        if (preset.collection !== activeCollection) {
+          const collectionTestId = `preset-collection-${preset.collection === 'Fundamentos' ? 'Fundamentos' : 'Latino-neural'}`;
+          await page.getByTestId(collectionTestId).click();
+          activeCollection = preset.collection;
+        }
         const synthesis = page.waitForResponse(
           (response) =>
             response.url().includes('/api/v1/synthesize') && response.request().method() === 'POST',

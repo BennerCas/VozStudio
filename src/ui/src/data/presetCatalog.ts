@@ -1,4 +1,5 @@
 export type PresetCategory = 'Narración' | 'Comercial' | 'Personajes' | 'Corporativo'
+export type PresetCollection = 'Fundamentos' | 'Latino neural'
 
 export type PresetEmotion =
   | 'NEUTRO'
@@ -10,6 +11,7 @@ export type PresetEmotion =
 export interface StudioPreset {
   id: string
   name: string
+  collection: PresetCollection
   category: PresetCategory
   engineId: 'kokoro'
   voiceId: 'ef_dora' | 'em_alex' | 'em_santa' | 'es_blend_editorial' | 'es_blend_documental'
@@ -23,8 +25,9 @@ export interface StudioPreset {
 
 export const PENDING_PRESET_STORAGE_KEY = 'vozstudio-pending-preset'
 export const LAST_PRESET_STORAGE_KEY = 'vozstudio-last-preset'
+export const PRESET_COLLECTIONS: readonly PresetCollection[] = ['Fundamentos', 'Latino neural']
 
-export const STUDIO_PRESETS: readonly StudioPreset[] = [
+const FUNDAMENTAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
   {
     id: 'documental-intimo', name: 'Documental íntimo', category: 'Narración', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.9, pitch: -0.5, emotion: 'NARRATIVO', color: '#00c2d7',
     script: 'En el silencio de la cordillera, cada paso revela una historia que la naturaleza ha guardado durante siglos.',
@@ -105,4 +108,92 @@ export const STUDIO_PRESETS: readonly StudioPreset[] = [
     id: 'asistente-amable', name: 'Asistente amable', category: 'Personajes', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1, pitch: 0.5, emotion: 'CÁLIDO', color: '#f57878',
     script: 'Claro, estaré encantada de ayudarte. Cuéntame qué necesitas y lo resolvemos paso a paso.',
   },
+]
+
+const LATINO_NEURAL_PRESETS: readonly Omit<StudioPreset, 'collection'>[] = [
+  {
+    id: 'poeta-latino', name: 'Poeta latino', category: 'Narración', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 0.85, pitch: 0.5, emotion: 'CÁLIDO', color: '#b38cff',
+    script: 'La lluvia toca los balcones de la ciudad y en cada gota despierta una palabra que todavía no sabía decir.',
+  },
+  {
+    id: 'mc-rapero-latino', name: 'MC rapero latino', category: 'Personajes', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.15, pitch: 1, emotion: 'EXPRESIVO', color: '#ff5b8f',
+    script: 'Sube el ritmo, barrio presente, ideas en movimiento; cada rima abre camino y convierte el momento en talento.',
+  },
+  {
+    id: 'locutor-futbol', name: 'Locutor de fútbol', category: 'Comercial', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.2, pitch: 1.5, emotion: 'EXPRESIVO', color: '#55d68b',
+    script: '¡Recupera la pelota en la mitad, acelera por la banda, levanta la mirada y remata! ¡Golazo para encender el estadio!',
+  },
+  {
+    id: 'romantico-intimo', name: 'Romántico íntimo', category: 'Narración', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 0.9, pitch: 0.5, emotion: 'CÁLIDO', color: '#ff6d9d',
+    script: 'Desde que llegaste, las tardes tienen otra luz y hasta el silencio aprendió a decir tu nombre con ternura.',
+  },
+  {
+    id: 'terror-nocturno', name: 'Terror nocturno', category: 'Personajes', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.85, pitch: -1, emotion: 'EXPRESIVO', color: '#8b6cff',
+    script: 'La casa permanecía inmóvil, pero desde el pasillo alguien repetía su nombre con una voz que no debía estar allí.',
+  },
+  {
+    id: 'cumbia-tropical', name: 'Cumbia tropical', category: 'Comercial', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1.15, pitch: 1, emotion: 'EXPRESIVO', color: '#ffb547',
+    script: 'Que suene la cumbia, que se mueva la plaza y que esta noche cada paso tenga el sabor alegre de nuestra tierra.',
+  },
+  {
+    id: 'salsa-brava', name: 'Salsa brava', category: 'Comercial', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.15, pitch: 1, emotion: 'EXPRESIVO', color: '#ff7a49',
+    script: 'La clave marca el camino, el barrio responde y la pista se enciende con una energía que nadie quiere soltar.',
+  },
+  {
+    id: 'relato-regional-mexicano', name: 'Relato regional mexicano', category: 'Narración', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.95, pitch: -0.5, emotion: 'NARRATIVO', color: '#d8b25a',
+    script: 'Al caer la tarde sobre la sierra, la familia se reunió para contar las historias que cruzaron generaciones enteras.',
+  },
+  {
+    id: 'relato-caribeno', name: 'Relato caribeño', category: 'Narración', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1, pitch: 0.5, emotion: 'CÁLIDO', color: '#38c9d4',
+    script: 'El mar amaneció brillante y la brisa llevó hasta el malecón el aroma dulce de las frutas recién cortadas.',
+  },
+  {
+    id: 'locutora-urbana', name: 'Locutora urbana', category: 'Comercial', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1.1, pitch: 0.5, emotion: 'EXPRESIVO', color: '#a771ff',
+    script: 'La ciudad no se detiene, y tu idea tampoco. Conecta, crea y deja que tu voz encuentre a quienes están listos para escuchar.',
+  },
+  {
+    id: 'viaje-latinoamericano', name: 'Viaje latinoamericano', category: 'Comercial', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.05, pitch: 0.5, emotion: 'INFORMATIVO', color: '#27bf8a',
+    script: 'Recorre paisajes, sabores y ciudades que guardan una historia distinta en cada esquina de Latinoamérica.',
+  },
+  {
+    id: 'comedia-cotidiana', name: 'Comedia cotidiana', category: 'Personajes', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1.1, pitch: 1, emotion: 'EXPRESIVO', color: '#ffd15d',
+    script: 'Yo venía por una sola cosa, pero salí con tres bolsas, una planta y la certeza de que no aprendí nada.',
+  },
+  {
+    id: 'suspenso-policial', name: 'Suspenso policial', category: 'Narración', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 0.9, pitch: -0.5, emotion: 'NARRATIVO', color: '#5f89ff',
+    script: 'La evidencia parecía sencilla, hasta que la detective encontró una fecha imposible escrita detrás de la fotografía.',
+  },
+  {
+    id: 'mito-latinoamericano', name: 'Mito latinoamericano', category: 'Narración', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.9, pitch: -0.5, emotion: 'NARRATIVO', color: '#a86f4c',
+    script: 'Dicen los abuelos que, cuando la luna se queda quieta, los guardianes del monte vuelven a caminar entre los árboles.',
+  },
+  {
+    id: 'coach-motivacional', name: 'Coach motivacional', category: 'Comercial', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.1, pitch: 1, emotion: 'EXPRESIVO', color: '#2ed69b',
+    script: 'No necesitas tener todo resuelto para empezar. Da el siguiente paso, aprende del camino y confía en tu proceso.',
+  },
+  {
+    id: 'streamer-gaming', name: 'Streamer gaming', category: 'Personajes', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.15, pitch: 1.5, emotion: 'EXPRESIVO', color: '#6a8cff',
+    script: '¡Atención al mapa! Tenemos una oportunidad, el equipo está listo y esta jugada puede cambiar toda la partida.',
+  },
+  {
+    id: 'poeta-romantico', name: 'Poeta romántico', category: 'Narración', engineId: 'kokoro', voiceId: 'em_santa', voiceName: 'Santa Neural', speed: 0.85, pitch: -0.5, emotion: 'CÁLIDO', color: '#ef7db2',
+    script: 'Te pensé en la distancia y descubrí que el corazón también tiene memoria para guardar los momentos que importan.',
+  },
+  {
+    id: 'crianza-cercana', name: 'Crianza cercana', category: 'Corporativo', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 0.95, pitch: 0.5, emotion: 'CÁLIDO', color: '#f09b65',
+    script: 'Acompañar también es escuchar. Cada pregunta de una niña o un niño es una oportunidad para crecer juntos.',
+  },
+  {
+    id: 'reportera-calle', name: 'Reportera en la calle', category: 'Corporativo', engineId: 'kokoro', voiceId: 'ef_dora', voiceName: 'Dora Neural', speed: 1.1, pitch: 0, emotion: 'INFORMATIVO', color: '#47b7e8',
+    script: 'Estamos en el centro de la ciudad, donde vecinas y vecinos comparten cómo esta iniciativa transforma su día a día.',
+  },
+  {
+    id: 'animador-fiesta', name: 'Animador de fiesta', category: 'Personajes', engineId: 'kokoro', voiceId: 'em_alex', voiceName: 'Alex Neural', speed: 1.2, pitch: 1.5, emotion: 'EXPRESIVO', color: '#ff5e71',
+    script: '¡Que se escuche hasta el último rincón! Levanten las manos, celebren con la gente y hagan de esta noche un recuerdo inolvidable.',
+  },
+]
+
+export const STUDIO_PRESETS: readonly StudioPreset[] = [
+  ...FUNDAMENTAL_PRESETS.map((preset) => ({ ...preset, collection: 'Fundamentos' as const })),
+  ...LATINO_NEURAL_PRESETS.map((preset) => ({ ...preset, collection: 'Latino neural' as const })),
 ]

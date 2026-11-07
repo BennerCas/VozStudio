@@ -4,8 +4,10 @@ import { FALLBACK_ENGINES, FALLBACK_VOICES_BY_ENGINE } from "./data/fallbackCata
 import {
   LAST_PRESET_STORAGE_KEY,
   PENDING_PRESET_STORAGE_KEY,
+  PRESET_COLLECTIONS,
   STUDIO_PRESETS,
   type PresetCategory,
+  type PresetCollection,
   type StudioPreset,
 } from "./data/presetCatalog"
 import type { EngineInfo, LibraryItem, VoiceInfo } from "./types/tts"
@@ -172,7 +174,7 @@ const nav = [
   { label: "Mis voces", icon: "mic" as IconName, count: 31 },
   { label: "Clonación en lote", icon: "layers" as IconName },
   { label: "Diseño de voz", icon: "sparkles" as IconName },
-  { label: "Presets", icon: "sliders" as IconName, count: 20 },
+  { label: "Presets", icon: "sliders" as IconName, count: 40 },
 ]
 
 const voices = [
@@ -1376,15 +1378,17 @@ function PresetsPage({
     "Corporativo",
   ]
   const [category, setCategory] = useState<"Todos" | PresetCategory>("Todos")
+  const [collection, setCollection] = useState<PresetCollection>("Fundamentos")
   const [previewingId, setPreviewingId] = useState<string | null>(null)
   const [lastAppliedId, setLastAppliedId] = useState(() =>
     loadLocal<string>(LAST_PRESET_STORAGE_KEY, ""),
   )
   const previewAudio = useRef<HTMLAudioElement | null>(null)
+  const collectionPresets = STUDIO_PRESETS.filter((preset) => preset.collection === collection)
   const visiblePresets =
     category === "Todos"
-      ? STUDIO_PRESETS
-      : STUDIO_PRESETS.filter((preset) => preset.category === category)
+      ? collectionPresets
+      : collectionPresets.filter((preset) => preset.category === category)
 
   useEffect(() => () => previewAudio.current?.pause(), [])
 
@@ -1430,11 +1434,26 @@ function PresetsPage({
   return (
     <Page
       title="Presets profesionales"
-      description="20 recetas operativas: timbre, velocidad, tono, matiz y guión listos para síntesis local."
-      action={<span className="preset-ready">20 / 20 OPERATIVOS</span>}
+      description="40 recetas neuronales en español latino, organizadas en dos colecciones aplicables al Estudio."
+      action={<span className="preset-ready">40 OPERATIVOS</span>}
     >
       <section className="presets-workspace" aria-label="Catálogo de presets">
         <div className="preset-toolbar">
+          <div className="preset-collection-switch" aria-label="Colecciones de presets">
+            {PRESET_COLLECTIONS.map((item) => (
+              <button
+                key={item}
+                data-testid={`preset-collection-${item === "Fundamentos" ? "Fundamentos" : "Latino-neural"}`}
+                className={collection === item ? "active" : ""}
+                onClick={() => {
+                  setCollection(item)
+                  setCategory("Todos")
+                }}
+              >
+                {item} <small>20</small>
+              </button>
+            ))}
+          </div>
           <div className="filter-row" aria-label="Filtrar presets">
             {categories.map((item) => (
               <button
@@ -1447,8 +1466,8 @@ function PresetsPage({
             ))}
           </div>
           <p>
-            <b>Kokoro ONNX · 24 kHz</b>
-            <span>Previsualiza un WAV real o aplica la receta al Estudio.</span>
+            <b>{collection} · Kokoro ONNX · 24 kHz</b>
+            <span>Previsualiza un WAV real o aplica la receta exacta al Estudio.</span>
           </p>
         </div>
         <div className="preset-grid">
