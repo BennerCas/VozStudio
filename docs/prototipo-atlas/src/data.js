@@ -497,7 +497,7 @@ const takeMeta = [
 
 // Generador determinista con mezcla previa: evita la correlacion de semillas
 // consecutivas que dejaba todos los bloques en el mismo estado.
-function seeded(seed) {
+export function seeded(seed) {
   let s = (seed ^ 0x9e3779b9) >>> 0;
   s = Math.imul(s ^ (s >>> 16), 0x21f0aaad) >>> 0;
   s = Math.imul(s ^ (s >>> 15), 0x735a2d97) >>> 0;

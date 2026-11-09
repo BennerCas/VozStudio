@@ -34,6 +34,37 @@ Conforme a `ESTRUCTURA.md`:
 - `scripts/`: Automatizacion de enlaces, validacion cero-emoji, arranque y limpieza.
 - `docs/`: Documentacion de arquitectura y auditoria industrial.
 
+## VozStudio Atlas: propuesta y prototipo navegable
+
+`docs/PROPUESTA_VOZSTUDIO_ATLAS.md` describe la evolucion de esta consola de sintesis a una
+**productora de contenido hablado** (proyecto > documento > bloque > toma, elenco, recetas,
+QA automatico, licencias y entregables). Parte del codigo real de este repositorio.
+
+El prototipo visual de esa propuesta esta en `docs/prototipo-atlas/` y funciona sin build y
+sin dependencias. `index.html` es un **archivo unico autonomo**: lleva el CSS, los datos y todo
+el JavaScript incrustados, sin red ni CDN, asi que se abre con doble clic, como adjunto o desde
+cualquier servidor estatico. Incluye 12 pantallas, el catalogo completo de 34 voces en 8 motores,
+1.110 prompts de diseno de voz y 12 presets de lectura.
+
+Para servirlo en local (util para probarlo desde el movil o la red):
+
+```bash
+cd docs/prototipo-atlas
+python3 -m http.server 8123 --bind 0.0.0.0
+```
+
+El codigo fuente sigue modular en `src/` y `assets/estilos.css`; `dev.html` es la version de
+desarrollo con `type="module"` (necesita servidor HTTP). Tras editar el fuente, se regenera la
+portada con:
+
+```bash
+cd docs/prototipo-atlas
+node scripts/empaquetar.mjs
+```
+
+Para retomarlo en otro chat, `docs/prototipo-atlas/CONTINUAR.md` recoge el estado verificado
+y las decisiones que no conviene deshacer.
+
 ## Lanzador Nativo Kiosk-WorkArea (Sin Consolas)
 
 Para una experiencia de escritorio nativa e inmersiva sin barras de navegador, consolas visibles ni anuncios de extensiones:

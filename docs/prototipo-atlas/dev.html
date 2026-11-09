@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Version modular para desarrollo: requiere servidor HTTP (python3 -m http.server).
+     La version publicada y autonoma es index.html. -->
+    <title>VozStudio Atlas - Prototipo navegable</title>
+    <meta
+      name="description"
+      content="Prototipo visual navegable de VozStudio Atlas: produccion de contenido hablado 100% local."
+    />
+    <meta name="theme-color" content="#000000" />
+    <link id="app-icon" rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./assets/estilos.css" />
+  </head>
+  <body>
+    <div id="app" class="shell" data-theme="omni"></div>
+    <script type="module">
+      // El mismo emblema que el sidebar y el splash alimenta el icono de la app.
+      // Se importa antes de pintar para que la pestana y el escritorio coincidan.
+      import { APP_ICON_URI } from './src/brand.js';
+      const link = document.getElementById('app-icon');
+      if (link) link.href = APP_ICON_URI;
+    </script>
+    <script type="module" src="./src/app.js"></script>
+  </body>
+</html>
