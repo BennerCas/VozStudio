@@ -1132,8 +1132,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ---------------------------------- produce -------------------------------- */
-.produce {
-  flex: 1;
+.produce,
+.produce-grid {
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: 232px minmax(420px, 1fr) 296px;
@@ -2062,7 +2063,8 @@ input[type="range"]::-moz-range-thumb {
   :root {
     --sidebar: 196px;
   }
-  .produce {
+  .produce,
+  .produce-grid {
     grid-template-columns: 200px minmax(340px, 1fr);
   }
   .produce-col.inspector {
@@ -2084,7 +2086,8 @@ input[type="range"]::-moz-range-thumb {
   .sidebar {
     display: none;
   }
-  .produce {
+  .produce,
+  .produce-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .produce-col.docs {
@@ -3524,6 +3527,21 @@ body {
 }
 
 /*
+  Una pantalla que deba repartir altura (columnas con scroll propio) se marca
+  con .screen-fill. La cabecera se queda arriba y el resto ocupa el alto que
+  queda, en vez de crecer sin limite.
+*/
+.content > .screen-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  align-content: normal;
+}
+.content > .screen-fill > :first-child {
+  flex: none;
+}
+
+/*
   No se tocan margin ni padding del contenedor: la cabecera se pega al borde
   del area de contenido y el padding del contenedor queda por debajo de ella,
   asi que el texto no se esconde al hacer scroll.
@@ -3575,6 +3593,197 @@ body {
   .shell > .main > .content {
     scroll-behavior: auto;
   }
+}
+
+/* =========================================================================
+   BANDEJAS HORIZONTALES Y AREAS DE SCROLL INTERNO
+
+   Solo se desplaza lo que la pantalla necesita: la lista de segmentos en
+   Producir, el cuerpo de las tablas en Biblioteca, Glosario, Lotes y Elenco,
+   y las bandejas de tarjetas. Los encabezados nunca se mueven.
+   ========================================================================= */
+
+/* ------------------------------ bandeja ---------------------------------- */
+
+.tray {
+  position: relative;
+  min-width: 0;
+}
+
+.tray-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  border-radius: var(--radius-lg);
+}
+.tray-viewport.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+  user-select: none;
+}
+
+/* 4 columnas por vista, con las filas que hagan falta. */
+.tray-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-columns: calc((100% - 3 * var(--space-3)) / 4);
+  gap: var(--space-3);
+  align-content: start;
+  /* Aire a los lados para que el foco y el hover no queden recortados. */
+  padding: 2px;
+  width: max-content;
+  min-width: 100%;
+}
+.tray-track > * {
+  scroll-snap-align: start;
+  min-width: 0;
+  /* Las tarjetas conservan su alto natural: las filas se alinean arriba. */
+  align-self: start;
+}
+
+/* Con 8 por vista se reparten en 4 columnas y 2 filas. */
+.tray[data-tray-visible="8"] .tray-track {
+  grid-template-rows: repeat(2, auto);
+}
+/* Con 12 por vista, 4 columnas y 3 filas. */
+.tray[data-tray-visible="12"] .tray-track {
+  grid-template-rows: repeat(3, auto);
+}
+
+/* ------------------------------ flechas ---------------------------------- */
+
+.tray-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-top: -17px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+  cursor: pointer;
+  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.tray-arrow:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  transform: scale(1.06);
+}
+.tray-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.tray-arrow.prev {
+  left: -10px;
+}
+.tray-arrow.next {
+  right: -10px;
+}
+
+.tray-note {
+  margin: 0;
+  text-align: right;
+}
+
+/* -------------------- solo el cuerpo de una lista scrollea ----------------- */
+
+.scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  min-height: 0;
+  /* Aire al final para que el ultimo elemento no quede pegado al borde. */
+  padding-bottom: var(--space-3);
+  position: relative;
+}
+
+/*
+  Una tabla con lista scrolleable necesita un tope de altura; si no, crece
+  con su contenido y nunca hay nada que desplazar. Se acota a la ventana menos
+  la cabecera de la vista y el topbar.
+*/
+.content > .stack-4 > .panel > .panel-body > .scroll-area.table-wrap,
+.panel > .panel-body.tight > .scroll-area {
+  max-height: calc(100dvh - var(--topbar) - var(--footer) - 190px);
+}
+
+/* El encabezado de una tabla se queda arriba mientras el cuerpo sube. */
+.scroll-area .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+/* Si la tabla es mas alta que su area, la tabla scrollea; si no, se ajusta. */
+.scroll-area .table-wrap,
+.scroll-area.table-wrap {
+  max-height: 100%;
+}
+
+/* --------------------------- lectura en 3 columnas ------------------------- */
+
+.read-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 30fr) minmax(0, 40fr) minmax(0, 30fr);
+  gap: var(--space-4);
+  /* Las columnas se estiran al alto disponible: asi su scroll interno existe. */
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.read-col {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+  min-height: 0;
+  /* Cada columna tiene su propio carril: nunca desplaza a la ventana. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-2);
+}
+
+/* La columna del centro da aire a las flechas de la bandeja. */
+.read-col.c2 {
+  padding-inline: 2px;
+}
+
+@media (max-width: 1280px) {
+  .read-grid {
+    grid-template-columns: minmax(0, 1fr);
+    flex: none;
+  }
+  .read-col {
+    overflow: visible;
+  }
+}
+
+/* ------------------------- produce: lista de segmentos ------------------- */
+
+.produce-col.editor {
+  min-height: 0;
+}
+#block-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
     </style>
@@ -4247,6 +4456,111 @@ const PROJECTS = [
       { role: 'personaje_1', voiceId: 'dna-qwen-abuelo', locked: false, blocks: 0 },
     ],
   },
+  {
+    id: 'andes',
+    name: 'Andes Salud',
+    subtitle: 'IVR · 42 mensajes',
+    recipeId: 'ivr',
+    license: 'personal',
+    updated: 'hace 2 semanas',
+    tone: '#34d399',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'kokoro-ef_dora', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'museo',
+    name: 'Museo del Mar',
+    subtitle: 'Audiodescripcion · 5 salas',
+    recipeId: 'audiodescripcion',
+    license: 'personal',
+    updated: 'hace 3 semanas',
+    tone: '#38bdf8',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'kokoro-em_alex', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'kaizen',
+    name: 'Estudio Kaizen',
+    subtitle: 'Videojuego · 120 lineas NPC',
+    recipeId: 'videojuego',
+    license: 'personal',
+    updated: 'hace 1 mes',
+    tone: '#fb7185',
+    docs: [],
+    cast: [
+      { role: 'narrador', voiceId: 'kokoro-em_santa', locked: true, blocks: 0 },
+      { role: 'personaje_1', voiceId: 'cosy-instruct-nova', locked: false, blocks: 0 },
+    ],
+  },
+  {
+    id: 'aula',
+    name: 'Aula Abierta',
+    subtitle: 'E-learning · 18 lecciones',
+    recipeId: 'elearning',
+    license: 'personal',
+    updated: 'hace 1 mes',
+    tone: '#f0b34a',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'piper-es_ES-miro-high', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'diario',
+    name: 'Diario del Puerto',
+    subtitle: 'Noticias · boletin diario',
+    recipeId: 'noticias',
+    license: 'comercial',
+    updated: 'hace 2 meses',
+    tone: '#a78bfa',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'piper-es_MX-claude-high', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'calma',
+    name: 'Centro Calma',
+    subtitle: 'Meditacion · 12 sesiones',
+    recipeId: 'meditacion',
+    license: 'personal',
+    updated: 'hace 2 meses',
+    tone: '#22d3ee',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'kokoro-ef_dora', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'logistica',
+    name: 'Logistica Pacifico',
+    subtitle: 'Doblaje · 9 videos',
+    recipeId: 'doblaje',
+    license: 'comercial',
+    updated: 'hace 3 meses',
+    tone: '#0ea5e9',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'piper-es_MX-claude-high', locked: true, blocks: 0 }],
+  },
+  {
+    id: 'clinica',
+    name: 'Clinica San Rafael',
+    subtitle: 'Entrevista · 4 piezas',
+    recipeId: 'entrevista',
+    license: 'personal',
+    updated: 'hace 3 meses',
+    tone: '#34d399',
+    docs: [],
+    cast: [
+      { role: 'narrador', voiceId: 'piper-es_AR-daniela-high', locked: true, blocks: 0 },
+      { role: 'personaje_1', voiceId: 'local-elena', locked: false, blocks: 0 },
+    ],
+  },
+  {
+    id: 'vista',
+    name: 'Vista Inmobiliaria',
+    subtitle: 'Publicidad · 6 versiones',
+    recipeId: 'publicidad',
+    license: 'comercial',
+    updated: 'hace 4 meses',
+    tone: '#fbbf24',
+    docs: [],
+    cast: [{ role: 'narrador', voiceId: 'piper-es_ES-miro-high', locked: true, blocks: 0 }],
+  },
 ];
 
 const projectById = (id) => PROJECTS.find((p) => p.id === id) || PROJECTS[0];
@@ -4274,6 +4588,17 @@ const CLIENT_PRESETS = [
   { id: 'cp-norte', client: 'Norte Mineria', recipe: 'noticias', voice: 'piper-es_MX-claude-high', tone: 'boletin', owner: 'RRPP Norte', updated: '2026-10-21' },
   { id: 'cp-pampa', client: 'Editorial Pampa', recipe: 'audiolibro', voice: 'kokoro-em_alex', tone: 'literario', owner: 'Elena R.', updated: '2026-10-14' },
   { id: 'cp-radio', client: 'Radio Sur 99.3', recipe: 'radio', voice: 'piper-es_AR-daniela-high', tone: 'energico', owner: 'Producción', updated: '2026-09-28' },
+  { id: 'cp-andes', client: 'Andes Salud', recipe: 'ivr', voice: 'kokoro-ef_dora', tone: 'telefonico', owner: 'Operaciones', updated: '2026-10-27' },
+  { id: 'cp-vista', client: 'Vista Inmobiliaria', recipe: 'publicidad', voice: 'piper-es_ES-miro-high', tone: 'persuasivo', owner: 'Marketing Vista', updated: '2026-10-19' },
+  { id: 'cp-tecnica', client: 'Escuela Tecnica del Norte', recipe: 'conferencia', voice: 'piper-es_MX-claude-high', tone: 'academico', owner: 'Secretaria academica', updated: '2026-10-11' },
+  { id: 'cp-museo', client: 'Museo del Mar', recipe: 'audiodescripcion', voice: 'kokoro-em_alex', tone: 'descriptivo', owner: 'Educacion del museo', updated: '2026-10-02' },
+  { id: 'cp-bosque', client: 'Bosque Vivo', recipe: 'podcast', voice: 'kokoro-ef_dora', tone: 'conversacional', owner: 'Comunicaciones', updated: '2026-09-22' },
+  { id: 'cp-clinica', client: 'Clinica San Rafael', recipe: 'entrevista', voice: 'piper-es_AR-daniela-high', tone: 'institucional', owner: 'Prensa', updated: '2026-09-15' },
+  { id: 'cp-logistica', client: 'Logistica Pacífico', recipe: 'doblaje', voice: 'piper-es_MX-claude-high', tone: 'tecnico', owner: 'Capacitacion', updated: '2026-09-09' },
+  { id: 'cp-juegos', client: 'Estudio Kaizen', recipe: 'videojuego', voice: 'kokoro-em_santa', tone: 'dramatico', owner: 'Direccion de audio', updated: '2026-08-30' },
+  { id: 'cp-calma', client: 'Centro Calma', recipe: 'meditacion', voice: 'kokoro-ef_dora', tone: 'calmo', owner: 'Bienestar', updated: '2026-08-21' },
+  { id: 'cp-diario', client: 'Diario del Puerto', recipe: 'noticias', voice: 'piper-es_ES-miro-high', tone: 'informativo', owner: 'Redaccion', updated: '2026-08-12' },
+  { id: 'cp-cuentacuentos', client: 'Biblioteca Infantil', recipe: 'cuentos', voice: 'kokoro-em_alex', tone: 'narrativo', owner: 'Programacion', updated: '2026-08-04' },
 ];
 
 /* --------------------------------- glosario -------------------------------- */
@@ -5409,6 +5734,149 @@ function bar(value, tone = '') {
   return `<div class="bar ${tone}"><i style="width:${clamp(value, 0, 100)}%"></i></div>`;
 }
 
+/* ------------------------------- carrusel -------------------------------- */
+/*
+  Bandeja horizontal: muestra un numero fijo de tarjetas y el resto se alcanza
+  desplazando. Se mueve con los botones, la rueda, el arrastre del raton y el
+  dedo. Las flechas de los extremos se desactivan solas.
+*/
+function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' }) {
+  const paginas = Math.ceil(items.length / porVista);
+  const flechas = paginas > 1
+    ? `<button class="tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
+       <button class="tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>`
+    : '';
+  return `<div class="tray" data-tray-id="${id}" data-tray-cols="${cols}" data-tray-visible="${porVista}" data-tray-total="${items.length}">
+    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista">
+      <div class="tray-track">${items.join('')}</div>
+    </div>
+    ${flechas}
+  </div>`;
+}
+
+/* ------------------------------ desplazamiento ---------------------------- */
+/*
+  Una sola implementacion para todas las bandejas: mide la pagina con el ancho
+  real de las tarjetas, asi que el tamano de la ventana no importa.
+*/
+function trayStep(tray) {
+  const viewport = tray.querySelector('.tray-viewport');
+  const cards = tray.querySelectorAll('.tray-track > *');
+  if (!viewport || !cards.length) return { step: 0, max: 0 };
+  const visible = Number(tray.dataset.trayVisible) || 1;
+  let step = 0;
+  if (cards.length >= visible) {
+    const first = cards[0].getBoundingClientRect().width;
+    const last = cards[visible - 1].getBoundingClientRect().width;
+    if (first > 0) step = last + (first * 0.75); // ancho de la ultima visible + hueco
+  }
+  if (!step) step = viewport.clientWidth; // sin motor de layout: una pagina entera
+  const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  return { step, max };
+}
+
+function syncTrays(root = document) {
+  root.querySelectorAll('[data-tray-id]').forEach((tray) => {
+    const viewport = tray.querySelector('.tray-viewport');
+    if (!viewport) return;
+    const prev = tray.querySelector('.tray-arrow.prev');
+    const next = tray.querySelector('.tray-arrow.next');
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    // Sin motor de layout no se puede medir: no se apaga nada, o la flecha
+    // quedaria muerta para siempre en un render temprano.
+    if (prev) prev.disabled = viewport.scrollLeft <= 2;
+    if (next) next.disabled = max > 0 ? viewport.scrollLeft >= max - 2 : false;
+  });
+}
+
+function moveTray(id, direction, root = document) {
+  const tray = root.querySelector(`[data-tray-id="${id}"]`);
+  if (!tray) return;
+  const viewport = tray.querySelector('.tray-viewport');
+  if (!viewport) return;
+  const { step } = trayStep(tray);
+  viewport.scrollBy({ left: direction * step, behavior: 'smooth' });
+  window.setTimeout(() => syncTrays(root), 340);
+}
+
+/* ------------------------- arrastre con raton y dedo ---------------------- */
+function attachTrayDrag(root = document) {
+  if (root.__trayDragAttached) return;
+  root.__trayDragAttached = true;
+
+  let drag = null;
+
+  const inicio = (event) => {
+    const tray = event.target.closest?.('[data-tray-id]');
+    const viewport = tray?.querySelector('.tray-viewport');
+    if (!viewport) return;
+    // En tactil manda el desplazamiento nativo del navegador.
+    if (event.pointerType === 'touch') return;
+    if (event.target.closest('button') && !event.target.closest('.tray-arrow')) return;
+    drag = { viewport, x: event.clientX, left: viewport.scrollLeft, movido: false, tray };
+    viewport.classList.add('dragging');
+  };
+
+  const mover = (event) => {
+    if (!drag || event.pointerType === 'touch') return;
+    const delta = event.clientX - drag.x;
+    if (Math.abs(delta) > 4) drag.movido = true;
+    drag.viewport.scrollLeft = drag.left - delta;
+    if (drag.movido) event.preventDefault();
+  };
+
+  const soltar = () => {
+    if (!drag) return;
+    drag.viewport.classList.remove('dragging');
+    const { tray } = drag;
+    drag = null;
+    syncTrays(tray.parentElement || root);
+  };
+
+  root.addEventListener('pointerdown', inicio, { passive: true });
+  root.addEventListener('pointermove', mover, { passive: false });
+  root.addEventListener('pointerup', soltar);
+  root.addEventListener('pointercancel', soltar);
+  root.addEventListener('pointerleave', soltar);
+
+  // Un arrastre no debe acabar en clic sobre la tarjeta.
+  root.addEventListener('click', (event) => {
+    if (event.target.closest('.tray-viewport.dragging')) event.preventDefault();
+  }, true);
+
+  // Rueda vertical u horizontal sobre la bandeja: mueve la bandeja, no la pagina.
+  root.addEventListener('wheel', (event) => {
+    const viewport = event.target.closest?.('[data-tray-id] .tray-viewport');
+    if (!viewport) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (!delta) return;
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    if (max <= 0) return;
+    const antes = viewport.scrollLeft;
+    if ((delta > 0 && antes < max - 1) || (delta < 0 && antes > 1)) {
+      viewport.scrollLeft = antes + delta;
+      event.preventDefault();
+      syncTrays(viewport.closest('[data-tray-id]').parentElement || root);
+    }
+  }, { passive: false });
+
+  root.addEventListener('scroll', (event) => {
+    const viewport = event.target.closest?.('.tray-viewport');
+    if (viewport) syncTrays(viewport.closest('[data-tray-id]').parentElement || root);
+  }, true);
+
+  // Con teclado: las flechas mueven la bandeja que tiene el foco.
+  root.addEventListener('keydown', (event) => {
+    const viewport = event.target.closest?.('.tray-viewport');
+    if (!viewport) return;
+    const tray = viewport.closest('[data-tray-id]');
+    if (!tray) return;
+    const { step } = trayStep(tray);
+    if (event.key === 'ArrowRight') { viewport.scrollBy({ left: step, behavior: 'smooth' }); event.preventDefault(); }
+    if (event.key === 'ArrowLeft') { viewport.scrollBy({ left: -step, behavior: 'smooth' }); event.preventDefault(); }
+  });
+}
+
 // ---------------------------------------------------------------------------
 // app.js
 // ---------------------------------------------------------------------------
@@ -6066,15 +6534,20 @@ function viewInicio() {
       </section>
     </div>
 
-    <section class="panel">
+    <section class="panel projects-panel">
       <div class="panel-head">
         <div><p class="eyebrow">Bandeja</p><h2>Proyectos</h2></div>
         <span class="spacer"></span>
         <span class="badge">${PROJECTS.length}</span>
+        <span class="badge">12 por vista</span>
       </div>
       <div class="panel-body tight">
-        <div class="grid-cards">
-          ${PROJECTS.map((item) => {
+        ${carrusel({
+          id: 'proyectos',
+          porVista: 12,
+          cols: 4,
+          etiqueta: 'proyectos',
+          items: PROJECTS.map((item) => {
             const s = projectStats(item);
             const r = recipeById(item.recipeId);
             return `<article class="card">
@@ -6090,8 +6563,8 @@ function viewInicio() {
                 <button class="btn sm" data-action="nav" data-route="produce">${icon('grid', 'sm')} Producir</button>
               </div>
             </article>`;
-          }).join('')}
-        </div>
+          }),
+        })}
       </div>
     </section>
   </div>`;
@@ -6123,7 +6596,7 @@ function viewLectura() {
   const ratio = pct(s.chars, TEXT_LIMIT);
   const tone = over ? 'danger' : s.chars > TEXT_LIMIT * 0.85 ? 'warn' : '';
   return `
-  <div class="stack-4">
+  <div class="stack-4 screen-fill">
     <div class="row between wrap">
       <div>
         <h1 style="font-size:var(--text-2xl)">Lectura y narracion</h1>
@@ -6136,7 +6609,7 @@ function viewLectura() {
     </div>
 
     <div class="read-grid">
-      <div class="stack-4">
+      <div class="read-col c1">
         <section class="panel">
           <div class="panel-head">
             <div><p class="eyebrow">Paso 1</p><h2>Texto o documento</h2></div>
@@ -6164,7 +6637,9 @@ function viewLectura() {
             </div>
           </div>
         </section>
+      </div>
 
+      <div class="read-col c2">
         <section class="panel">
           <div class="panel-head">
             <div><p class="eyebrow">Paso 2</p><h2>Preset de lectura</h2></div>
@@ -6220,7 +6695,7 @@ function viewLectura() {
         </section>
       </div>
 
-      <div class="stack-4">
+      <div class="read-col c3">
         <section class="panel">
           <div class="panel-head"><div><p class="eyebrow">Paso 3</p><h2>Voz y motor</h2></div></div>
           <div class="panel-body stack-3">
@@ -6475,7 +6950,8 @@ function viewVoces() {
         .includes(state.search.toLowerCase())
     );
   });
-  const info = paginate(list, state.voicePage, 12);
+  // Ocho tarjetas por vista; el resto se alcanza desplazando la bandeja.
+  const porVista = 8;
   const byEngine = catalogByEngine();
   return `
   <div class="stack-4">
@@ -6520,8 +6996,12 @@ function viewVoces() {
       <input id="voice-search" class="input" style="max-width:280px" placeholder="Buscar nombre, motor o region" value="${esc(state.search)}" data-action="voices:search" />
     </div>
 
-    ${info.count === 0 ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.') : `<div class="grid-cards">${info.slice.map((voice) => voiceCard(voice)).join('')}</div>`}
-    ${pager('voices', info, 'voices:page')}
+    ${
+      list.length === 0
+        ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.')
+        : carrusel({ id: 'voces', porVista, cols: 4, etiqueta: 'voces', items: list.map((voice) => voiceCard(voice)) })
+    }
+    <p class="tray-note tiny dim">${Math.min(porVista, list.length)} de ${list.length} voces a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -6546,9 +7026,12 @@ function viewRecetas() {
         ${filters.map(([id, label]) => `<button class="chip" data-action="recipes:filter" data-filter="${id}" aria-pressed="${state.recipeFilter === id}">${label}</button>`).join('')}
       </div>
     </div>
-    <div class="grid-cards">
-      ${list
-        .map((recipe) => {
+    ${carrusel({
+      id: 'recetas',
+      porVista: 8,
+      cols: 4,
+      etiqueta: 'recetas',
+      items: list.map((recipe) => {
           const engine = engineById(recipe.engine);
           return `<article class="card">
             <div class="card-top">
@@ -6568,9 +7051,9 @@ function viewRecetas() {
               <button class="btn sm primary" data-action="recipe:use" data-recipe="${recipe.id}">${icon('plus', 'sm')} Usar</button>
             </div>
           </article>`;
-        })
-        .join('')}
-    </div>
+      }),
+    })}
+    <p class="tray-note tiny dim">${Math.min(8, list.length)} de ${list.length} recetas a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -6590,7 +7073,7 @@ function viewElenco() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">${esc(p.name)}</p><h2>Casting del proyecto</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="elenco">
         <table class="table">
           <thead><tr><th>Rol</th><th>Voz</th><th>Motor</th><th>Origen</th><th class="num">Bloques</th><th>Estado</th><th></th></tr></thead>
           <tbody>
@@ -6643,8 +7126,12 @@ function viewPresets() {
       <div><h1 style="font-size:var(--text-2xl)">Presets de cliente</h1><p class="tiny muted mt-2">Receta y voz fijadas por cliente, para no repetir ajustes en cada entrega.</p></div>
       <button class="btn primary" data-action="preset:new">${icon('plus', 'sm')} Nuevo preset</button>
     </div>
-    <div class="grid-cards">
-      ${CLIENT_PRESETS.map((preset) => {
+    ${carrusel({
+      id: 'presets-cliente',
+      porVista: 12,
+      cols: 4,
+      etiqueta: 'presets',
+      items: CLIENT_PRESETS.map((preset) => {
         const voice = catalogVoice(preset.voice);
         const recipe = recipeById(preset.recipe);
         return `<article class="card">
@@ -6663,8 +7150,9 @@ function viewPresets() {
             <button class="btn sm primary" data-action="preset:use" data-preset="${preset.id}">${icon('play', 'sm')} Usar</button>
           </div>
         </article>`;
-      }).join('')}
-    </div>
+      }),
+    })}
+    <p class="tray-note tiny dim">${Math.min(12, CLIENT_PRESETS.length)} de ${CLIENT_PRESETS.length} presets a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -6679,7 +7167,7 @@ function viewGlosario() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Activo</p><h2>${GLOSSARY.length} terminos</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="glosario">
         <table class="table">
           <thead><tr><th>Termino</th><th>Se pronuncia</th><th>Alcance</th><th></th></tr></thead>
           <tbody>
@@ -6721,7 +7209,7 @@ function viewLotes() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Detalle</p><h2>${esc(batch.name)}</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="lotes">
         <table class="table">
           <thead><tr><th>ID</th><th>Titulo</th><th class="num">Duracion</th><th>Estado</th><th>Nota</th></tr></thead>
           <tbody>
@@ -6777,7 +7265,7 @@ function viewBiblioteca() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Auditada</p><h2>${rows.length} tomas recientes</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="biblioteca">
         <table class="table">
           <thead><tr><th>Bloque</th><th>Texto</th><th>Voz</th><th>Motor</th><th class="num">Dur.</th><th class="num">RTF</th><th>Estado</th></tr></thead>
           <tbody>
@@ -6876,7 +7364,7 @@ function viewProduce() {
   };
   const block = findBlock(state.blockId) || doc.blocks[0];
   return `
-  <div class="stack-3">
+  <div class="stack-3 screen-fill">
     <div class="panel produce-head">
       <div class="produce-title">
         <div class="row wrap">
@@ -6919,7 +7407,7 @@ function viewProduce() {
           <span class="spacer"></span>
           <span class="badge">${stats.review} por revisar</span>
         </div>
-        <div class="panel-body tight" id="block-list">
+        <div class="panel-body tight scroll-area" id="block-list" data-scroll-area="segmentos">
           ${doc.blocks.map((item) => blockRowHtml(item)).join('')}
         </div>
       </section>
@@ -7226,6 +7714,7 @@ function render() {
     ${modalHtml()}
     ${splashHtml()}`;
   toasts.render();
+  syncTrays(app);
   // La cabecera de la vista se pega arriba; el contenido respira abajo.
   const scroller = $('#content');
   if (scroller) scroller.style.setProperty('padding-bottom', 'var(--space-6, 28px)');
@@ -7607,6 +8096,12 @@ document.addEventListener('click', (event) => {
     case 'voices:page':
       state.voicePage = Number(target.dataset.page) || 0;
       render();
+      break;
+    case 'tray:prev':
+      moveTray(target.dataset.tray, -1);
+      break;
+    case 'tray:next':
+      moveTray(target.dataset.tray, 1);
       break;
     case 'elenco:change': {
       state.castRole = target.dataset.role;
@@ -8207,6 +8702,9 @@ function tickClock() {
 
 state.blockId = currentDoc()?.blocks.find((block) => block.state === 'revisar')?.id || currentDoc()?.blocks[0]?.id || state.blockId;
 state.castRole = 'narrador';
+
+// Bandejas: arrastre con raton y dedo, rueda y teclado, una sola vez para toda la app.
+attachTrayDrag(document);
 
 applyTheme();
 render();

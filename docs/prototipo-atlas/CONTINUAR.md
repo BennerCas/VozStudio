@@ -61,10 +61,11 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **279 comprobaciones en diez suites**
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **332 comprobaciones en doce suites**
 (189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
-HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll y 8
-sobre el modelo de caja del shell).
+HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
+sobre el modelo de caja del shell, 35 sobre la reorganización de pantallas y 14 sobre la mecánica
+de las bandejas).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
@@ -75,6 +76,10 @@ sobre el modelo de caja del shell).
 - **Columnas fijas**: la ventana no scrollea, la sidebar tiene su carril, el pie y el topbar
   quedan siempre visibles, y en las 12 pantallas la cabecera es el primer hijo de la pila y se
   pega arriba (`layout.mjs`, `scroll.mjs`, `box.mjs`).
+- **Bandejas y listas** (`pantallas.mjs`, `tray.mjs`): Inicio en rejilla 3x4 con desplazamiento;
+  Lectura en tres columnas 30/40/30 con los pasos repartidos; en Producir solo scrollea la lista
+  de segmentos; en Biblioteca, Glosario, Lotes y Elenco solo el cuerpo con el `thead` fijo; y
+  Voces, Recetas y Presets en bandeja de 8/8/12 con flechas, rueda, ratón y dedo.
 - Pie fijo con `HUMAN AI SYNERGY BY BENNER CASTILLO` presente en todas las vistas.
 - Sidebar, splash e icono de la app dibujan el **mismo emblema** (mismas barras y medidas).
 - Splash funcional: INICIAR y "Entrar directo" lo cierran.
@@ -153,6 +158,31 @@ sobre el modelo de caja del shell).
     `min-height: 100vh` y con el pie en su fila eso empujaría el pie fuera de la ventana.
     `navigate()` reinicia `#content.scrollTop` para que cada pantalla empiece arriba.
 
+14. **Las bandejas de tarjetas se desplazan, no se paginan.** `carrusel()` en `src/ui.js`
+    dibuja una rejilla de 4 columnas con flujo por columnas y `grid-auto-columns`
+    calculado sobre el ancho real, así que funciona a cualquier tamaño de ventana.
+    Se mueve con las flechas, la rueda, el arrastre del ratón y el dedo
+    (`attachTrayDrag`, enganchado una sola vez en el arranque). En táctil **no** se
+    secuestra el gesto: manda el scroll nativo. Ojo: `syncTrays()` no apaga la flecha
+    siguiente si `scrollWidth` aún vale 0, porque en un render temprano la bandeja se
+    quedaría muerta para siempre.
+    Cantidades: proyectos 12 por vista, voces 8, recetas 8, presets de cliente 12.
+15. **Solo se desplaza la lista, nunca el encabezado.** Las listas llevan
+    `data-scroll-area` y su `thead` es `sticky`. Producir tiene su propio carril en
+    `#block-list`; Biblioteca, Glosario, Lotes y Elenco lo tienen en el cuerpo de la
+    tabla. Para que el scroll exista de verdad, la lista necesita un tope de altura
+    (se acota a `100dvh` menos topbar, pie y cabecera): sin tope crece y no hay nada
+    que desplazar.
+16. **Lectura va en tres columnas 30 / 40 / 30.** Paso 1 solo en la primera; paso 2
+    más la bandeja de importación en la segunda; paso 3 más entregables en la tercera.
+    Cada columna tiene su propio carril. Esto obliga a dos cosas: la pantalla lleva
+    `.screen-fill` (si no, la rejilla no tiene altura que repartir y las columnas
+    crecen sin scroll) y `.read-grid` usa `align-items: stretch`, no `start`.
+    Por debajo de 1280 px vuelve a una sola columna con scroll normal.
+17. **Los datos de ejemplo crecieron para que las bandejas tengan qué desplazar.**
+    Proyectos pasó de 5 a 14 y presets de cliente de 4 a 15: con menos de 12 por vista
+    las flechas nunca aparecían y el desplazamiento era decorativo.
+
 ## Pendientes y ampliaciones posibles
 
 - **Capturas de pantalla de la interfaz**: no hay `libnss3` en el sandbox y los
@@ -191,7 +221,7 @@ python3 -c "import re,pathlib;c=pathlib.Path('assets/estilos.css').read_text();p
 
 Y abrir la página: si hay un error de sintaxis, la pantalla queda en blanco.
 Las suites de verificación (`check2`, `flows`, `selects`, `inputs`, `lectura2`, `filetest`,
-`httptest`, `layout`, `scroll`, `box`) se ejecutan
+`httptest`, `layout`, `scroll`, `box`, `pantallas`, `tray`) se ejecutan
 con jsdom instalado aparte (`npm install jsdom`) y **no** forman parte del repositorio: el
 prototipo no tiene dependencias. Recuerda neutralizar `setInterval`/`setTimeout` en el
 arnés: `tickSystem`, la cola y el splash dejan temporizadores vivos que impiden salir a node.

@@ -211,3 +211,146 @@ export function emptyState(title, detail, actionHtml = '') {
 export function bar(value, tone = '') {
   return `<div class="bar ${tone}"><i style="width:${clamp(value, 0, 100)}%"></i></div>`;
 }
+
+/* ------------------------------- carrusel -------------------------------- */
+/*
+  Bandeja horizontal: muestra un numero fijo de tarjetas y el resto se alcanza
+  desplazando. Se mueve con los botones, la rueda, el arrastre del raton y el
+  dedo. Las flechas de los extremos se desactivan solas.
+*/
+export function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' }) {
+  const paginas = Math.ceil(items.length / porVista);
+  const flechas = paginas > 1
+    ? `<button class="tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
+       <button class="tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>`
+    : '';
+  return `<div class="tray" data-tray-id="${id}" data-tray-cols="${cols}" data-tray-visible="${porVista}" data-tray-total="${items.length}">
+    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista">
+      <div class="tray-track">${items.join('')}</div>
+    </div>
+    ${flechas}
+  </div>`;
+}
+
+/* ------------------------------ desplazamiento ---------------------------- */
+/*
+  Una sola implementacion para todas las bandejas: mide la pagina con el ancho
+  real de las tarjetas, asi que el tamano de la ventana no importa.
+*/
+function trayStep(tray) {
+  const viewport = tray.querySelector('.tray-viewport');
+  const cards = tray.querySelectorAll('.tray-track > *');
+  if (!viewport || !cards.length) return { step: 0, max: 0 };
+  const visible = Number(tray.dataset.trayVisible) || 1;
+  let step = 0;
+  if (cards.length >= visible) {
+    const first = cards[0].getBoundingClientRect().width;
+    const last = cards[visible - 1].getBoundingClientRect().width;
+    if (first > 0) step = last + (first * 0.75); // ancho de la ultima visible + hueco
+  }
+  if (!step) step = viewport.clientWidth; // sin motor de layout: una pagina entera
+  const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
+  return { step, max };
+}
+
+export function syncTrays(root = document) {
+  root.querySelectorAll('[data-tray-id]').forEach((tray) => {
+    const viewport = tray.querySelector('.tray-viewport');
+    if (!viewport) return;
+    const prev = tray.querySelector('.tray-arrow.prev');
+    const next = tray.querySelector('.tray-arrow.next');
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    // Sin motor de layout no se puede medir: no se apaga nada, o la flecha
+    // quedaria muerta para siempre en un render temprano.
+    if (prev) prev.disabled = viewport.scrollLeft <= 2;
+    if (next) next.disabled = max > 0 ? viewport.scrollLeft >= max - 2 : false;
+  });
+}
+
+export function moveTray(id, direction, root = document) {
+  const tray = root.querySelector(`[data-tray-id="${id}"]`);
+  if (!tray) return;
+  const viewport = tray.querySelector('.tray-viewport');
+  if (!viewport) return;
+  const { step } = trayStep(tray);
+  viewport.scrollBy({ left: direction * step, behavior: 'smooth' });
+  window.setTimeout(() => syncTrays(root), 340);
+}
+
+/* ------------------------- arrastre con raton y dedo ---------------------- */
+export function attachTrayDrag(root = document) {
+  if (root.__trayDragAttached) return;
+  root.__trayDragAttached = true;
+
+  let drag = null;
+
+  const inicio = (event) => {
+    const tray = event.target.closest?.('[data-tray-id]');
+    const viewport = tray?.querySelector('.tray-viewport');
+    if (!viewport) return;
+    // En tactil manda el desplazamiento nativo del navegador.
+    if (event.pointerType === 'touch') return;
+    if (event.target.closest('button') && !event.target.closest('.tray-arrow')) return;
+    drag = { viewport, x: event.clientX, left: viewport.scrollLeft, movido: false, tray };
+    viewport.classList.add('dragging');
+  };
+
+  const mover = (event) => {
+    if (!drag || event.pointerType === 'touch') return;
+    const delta = event.clientX - drag.x;
+    if (Math.abs(delta) > 4) drag.movido = true;
+    drag.viewport.scrollLeft = drag.left - delta;
+    if (drag.movido) event.preventDefault();
+  };
+
+  const soltar = () => {
+    if (!drag) return;
+    drag.viewport.classList.remove('dragging');
+    const { tray } = drag;
+    drag = null;
+    syncTrays(tray.parentElement || root);
+  };
+
+  root.addEventListener('pointerdown', inicio, { passive: true });
+  root.addEventListener('pointermove', mover, { passive: false });
+  root.addEventListener('pointerup', soltar);
+  root.addEventListener('pointercancel', soltar);
+  root.addEventListener('pointerleave', soltar);
+
+  // Un arrastre no debe acabar en clic sobre la tarjeta.
+  root.addEventListener('click', (event) => {
+    if (event.target.closest('.tray-viewport.dragging')) event.preventDefault();
+  }, true);
+
+  // Rueda vertical u horizontal sobre la bandeja: mueve la bandeja, no la pagina.
+  root.addEventListener('wheel', (event) => {
+    const viewport = event.target.closest?.('[data-tray-id] .tray-viewport');
+    if (!viewport) return;
+    const delta = Math.abs(event.deltaX) > Math.abs(event.deltaY) ? event.deltaX : event.deltaY;
+    if (!delta) return;
+    const max = viewport.scrollWidth - viewport.clientWidth;
+    if (max <= 0) return;
+    const antes = viewport.scrollLeft;
+    if ((delta > 0 && antes < max - 1) || (delta < 0 && antes > 1)) {
+      viewport.scrollLeft = antes + delta;
+      event.preventDefault();
+      syncTrays(viewport.closest('[data-tray-id]').parentElement || root);
+    }
+  }, { passive: false });
+
+  root.addEventListener('scroll', (event) => {
+    const viewport = event.target.closest?.('.tray-viewport');
+    if (viewport) syncTrays(viewport.closest('[data-tray-id]').parentElement || root);
+  }, true);
+
+  // Con teclado: las flechas mueven la bandeja que tiene el foco.
+  root.addEventListener('keydown', (event) => {
+    const viewport = event.target.closest?.('.tray-viewport');
+    if (!viewport) return;
+    const tray = viewport.closest('[data-tray-id]');
+    if (!tray) return;
+    const { step } = trayStep(tray);
+    if (event.key === 'ArrowRight') { viewport.scrollBy({ left: step, behavior: 'smooth' }); event.preventDefault(); }
+    if (event.key === 'ArrowLeft') { viewport.scrollBy({ left: -step, behavior: 'smooth' }); event.preventDefault(); }
+  });
+}

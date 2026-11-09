@@ -1120,8 +1120,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* ---------------------------------- produce -------------------------------- */
-.produce {
-  flex: 1;
+.produce,
+.produce-grid {
+  flex: 1 1 auto;
   min-height: 0;
   display: grid;
   grid-template-columns: 232px minmax(420px, 1fr) 296px;
@@ -2050,7 +2051,8 @@ input[type="range"]::-moz-range-thumb {
   :root {
     --sidebar: 196px;
   }
-  .produce {
+  .produce,
+  .produce-grid {
     grid-template-columns: 200px minmax(340px, 1fr);
   }
   .produce-col.inspector {
@@ -2072,7 +2074,8 @@ input[type="range"]::-moz-range-thumb {
   .sidebar {
     display: none;
   }
-  .produce {
+  .produce,
+  .produce-grid {
     grid-template-columns: minmax(0, 1fr);
   }
   .produce-col.docs {
@@ -3512,6 +3515,21 @@ body {
 }
 
 /*
+  Una pantalla que deba repartir altura (columnas con scroll propio) se marca
+  con .screen-fill. La cabecera se queda arriba y el resto ocupa el alto que
+  queda, en vez de crecer sin limite.
+*/
+.content > .screen-fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  align-content: normal;
+}
+.content > .screen-fill > :first-child {
+  flex: none;
+}
+
+/*
   No se tocan margin ni padding del contenedor: la cabecera se pega al borde
   del area de contenido y el padding del contenedor queda por debajo de ella,
   asi que el texto no se esconde al hacer scroll.
@@ -3563,4 +3581,195 @@ body {
   .shell > .main > .content {
     scroll-behavior: auto;
   }
+}
+
+/* =========================================================================
+   BANDEJAS HORIZONTALES Y AREAS DE SCROLL INTERNO
+
+   Solo se desplaza lo que la pantalla necesita: la lista de segmentos en
+   Producir, el cuerpo de las tablas en Biblioteca, Glosario, Lotes y Elenco,
+   y las bandejas de tarjetas. Los encabezados nunca se mueven.
+   ========================================================================= */
+
+/* ------------------------------ bandeja ---------------------------------- */
+
+.tray {
+  position: relative;
+  min-width: 0;
+}
+
+.tray-viewport {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x proximity;
+  scroll-behavior: smooth;
+  overscroll-behavior-x: contain;
+  cursor: grab;
+  border-radius: var(--radius-lg);
+}
+.tray-viewport.dragging {
+  cursor: grabbing;
+  scroll-behavior: auto;
+  user-select: none;
+}
+
+/* 4 columnas por vista, con las filas que hagan falta. */
+.tray-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  grid-auto-columns: calc((100% - 3 * var(--space-3)) / 4);
+  gap: var(--space-3);
+  align-content: start;
+  /* Aire a los lados para que el foco y el hover no queden recortados. */
+  padding: 2px;
+  width: max-content;
+  min-width: 100%;
+}
+.tray-track > * {
+  scroll-snap-align: start;
+  min-width: 0;
+  /* Las tarjetas conservan su alto natural: las filas se alinean arriba. */
+  align-self: start;
+}
+
+/* Con 8 por vista se reparten en 4 columnas y 2 filas. */
+.tray[data-tray-visible="8"] .tray-track {
+  grid-template-rows: repeat(2, auto);
+}
+/* Con 12 por vista, 4 columnas y 3 filas. */
+.tray[data-tray-visible="12"] .tray-track {
+  grid-template-rows: repeat(3, auto);
+}
+
+/* ------------------------------ flechas ---------------------------------- */
+
+.tray-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-top: -17px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
+  color: var(--text);
+  box-shadow: var(--shadow-pop);
+  cursor: pointer;
+  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+}
+.tray-arrow:hover:not(:disabled) {
+  border-color: var(--accent-line);
+  color: var(--accent);
+  transform: scale(1.06);
+}
+.tray-arrow:disabled {
+  opacity: 0;
+  pointer-events: none;
+}
+.tray-arrow.prev {
+  left: -10px;
+}
+.tray-arrow.next {
+  right: -10px;
+}
+
+.tray-note {
+  margin: 0;
+  text-align: right;
+}
+
+/* -------------------- solo el cuerpo de una lista scrollea ----------------- */
+
+.scroll-area {
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  min-height: 0;
+  /* Aire al final para que el ultimo elemento no quede pegado al borde. */
+  padding-bottom: var(--space-3);
+  position: relative;
+}
+
+/*
+  Una tabla con lista scrolleable necesita un tope de altura; si no, crece
+  con su contenido y nunca hay nada que desplazar. Se acota a la ventana menos
+  la cabecera de la vista y el topbar.
+*/
+.content > .stack-4 > .panel > .panel-body > .scroll-area.table-wrap,
+.panel > .panel-body.tight > .scroll-area {
+  max-height: calc(100dvh - var(--topbar) - var(--footer) - 190px);
+}
+
+/* El encabezado de una tabla se queda arriba mientras el cuerpo sube. */
+.scroll-area .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--surface-2);
+  box-shadow: inset 0 -1px 0 var(--line);
+}
+
+/* Si la tabla es mas alta que su area, la tabla scrollea; si no, se ajusta. */
+.scroll-area .table-wrap,
+.scroll-area.table-wrap {
+  max-height: 100%;
+}
+
+/* --------------------------- lectura en 3 columnas ------------------------- */
+
+.read-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 30fr) minmax(0, 40fr) minmax(0, 30fr);
+  gap: var(--space-4);
+  /* Las columnas se estiran al alto disponible: asi su scroll interno existe. */
+  align-items: stretch;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+}
+
+.read-col {
+  display: grid;
+  gap: var(--space-4);
+  align-content: start;
+  min-width: 0;
+  min-height: 0;
+  /* Cada columna tiene su propio carril: nunca desplaza a la ventana. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding-bottom: var(--space-2);
+}
+
+/* La columna del centro da aire a las flechas de la bandeja. */
+.read-col.c2 {
+  padding-inline: 2px;
+}
+
+@media (max-width: 1280px) {
+  .read-grid {
+    grid-template-columns: minmax(0, 1fr);
+    flex: none;
+  }
+  .read-col {
+    overflow: visible;
+  }
+}
+
+/* ------------------------- produce: lista de segmentos ------------------- */
+
+.produce-col.editor {
+  min-height: 0;
+}
+#block-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }

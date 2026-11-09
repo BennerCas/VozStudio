@@ -50,6 +50,10 @@ import {
   meter,
   emptyState,
   bar,
+  carrusel,
+  moveTray,
+  syncTrays,
+  attachTrayDrag,
 } from './ui.js';
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -693,15 +697,20 @@ function viewInicio() {
       </section>
     </div>
 
-    <section class="panel">
+    <section class="panel projects-panel">
       <div class="panel-head">
         <div><p class="eyebrow">Bandeja</p><h2>Proyectos</h2></div>
         <span class="spacer"></span>
         <span class="badge">${PROJECTS.length}</span>
+        <span class="badge">12 por vista</span>
       </div>
       <div class="panel-body tight">
-        <div class="grid-cards">
-          ${PROJECTS.map((item) => {
+        ${carrusel({
+          id: 'proyectos',
+          porVista: 12,
+          cols: 4,
+          etiqueta: 'proyectos',
+          items: PROJECTS.map((item) => {
             const s = projectStats(item);
             const r = recipeById(item.recipeId);
             return `<article class="card">
@@ -717,8 +726,8 @@ function viewInicio() {
                 <button class="btn sm" data-action="nav" data-route="produce">${icon('grid', 'sm')} Producir</button>
               </div>
             </article>`;
-          }).join('')}
-        </div>
+          }),
+        })}
       </div>
     </section>
   </div>`;
@@ -750,7 +759,7 @@ function viewLectura() {
   const ratio = pct(s.chars, TEXT_LIMIT);
   const tone = over ? 'danger' : s.chars > TEXT_LIMIT * 0.85 ? 'warn' : '';
   return `
-  <div class="stack-4">
+  <div class="stack-4 screen-fill">
     <div class="row between wrap">
       <div>
         <h1 style="font-size:var(--text-2xl)">Lectura y narracion</h1>
@@ -763,7 +772,7 @@ function viewLectura() {
     </div>
 
     <div class="read-grid">
-      <div class="stack-4">
+      <div class="read-col c1">
         <section class="panel">
           <div class="panel-head">
             <div><p class="eyebrow">Paso 1</p><h2>Texto o documento</h2></div>
@@ -791,7 +800,9 @@ function viewLectura() {
             </div>
           </div>
         </section>
+      </div>
 
+      <div class="read-col c2">
         <section class="panel">
           <div class="panel-head">
             <div><p class="eyebrow">Paso 2</p><h2>Preset de lectura</h2></div>
@@ -847,7 +858,7 @@ function viewLectura() {
         </section>
       </div>
 
-      <div class="stack-4">
+      <div class="read-col c3">
         <section class="panel">
           <div class="panel-head"><div><p class="eyebrow">Paso 3</p><h2>Voz y motor</h2></div></div>
           <div class="panel-body stack-3">
@@ -1102,7 +1113,8 @@ function viewVoces() {
         .includes(state.search.toLowerCase())
     );
   });
-  const info = paginate(list, state.voicePage, 12);
+  // Ocho tarjetas por vista; el resto se alcanza desplazando la bandeja.
+  const porVista = 8;
   const byEngine = catalogByEngine();
   return `
   <div class="stack-4">
@@ -1147,8 +1159,12 @@ function viewVoces() {
       <input id="voice-search" class="input" style="max-width:280px" placeholder="Buscar nombre, motor o region" value="${esc(state.search)}" data-action="voices:search" />
     </div>
 
-    ${info.count === 0 ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.') : `<div class="grid-cards">${info.slice.map((voice) => voiceCard(voice)).join('')}</div>`}
-    ${pager('voices', info, 'voices:page')}
+    ${
+      list.length === 0
+        ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.')
+        : carrusel({ id: 'voces', porVista, cols: 4, etiqueta: 'voces', items: list.map((voice) => voiceCard(voice)) })
+    }
+    <p class="tray-note tiny dim">${Math.min(porVista, list.length)} de ${list.length} voces a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -1173,9 +1189,12 @@ function viewRecetas() {
         ${filters.map(([id, label]) => `<button class="chip" data-action="recipes:filter" data-filter="${id}" aria-pressed="${state.recipeFilter === id}">${label}</button>`).join('')}
       </div>
     </div>
-    <div class="grid-cards">
-      ${list
-        .map((recipe) => {
+    ${carrusel({
+      id: 'recetas',
+      porVista: 8,
+      cols: 4,
+      etiqueta: 'recetas',
+      items: list.map((recipe) => {
           const engine = engineById(recipe.engine);
           return `<article class="card">
             <div class="card-top">
@@ -1195,9 +1214,9 @@ function viewRecetas() {
               <button class="btn sm primary" data-action="recipe:use" data-recipe="${recipe.id}">${icon('plus', 'sm')} Usar</button>
             </div>
           </article>`;
-        })
-        .join('')}
-    </div>
+      }),
+    })}
+    <p class="tray-note tiny dim">${Math.min(8, list.length)} de ${list.length} recetas a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -1217,7 +1236,7 @@ function viewElenco() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">${esc(p.name)}</p><h2>Casting del proyecto</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="elenco">
         <table class="table">
           <thead><tr><th>Rol</th><th>Voz</th><th>Motor</th><th>Origen</th><th class="num">Bloques</th><th>Estado</th><th></th></tr></thead>
           <tbody>
@@ -1270,8 +1289,12 @@ function viewPresets() {
       <div><h1 style="font-size:var(--text-2xl)">Presets de cliente</h1><p class="tiny muted mt-2">Receta y voz fijadas por cliente, para no repetir ajustes en cada entrega.</p></div>
       <button class="btn primary" data-action="preset:new">${icon('plus', 'sm')} Nuevo preset</button>
     </div>
-    <div class="grid-cards">
-      ${CLIENT_PRESETS.map((preset) => {
+    ${carrusel({
+      id: 'presets-cliente',
+      porVista: 12,
+      cols: 4,
+      etiqueta: 'presets',
+      items: CLIENT_PRESETS.map((preset) => {
         const voice = catalogVoice(preset.voice);
         const recipe = recipeById(preset.recipe);
         return `<article class="card">
@@ -1290,8 +1313,9 @@ function viewPresets() {
             <button class="btn sm primary" data-action="preset:use" data-preset="${preset.id}">${icon('play', 'sm')} Usar</button>
           </div>
         </article>`;
-      }).join('')}
-    </div>
+      }),
+    })}
+    <p class="tray-note tiny dim">${Math.min(12, CLIENT_PRESETS.length)} de ${CLIENT_PRESETS.length} presets a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -1306,7 +1330,7 @@ function viewGlosario() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Activo</p><h2>${GLOSSARY.length} terminos</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="glosario">
         <table class="table">
           <thead><tr><th>Termino</th><th>Se pronuncia</th><th>Alcance</th><th></th></tr></thead>
           <tbody>
@@ -1348,7 +1372,7 @@ function viewLotes() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Detalle</p><h2>${esc(batch.name)}</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="lotes">
         <table class="table">
           <thead><tr><th>ID</th><th>Titulo</th><th class="num">Duracion</th><th>Estado</th><th>Nota</th></tr></thead>
           <tbody>
@@ -1404,7 +1428,7 @@ function viewBiblioteca() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Auditada</p><h2>${rows.length} tomas recientes</h2></div></div>
       <div class="panel-body tight">
-        <div class="table-wrap">
+        <div class="table-wrap scroll-area" data-scroll-area="biblioteca">
         <table class="table">
           <thead><tr><th>Bloque</th><th>Texto</th><th>Voz</th><th>Motor</th><th class="num">Dur.</th><th class="num">RTF</th><th>Estado</th></tr></thead>
           <tbody>
@@ -1503,7 +1527,7 @@ function viewProduce() {
   };
   const block = findBlock(state.blockId) || doc.blocks[0];
   return `
-  <div class="stack-3">
+  <div class="stack-3 screen-fill">
     <div class="panel produce-head">
       <div class="produce-title">
         <div class="row wrap">
@@ -1546,7 +1570,7 @@ function viewProduce() {
           <span class="spacer"></span>
           <span class="badge">${stats.review} por revisar</span>
         </div>
-        <div class="panel-body tight" id="block-list">
+        <div class="panel-body tight scroll-area" id="block-list" data-scroll-area="segmentos">
           ${doc.blocks.map((item) => blockRowHtml(item)).join('')}
         </div>
       </section>
@@ -1853,6 +1877,7 @@ function render() {
     ${modalHtml()}
     ${splashHtml()}`;
   toasts.render();
+  syncTrays(app);
   // La cabecera de la vista se pega arriba; el contenido respira abajo.
   const scroller = $('#content');
   if (scroller) scroller.style.setProperty('padding-bottom', 'var(--space-6, 28px)');
@@ -2234,6 +2259,12 @@ document.addEventListener('click', (event) => {
     case 'voices:page':
       state.voicePage = Number(target.dataset.page) || 0;
       render();
+      break;
+    case 'tray:prev':
+      moveTray(target.dataset.tray, -1);
+      break;
+    case 'tray:next':
+      moveTray(target.dataset.tray, 1);
       break;
     case 'elenco:change': {
       state.castRole = target.dataset.role;
@@ -2834,6 +2865,9 @@ function tickClock() {
 
 state.blockId = currentDoc()?.blocks.find((block) => block.state === 'revisar')?.id || currentDoc()?.blocks[0]?.id || state.blockId;
 state.castRole = 'narrador';
+
+// Bandejas: arrastre con raton y dedo, rueda y teclado, una sola vez para toda la app.
+attachTrayDrag(document);
 
 applyTheme();
 render();
