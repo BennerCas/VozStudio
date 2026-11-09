@@ -61,8 +61,10 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **216 comprobaciones en seis suites**
-(189 sobre el fuente modular + 27 sobre el archivo único cargado como `file://`).
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **279 comprobaciones en diez suites**
+(189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
+HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll y 8
+sobre el modelo de caja del shell).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
@@ -70,6 +72,9 @@ Comprobado con un DOM real (jsdom) sobre el HTML generado: **216 comprobaciones 
 - Las 12 pantallas pintan sin `undefined`, `NaN` ni `[object Object]`.
 - El **archivo único** arranca desde `file://` sin servidor: shell pintado, 12 rutas navegables,
   clicks reales, `change` del tema a AMOLED, 34 voces y cero recursos externos (`filetest.mjs`).
+- **Columnas fijas**: la ventana no scrollea, la sidebar tiene su carril, el pie y el topbar
+  quedan siempre visibles, y en las 12 pantallas la cabecera es el primer hijo de la pila y se
+  pega arriba (`layout.mjs`, `scroll.mjs`, `box.mjs`).
 - Pie fijo con `HUMAN AI SYNERGY BY BENNER CASTILLO` presente en todas las vistas.
 - Sidebar, splash e icono de la app dibujan el **mismo emblema** (mismas barras y medidas).
 - Splash funcional: INICIAR y "Entrar directo" lo cierran.
@@ -135,6 +140,19 @@ Comprobado con un DOM real (jsdom) sobre el HTML generado: **216 comprobaciones 
     campos llevan la etiqueta `planificado` y un aviso que explica qué viaja hoy. No los
     presentes como si funcionaran: es justo el tipo de mentira que la propuesta critica.
 
+13. **La ventana no scrollea nunca: solo el cuerpo de la vista.** La sidebar es una
+    columna fija con su propio carril; el topbar y el pie son fijos por construcción
+    (filas 1 y 2 de la rejilla, sin `position: sticky`); y de cada pantalla solo se
+    desplaza lo que va por debajo de su primera sección. Cada vista es un `.stack-4` /
+    `.stack-3` cuyo **primer hijo es la cabecera** (saludo, título y acciones), y esa
+    cabecera se pega arriba con `position: sticky` y fondo opaco `var(--bg)`. No añadas
+    contenido antes de ese primer hijo: quedaría oculto tras la cabecera.
+    El scroll es **invisible** (`scrollbar-width: none` y `::-webkit-scrollbar` a 0).
+    Ojo con dos cosas: `html`/`body` llevan `overflow: hidden` (si se quita, reaparece la
+    barra externa) y `.main` debe conservar `min-height: 0`, porque su regla base traía
+    `min-height: 100vh` y con el pie en su fila eso empujaría el pie fuera de la ventana.
+    `navigate()` reinicia `#content.scrollTop` para que cada pantalla empiece arriba.
+
 ## Pendientes y ampliaciones posibles
 
 - **Capturas de pantalla de la interfaz**: no hay `libnss3` en el sandbox y los
@@ -172,7 +190,8 @@ python3 -c "import re,pathlib;c=pathlib.Path('assets/estilos.css').read_text();p
 ```
 
 Y abrir la página: si hay un error de sintaxis, la pantalla queda en blanco.
-Las suites de verificación (`check2`, `flows`, `selects`, `inputs`, `lectura2`) se ejecutan
+Las suites de verificación (`check2`, `flows`, `selects`, `inputs`, `lectura2`, `filetest`,
+`httptest`, `layout`, `scroll`, `box`) se ejecutan
 con jsdom instalado aparte (`npm install jsdom`) y **no** forman parte del repositorio: el
 prototipo no tiene dependencias. Recuerda neutralizar `setInterval`/`setTimeout` en el
 arnés: `tickSystem`, la cola y el splash dejan temporizadores vivos que impiden salir a node.

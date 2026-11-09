@@ -3436,6 +3436,147 @@ pre.code,
   text-transform: uppercase;
 }
 
+
+/* =========================================================================
+   ESTRUCTURA DE APLICACION: sidebar fija y scroll solo en el cuerpo
+
+   Regla de la casa: la ventana nunca scrollea. La sidebar queda fija, el
+   topbar y el pie tambien, y de cada vista solo se desplaza lo que va
+   debajo de su primera seccion (la descripcion del modulo). El scroll es
+   invisible: ocupa cero pixeles y no pinta barra.
+
+   Como funciona: cada vista es una pila vertical (.stack-4 / .stack-3) y su
+   primer hijo es la cabecera de pantalla (saludo, titulo y acciones). El
+   contenedor de la vista se ancla arriba en 0 y la cabecera se queda pegada
+   a su borde -con fondo opaco- mientras el resto sube por debajo.
+   ========================================================================= */
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+/* El scroll vive en contenedores propios: rueda siempre, sin barra ni carril. */
+.shell,
+.sidebar,
+.content,
+.stack-4,
+.stack-3,
+.scroll,
+.table-wrap,
+.produce {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.shell ::-webkit-scrollbar,
+.shell *::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* --- Columnas de la aplicacion ------------------------------------------- */
+
+.shell {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.shell > .sidebar {
+  grid-row: 1;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.shell > .main {
+  grid-row: 1;
+  height: 100%;
+  /* Anula el min-height: 100vh de la regla base: con el pie en su fila,
+     sumar 100vh aqui desbordaria y empujaria el pie fuera de la ventana. */
+  min-height: 0;
+  overflow: hidden;
+}
+
+.topbar {
+  flex: none;
+  position: static;
+}
+
+/* El unico carril con scroll de la columna derecha. */
+.shell > .main > .content {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* --- Cabecera de cada pantalla, fija sobre el cuerpo ---------------------- */
+
+.stack-4,
+.stack-3 {
+  position: relative;
+  align-content: start;
+}
+
+/*
+  No se tocan margin ni padding del contenedor: la cabecera se pega al borde
+  del area de contenido y el padding del contenedor queda por debajo de ella,
+  asi que el texto no se esconde al hacer scroll.
+*/
+.shell > .main > .content > .stack-4 > :first-child,
+.shell > .main > .content > .stack-3 > :first-child {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  /* El fondo cubre el sangrado lateral del padding del contenido. */
+  margin-inline: calc(-1 * var(--space-5));
+  padding-inline: var(--space-5);
+  background: var(--bg);
+  box-shadow: 0 6px 12px -8px var(--bg);
+}
+
+/* Produce usa .panel en su cabecera: el fondo ya es opaco y no hay que tocarlo. */
+
+/* --- Anulacion de reglas anteriores -------------------------------------- */
+
+.shell > .sidebar,
+.shell > .main {
+  grid-area: auto;
+}
+
+.app-footer {
+  position: static;
+  grid-row: 2;
+}
+
+/* --- Ajustes por ancho: el sangrado sigue al padding del contenido -------- */
+
+@media (max-width: 1280px) {
+  .shell > .main > .content > .stack-4 > :first-child,
+  .shell > .main > .content > .stack-3 > :first-child {
+    margin-inline: calc(-1 * var(--space-4));
+    padding-inline: var(--space-4);
+  }
+}
+@media (max-width: 860px) {
+  .shell > .main > .content > .stack-4 > :first-child,
+  .shell > .main > .content > .stack-3 > :first-child {
+    margin-inline: calc(-1 * var(--space-3));
+    padding-inline: var(--space-3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shell > .main > .content {
+    scroll-behavior: auto;
+  }
+}
+
     </style>
   </head>
   <body>
@@ -7085,6 +7226,9 @@ function render() {
     ${modalHtml()}
     ${splashHtml()}`;
   toasts.render();
+  // La cabecera de la vista se pega arriba; el contenido respira abajo.
+  const scroller = $('#content');
+  if (scroller) scroller.style.setProperty('padding-bottom', 'var(--space-6, 28px)');
   if (state.route === 'produce') paintPlayer();
   if (state.splash === 'closing') {
     const node = $('#splash');
@@ -7111,6 +7255,9 @@ function navigate(route) {
   state.modals = [];
   state.palette.open = false;
   render();
+  // El scroll vive en #content: cada pantalla empieza por su cabecera.
+  const content = $('#content');
+  if (content) content.scrollTop = 0;
 }
 
 function selectBlock(id) {

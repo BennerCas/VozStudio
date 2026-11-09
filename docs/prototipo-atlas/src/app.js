@@ -1853,6 +1853,9 @@ function render() {
     ${modalHtml()}
     ${splashHtml()}`;
   toasts.render();
+  // La cabecera de la vista se pega arriba; el contenido respira abajo.
+  const scroller = $('#content');
+  if (scroller) scroller.style.setProperty('padding-bottom', 'var(--space-6, 28px)');
   if (state.route === 'produce') paintPlayer();
   if (state.splash === 'closing') {
     const node = $('#splash');
@@ -1879,6 +1882,9 @@ function navigate(route) {
   state.modals = [];
   state.palette.open = false;
   render();
+  // El scroll vive en #content: cada pantalla empieza por su cabecera.
+  const content = $('#content');
+  if (content) content.scrollTop = 0;
 }
 
 function selectBlock(id) {
