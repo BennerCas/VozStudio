@@ -61,11 +61,12 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **386 comprobaciones en catorce suites**
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **436 comprobaciones en dieciseis suites**
 (189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
 HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
 sobre el modelo de caja del shell, 38 sobre la reorganización de pantallas, 14 sobre la mecánica
-de las bandejas y 53 sobre la rejilla exacta y la navegación inferior).
+de las bandejas, 53 sobre la rejilla exacta y la navegación inferior, 40 sobre el rediseño de
+Lectura, Diseño y Producir, y 10 sobre la invisibilidad de todos los carriles).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
@@ -193,6 +194,32 @@ de las bandejas y 53 sobre la rejilla exacta y la navegación inferior).
     Proyectos pasó de 5 a 14 y presets de cliente de 4 a 15: con menos de 12 por vista
     las flechas nunca aparecían y el desplazamiento era decorativo.
 
+18. **Lectura reparte el alto, no el scroll.** Las columnas 1 y 3 llegan al margen
+    inferior (`overflow: hidden`) y su contenido se estira: el editor de la 1 y el
+    paso 3 de la 3 absorben el espacio libre. La columna 2 **no** scrollea entera:
+    los presets tienen su carril y la bandeja de importacion queda fija abajo
+    (`.tray-import`, `flex: none`). Si se toca esto, recuerda que `overflow: hidden`
+    en una columna recorta: para pantallas de menos de 760 px de alto hay una media
+    query que devuelve el carril a la columna antes de perder contenido.
+19. **Diseno de voz va en tres columnas y sin scroll de pagina.** Prompt y sus
+    campos (Qwen: genero, edad, acento, timbre, temperatura, top-p y semilla;
+    CosyVoice: modos zero-shot e instruct, estilo, emocion, sampling K, ganancia,
+    velocidad y referencia de 3 a 10 s) en la primera; resultado en la segunda; y la
+    biblioteca de prompts en la tercera, que es **la unica** con carril propio porque
+    puede listar 60 entradas. Se elimino el paginador (`diseno:prompt-page`): la
+    lista se filtra en vivo. `disenoResultsHtml()` sigue existiendo pero la vista ya
+    no lo usa; si se rescata, ojo con el `paginate`.
+20. **Producir: cabecera y cola fijas, tres carriles internos.** La pantalla lleva
+    `.produce-screen` y `overflow: hidden`. Se desplazan por separado la lista de
+    documentos, la lista de segmentos y la lista de tomas del inspector; la cabecera
+    del proyecto y la cola (`produce-queue`) no se mueven. El encabezado de cada
+    columna queda fuera de su carril a proposito.
+21. **Todo carril es invisible.** Cualquier contenedor nuevo con `overflow-y: auto`
+    debe entrar en la lista de `scrollbar-width: none` de la seccion de estructura;
+    ya hay carriles explicitos para `.scroll-area`, `#block-list`, `#prompt-results`,
+    `.takes-list`, `.content` y `.sidebar`. `scrollinv.mjs` falla si alguno se queda
+    con barra.
+
 ## Pendientes y ampliaciones posibles
 
 - **Capturas de pantalla de la interfaz**: no hay `libnss3` en el sandbox y los
@@ -231,7 +258,8 @@ python3 -c "import re,pathlib;c=pathlib.Path('assets/estilos.css').read_text();p
 
 Y abrir la página: si hay un error de sintaxis, la pantalla queda en blanco.
 Las suites de verificación (`check2`, `flows`, `selects`, `inputs`, `lectura2`, `filetest`,
-`httptest`, `layout`, `scroll`, `box`, `pantallas`, `tray`, `rejilla`, `rejilla2`) se ejecutan
+`httptest`, `layout`, `scroll`, `box`, `pantallas`, `tray`, `rejilla`, `rejilla2`, `rediseno`,
+`scrollinv`) se ejecutan
 con jsdom instalado aparte (`npm install jsdom`) y **no** forman parte del repositorio: el
 prototipo no tiene dependencias. Recuerda neutralizar `setInterval`/`setTimeout` en el
 arnés: `tickSystem`, la cola y el splash dejan temporizadores vivos que impiden salir a node.

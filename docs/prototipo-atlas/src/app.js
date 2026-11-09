@@ -803,14 +803,13 @@ function viewLectura() {
       </div>
 
       <div class="read-col c2">
-        <section class="panel">
+        <section class="panel preset-panel">
           <div class="panel-head">
             <div><p class="eyebrow">Paso 2</p><h2>Preset de lectura</h2></div>
             <span class="spacer"></span>
             <span class="badge accent">${READ_PRESETS.length} predisenados</span>
           </div>
-          <div class="panel-body">
-            <div class="preset-grid">
+          <div class="panel-body preset-body">
               ${READ_PRESETS.map(
                 (preset) => `<button class="preset-card" style="--tone:${preset.tone}" data-action="lectura:preset" data-preset="${preset.id}" aria-pressed="${preset.id === state.lectura.preset}">
                   <header>${icon(preset.icon, 'sm')}<h3>${esc(preset.name)}</h3></header>
@@ -823,11 +822,10 @@ function viewLectura() {
                   </div>
                 </button>`,
               ).join('')}
-            </div>
           </div>
         </section>
 
-        <section class="panel">
+        <section class="panel tray-import">
           <div class="panel-head">
             <div><p class="eyebrow">Bandeja de importacion</p><h2>Documentos</h2></div>
             <span class="spacer"></span>
@@ -924,17 +922,18 @@ function viewDiseno() {
   const d = state.diseno;
   const isCosy = engine === 'cosyvoice';
   const isInstruct = isCosy && d.mode === 'instruct_tts';
-  const filtered = searchPrompts(d.query, d.family, d.promptMode);
-  const info = paginate(filtered, d.libraryPage, 8);
   const voiceCount = CATALOG.filter((voice) => voice.engine === engine).length;
   const bars = waveBars(`design-${d.prompt.length}-${engine}`);
+  const familias = [{ id: 'todas', label: 'Todas las familias', count: PROMPT_TOTAL }, ...PROMPT_FAMILIES];
+  const muestra = searchPrompts(d.query, d.family, d.promptMode).slice(0, 60);
+  void voiceCount;
 
   return `
-  <div class="stack-4">
+  <div class="stack-4 screen-fill design-screen">
     <div class="row between wrap">
       <div>
         <h1 style="font-size:var(--text-2xl)">Diseno de voz</h1>
-        <p class="tiny muted mt-2">Crea timbres que no existen con Qwen3 VoiceDesign (descripcion) o controla estilo y emocion con CosyVoice Instruct-TTS (instruccion). ${PROMPT_TOTAL} prompts de biblioteca incluidos.</p>
+        <p class="tiny muted mt-2">Qwen3 VoiceDesign describe el timbre; CosyVoice Instruct-TTS controla estilo y emocion. ${PROMPT_TOTAL} prompts en la biblioteca.</p>
       </div>
       <div class="segmented" role="group" aria-label="Motor de diseno">
         <button data-action="diseno:engine" data-engine="qwen3_tts" aria-pressed="${engine === 'qwen3_tts'}">Qwen3 VoiceDesign</button>
@@ -942,135 +941,128 @@ function viewDiseno() {
       </div>
     </div>
 
-    <div class="spec-inline">
-      <div><span>Motor</span><b>${esc(engineById(engine).name)}</b></div>
-      <div><span>Licencia</span><b>${esc(engineById(engine).license)}</b></div>
-      <div><span>Voces del motor</span><b>${voiceCount}</b></div>
-      <div><span>Metodo</span><b>${isInstruct ? 'instruccion de estilo' : 'descripcion timbrica'}</b></div>
-      <div><span>Runtime</span><b>${esc(engineById(engine).accent || 'local')}</b></div>
-    </div>
+    <div class="design-board">
 
-    <div class="design-grid">
-      <div class="stack-4">
-        <section class="panel">
-          <div class="panel-head">
-            <div><p class="eyebrow">Prompt</p><h2>${isInstruct ? 'Instruccion de estilo' : 'Descripcion de la voz'}</h2></div>
-            <span class="spacer"></span>
-            <span class="badge">${d.prompt.length} / 1500</span>
-          </div>
-          <div class="panel-body stack-3">
-            ${
-              isCosy
-                ? `<div class="segmented" role="group" aria-label="Modo de CosyVoice">
-                    <button data-action="diseno:mode" data-mode="voice_design" aria-pressed="${d.mode === 'voice_design'}">Clonacion / referencia</button>
-                    <button data-action="diseno:mode" data-mode="instruct_tts" aria-pressed="${d.mode === 'instruct_tts'}">Instruct-TTS</button>
-                  </div>`
-                : ''
-            }
-            <div class="prompt-box">
-              <label class="sr-only" for="design-prompt">Prompt de diseno</label>
-              <textarea id="design-prompt" class="textarea" maxlength="1500" placeholder="${
-                isInstruct
-                  ? 'Habla con tono sonriente y alegre, proyectando optimismo y energia calida en cada frase.'
-                  : 'Voz femenina de unos 35 anos, timbre calido y aterciopelado, cadencia pausada y reflexiva, acento castellano neutro, grabacion de estudio.'
-              }" data-action="diseno:prompt">${esc(d.prompt)}</textarea>
-              <div class="prompt-actions">
-                <button class="btn sm primary" data-action="diseno:enhance">${icon('wand', 'sm')} Generar o mejorar prompt con IA</button>
-                <button class="btn sm" data-action="diseno:random">${icon('sparkles', 'sm')} Prompt aleatorio</button>
-                <button class="btn sm" data-action="diseno:clear-prompt">${icon('trash', 'sm')} Limpiar</button>
-              </div>
-              ${
-                d.improved
-                  ? `<div class="prompt-note">${icon('zap', 'sm')}<div><b>Prompt mejorado por ${esc(d.improvedBy)}</b><br>${esc(d.improved)}</div>
-                      <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
-                  : `<div class="prompt-note">${icon('info', 'sm')}<div>Si Phi-3.5 local no esta disponible, el mejorador cae a <b>heuristicas</b> y lo dice: nunca mejora en silencio.</div></div>`
-              }
+      <section class="panel design-prompt-col">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso 1 · Prompt</p><h2>${isInstruct ? 'Instruccion de estilo' : 'Descripcion de la voz'}</h2></div>
+          <span class="spacer"></span>
+          <span class="badge">${d.prompt.length} / 1500</span>
+        </div>
+        <div class="panel-body stack-3">
+          ${
+            isCosy
+              ? `<div class="segmented" role="group" aria-label="Modo de CosyVoice">
+                  <button data-action="diseno:mode" data-mode="voice_design" aria-pressed="${d.mode === 'voice_design'}">Referencia zero-shot</button>
+                  <button data-action="diseno:mode" data-mode="instruct_tts" aria-pressed="${d.mode === 'instruct_tts'}">Instruct-TTS</button>
+                </div>`
+              : ''
+          }
+
+          <div class="prompt-box">
+            <label class="sr-only" for="design-prompt">Prompt de diseno</label>
+            <textarea id="design-prompt" class="textarea" maxlength="1500" placeholder="${
+              isInstruct
+                ? 'Habla con tono sonriente y alegre, proyectando optimismo y energia calida en cada frase.'
+                : 'Voz femenina de unos 35 anos, timbre calido y aterciopelado, cadencia pausada y reflexiva, acento castellano neutro, grabacion de estudio.'
+            }" data-action="diseno:prompt">${esc(d.prompt)}</textarea>
+            <div class="prompt-actions">
+              <button class="btn sm primary" data-action="diseno:enhance">${icon('wand', 'sm')} Generar o mejorar prompt con IA</button>
+              <button class="btn sm" data-action="diseno:random">${icon('sparkles', 'sm')} Aleatorio</button>
+              <button class="btn sm" data-action="diseno:clear-prompt">${icon('trash', 'sm')} Limpiar</button>
             </div>
+            ${
+              d.improved
+                ? `<div class="prompt-note">${icon('zap', 'sm')}<div><b>Prompt mejorado por ${esc(d.improvedBy)}</b><br>${esc(d.improved)}</div>
+                    <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
+                : `<div class="prompt-note">${icon('info', 'sm')}<div>Si Phi-3.5 local no esta disponible, el mejorador cae a <b>heuristicas</b> y lo dice: nunca mejora en silencio.</div></div>`
+            }
+          </div>
 
-            <div class="engine-fields">
-              ${
-                isInstruct
-                  ? `<div class="field-group">
-                      <div class="field-title">${icon('sliders', 'sm')} Parametros de CosyVoice Instruct-TTS</div>
-                      <div class="grid-2">
-                        ${field('Estilo', `<select class="select" data-action="diseno:style">${['neutro', 'narrativo', 'calido', 'informativo', 'expresivo', 'alegre', 'calmo', 'energico', 'susurro'].map((s) => `<option value="${s}" ${s === d.style ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
-                        ${field('Emocion', `<select class="select" data-action="diseno:emotion">${['neutro', 'alegre', 'triste', 'serio', 'susurro', 'misterio', 'entusiasta'].map((s) => `<option value="${s}" ${s === d.emotion ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
-                      </div>
-                      <div style="margin-top:8px">${rangeControl({ label: 'Sampling K', id: 'cosy-k', min: 10, max: 40, step: 1, value: d.samplingK, action: 'diseno:k' })}</div>
-                      <div style="margin-top:8px">${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}</div>
+          <div class="engine-fields">
+            ${
+              isInstruct
+                ? `<div class="field-group">
+                    <div class="field-title">${icon('sliders', 'sm')} CosyVoice Instruct-TTS</div>
+                    <div class="grid-3">
+                      ${field('Estilo', `<select class="select" data-action="diseno:style">${['neutro', 'narrativo', 'calido', 'informativo', 'expresivo', 'alegre', 'calmo', 'energico', 'susurro'].map((s) => `<option value="${s}" ${s === d.style ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
+                      ${field('Emocion', `<select class="select" data-action="diseno:emotion">${['neutro', 'alegre', 'triste', 'serio', 'susurro', 'misterio', 'entusiasta'].map((s) => `<option value="${s}" ${s === d.emotion ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
+                      ${field('Sampling K', `<input class="input" type="number" min="10" max="40" step="1" value="${d.samplingK}" data-action="diseno:k" />`)}
+                    </div>
+                    <div class="grid-2" style="margin-top:8px">
+                      ${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}
                       ${rangeControl({ label: 'Velocidad', id: 'cosy-speed', min: 0.6, max: 1.4, step: 0.01, value: d.speed, action: 'diseno:speed', format: (v) => `${Number(v).toFixed(2)}x` })}
                     </div>
-                    <div class="field-group">
-                      <div class="field-title">${icon('mic', 'sm')} Referencia zero-shot (3 a 10 s)</div>
-                      <div class="drop ${d.reference ? 'hot' : ''}" data-drop="referencia">
-                        ${icon('mic', 'hero')}
-                        <h4>${d.reference ? esc(d.reference.name) : 'Arrastra un WAV de referencia'}</h4>
-                        <p class="tiny muted">${d.reference ? `${d.reference.seconds} s · transcripcion verificada · condicionamiento bloqueado` : 'El backend exige WAV y transcripcion exacta del fragmento.'}</p>
-                        <button class="btn sm" data-action="diseno:reference">${icon('upload', 'sm')} ${d.reference ? 'Cambiar referencia' : 'Usar referencia de prueba'}</button>
-                      </div>
-                      <div style="margin-top:8px">${field('Transcripcion de la referencia', `<textarea class="textarea" style="min-height:70px" placeholder="Lo que dice exactamente el WAV de referencia" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
-                    </div>`
-                  : `<div class="field-group">
-                      <div class="field-title">${icon('wand', 'sm')} Atributos para VoiceDesign</div>
-                      <div class="grid-2">
-                        ${field('Genero', `<select class="select" data-action="diseno:gender">${[['F', 'Femenina'], ['M', 'Masculina'], ['MIX', 'Androgina']].map(([v, l]) => `<option value="${v}" ${v === d.gender ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}
-                        ${field('Edad', `<select class="select" data-action="diseno:age">${['18-24', '25-32', '33-40', '41-50', '51-62', '63-75', '76+'].map((v) => `<option value="${v}" ${v === d.age ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
-                        ${field('Acento', `<select class="select" data-action="diseno:accent">${['castellano_neutro', 'mexicano', 'rioplatense', 'colombiano', 'chileno', 'peruano', 'caribeno', 'venezolano', 'andaluz', 'neutro_latam'].map((v) => `<option value="${v}" ${v === d.accent ? 'selected' : ''}>${v.replaceAll('_', ' ')}</option>`).join('')}</select>`)}
-                        ${field('Timbre', `<select class="select" data-action="diseno:timbre">${['calido', 'claro', 'grave', 'brillante', 'suave', 'metalico', 'aterciopelado', 'ronco'].map((v) => `<option value="${v}" ${v === d.timbre ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
-                      </div>
-                      <div style="margin-top:8px">${rangeControl({ label: 'Temperatura', id: 'qwen-temp', min: 0.1, max: 1.5, step: 0.05, value: d.temperature, action: 'diseno:temp' })}</div>
-                      <div class="grid-2" style="margin-top:8px">
-                        ${field('Top P', `<input class="input" type="number" min="0.5" max="1" step="0.01" value="${d.topP}" data-action="diseno:topp" />`, '<span class="pill-plan">planificado</span>')}
-                        ${field('Semilla', `<input class="input" type="number" min="0" max="99999999" value="${d.seed}" data-action="diseno:seed" />`, '<span class="pill-plan">planificado</span>')}
-                      </div>
-                      <div class="prompt-note" style="margin-top:8px">${icon('info', 'sm')}<div><b>Que envia hoy el backend:</b> el prompt como <span class="mono">instruct</span> y la <b>temperatura</b>. Top-p y semilla estan en el contrato de la propuesta (voice lock) pero aun no viajan en <span class="mono">SynthesizeRequest</span>.</div></div>
-                    </div>`
-              }
-            </div>
-
-            <div class="row wrap">
-              <button class="btn primary" data-action="diseno:generate">${icon('zap', 'sm')} Generar voz</button>
-              <button class="btn" data-action="diseno:save">${icon('plus', 'sm')} Guardar en biblioteca</button>
-              <span class="grow"></span>
-              <span class="tiny dim">Procedencia auditada en el JSON de cada toma</span>
-            </div>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-head">
-            <div><p class="eyebrow">Resultado</p><h2>Vista previa</h2></div>
-            <span class="spacer"></span>
-            <span class="badge accent">${esc(engineById(engine).name)}</span>
-          </div>
-          <div class="panel-body stack-3">
-            <label class="sr-only" for="design-sample">Frase de prueba</label>
-            <textarea id="design-sample" class="textarea" style="min-height:64px" data-action="diseno:sample">${esc(d.sample)}</textarea>
-            <div class="design-wave" aria-hidden="true">${bars.map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
-            ${
-              d.generated
-                ? `<div class="spec-inline">
-                    <div><span>Voz</span><b>${esc(d.generated.name)}</b></div>
-                    <div><span>Duracion</span><b>${d.generated.duration} s</b></div>
-                    <div><span>RTF</span><b>${d.generated.rtf.toFixed(3)}</b></div>
-                    <div><span>Semilla</span><b>${d.generated.seed}</b></div>
+                    <p class="tiny dim mt-2">Viaja al motor: <span class="mono">instruct</span>, <span class="mono">sampling_k</span>, <span class="mono">speed_factor</span> y <span class="mono">gain</span>.</p>
                   </div>
-                  <div class="row wrap">
-                    <button class="btn sm primary" data-action="voice:preview" data-voice="${d.generated.voiceId}">${icon('play', 'sm')} Escuchar</button>
-                    <button class="btn sm" data-action="diseno:regenerate">${icon('refresh', 'sm')} Otra toma</button>
-                    <button class="btn sm" data-action="diseno:to-elenco">${icon('users', 'sm')} Al elenco</button>
+                  <div class="field-group">
+                    <div class="field-title">${icon('mic', 'sm')} Referencia zero-shot (3 a 10 s)</div>
+                    <div class="drop ${d.reference ? 'hot' : ''}" data-drop="referencia">
+                      ${icon('mic', 'hero')}
+                      <h4>${d.reference ? esc(d.reference.name) : 'Arrastra un WAV de referencia'}</h4>
+                      <p class="tiny muted">${d.reference ? `${d.reference.seconds} s · transcripcion verificada · condicionamiento bloqueado` : 'El backend exige WAV y transcripcion exacta del fragmento.'}</p>
+                      <button class="btn sm" data-action="diseno:reference">${icon('upload', 'sm')} ${d.reference ? 'Cambiar referencia' : 'Usar referencia de prueba'}</button>
+                    </div>
+                    <div style="margin-top:8px">${field('Transcripcion de la referencia', `<textarea class="textarea" style="min-height:52px" placeholder="Lo que dice exactamente el WAV" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
                   </div>`
-                : `<div class="empty">${icon('wand', 'hero')}<h3>Sin toma todavia</h3><p class="tiny muted">Escribe un prompt o elige uno de la biblioteca y pulsa Generar voz.</p></div>`
+                : `<div class="field-group">
+                    <div class="field-title">${icon('wand', 'sm')} Atributos de VoiceDesign</div>
+                    <div class="grid-4">
+                      ${field('Genero', `<select class="select" data-action="diseno:gender">${[['F', 'Femenina'], ['M', 'Masculina'], ['MIX', 'Androgina']].map(([v, l]) => `<option value="${v}" ${v === d.gender ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}
+                      ${field('Edad', `<select class="select" data-action="diseno:age">${['18-24', '25-32', '33-40', '41-50', '51-62', '63-75', '76+'].map((v) => `<option value="${v}" ${v === d.age ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
+                      ${field('Acento', `<select class="select" data-action="diseno:accent">${['castellano_neutro', 'mexicano', 'rioplatense', 'colombiano', 'chileno', 'peruano', 'caribeno', 'venezolano', 'andaluz', 'neutro_latam'].map((v) => `<option value="${v}" ${v === d.accent ? 'selected' : ''}>${v.replaceAll('_', ' ')}</option>`).join('')}</select>`)}
+                      ${field('Timbre', `<select class="select" data-action="diseno:timbre">${['calido', 'claro', 'grave', 'brillante', 'suave', 'metalico', 'aterciopelado', 'ronco'].map((v) => `<option value="${v}" ${v === d.timbre ? 'selected' : ''}>${v}</option>`).join('')}</select>`)}
+                    </div>
+                    <div class="grid-3" style="margin-top:8px">
+                      ${rangeControl({ label: 'Temperatura', id: 'qwen-temp', min: 0.1, max: 1.5, step: 0.05, value: d.temperature, action: 'diseno:temp' })}
+                      ${field('Top P', `<input class="input" type="number" min="0.5" max="1" step="0.01" value="${d.topP}" data-action="diseno:topp" />`, '<span class="pill-plan">planificado</span>')}
+                      ${field('Semilla', `<input class="input" type="number" min="0" max="99999999" value="${d.seed}" data-action="diseno:seed" />`, '<span class="pill-plan">planificado</span>')}
+                    </div>
+                    <div class="prompt-note" style="margin-top:8px">${icon('info', 'sm')}<div><b>Que envia hoy el backend:</b> el prompt como <span class="mono">instruct</span> y la <b>temperatura</b>. Top-p y semilla estan en el contrato de la propuesta (voice lock) pero aun no viajan en <span class="mono">SynthesizeRequest</span>.</div></div>
+                  </div>`
             }
           </div>
-        </section>
-      </div>
+        </div>
+      </section>
 
-      <section class="panel">
+      <section class="panel design-result-col">
         <div class="panel-head">
-          <div><p class="eyebrow">Biblioteca</p><h2>${PROMPT_TOTAL} prompts de voz</h2></div>
+          <div><p class="eyebrow">Paso 2 · Resultado</p><h2>Vista previa</h2></div>
           <span class="spacer"></span>
-          <span class="badge">${info.count}</span>
+          <span class="badge accent">${esc(engineById(engine).name)}</span>
+        </div>
+        <div class="panel-body stack-3">
+          <label class="sr-only" for="design-sample">Frase de prueba</label>
+          <textarea id="design-sample" class="textarea" style="min-height:54px" data-action="diseno:sample">${esc(d.sample)}</textarea>
+          <div class="design-wave" aria-hidden="true">${bars.map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
+          ${
+            d.generated
+              ? `<div class="spec-inline">
+                  <div><span>Voz</span><b>${esc(d.generated.name)}</b></div>
+                  <div><span>Duracion</span><b>${d.generated.duration} s</b></div>
+                  <div><span>RTF</span><b>${d.generated.rtf.toFixed(3)}</b></div>
+                  <div><span>Semilla</span><b>${d.generated.seed}</b></div>
+                </div>
+                <div class="row wrap">
+                  <button class="btn sm primary" data-action="voice:preview" data-voice="${d.generated.voiceId}">${icon('play', 'sm')} Escuchar</button>
+                  <button class="btn sm" data-action="diseno:regenerate">${icon('refresh', 'sm')} Otra toma</button>
+                  <button class="btn sm" data-action="diseno:to-elenco">${icon('users', 'sm')} Al elenco</button>
+                </div>`
+              : `<div class="empty">${icon('wand', 'hero')}<h3>Sin toma todavia</h3><p class="tiny muted">Escribe un prompt o elige uno de la biblioteca y pulsa Generar voz.</p></div>`
+          }
+          <div class="design-actions">
+            <button class="btn primary" data-action="diseno:generate">${icon('zap', 'sm')} Generar voz</button>
+            <button class="btn" data-action="diseno:save">${icon('plus', 'sm')} Guardar en biblioteca</button>
+          </div>
+          <p class="tiny dim">Procedencia auditada en el JSON de cada toma.</p>
+        </div>
+      </section>
+
+      <section class="panel design-library-col">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso 3 · Biblioteca</p><h2>${PROMPT_TOTAL} prompts</h2></div>
+          <span class="spacer"></span>
+          <span class="badge">${d.family === 'todas' ? PROMPT_TOTAL : (PROMPT_FAMILIES.find((f) => f.id === d.family) || {}).count || 0}</span>
         </div>
         <div class="panel-body stack-3">
           <div class="segmented" role="group" aria-label="Tipo de prompt">
@@ -1078,20 +1070,30 @@ function viewDiseno() {
             <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
             <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
           </div>
-          <div class="row wrap">
-            <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
-            <input id="prompt-search" class="input" style="flex:1 1 160px;min-width:0" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
-            <select class="select" style="flex:0 1 190px;min-width:0" data-action="diseno:family" aria-label="Familia de prompts">
-              <option value="todas" ${d.family === 'todas' ? 'selected' : ''}>Todas las familias (${PROMPT_FAMILIES.length})</option>
-              ${PROMPT_FAMILIES.map((family) => `<option value="${family.id}" ${family.id === d.family ? 'selected' : ''}>${esc(family.label)} · ${family.count}</option>`).join('')}
-            </select>
-          </div>
-          <div id="prompt-results">${disenoResultsHtml()}</div>
+          <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
+          <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
+          <label class="sr-only" for="prompt-family">Familia</label>
+          <select id="prompt-family" class="select" data-action="diseno:family">
+            ${familias.map((f) => `<option value="${f.id}" ${f.id === d.family ? 'selected' : ''}>${esc(f.label)} · ${f.count}</option>`).join('')}
+          </select>
+          <div id="prompt-results" class="library-list">${muestra
+            .map(
+              (item) => `<button class="library-item" data-action="diseno:use-prompt" data-prompt="${item.id}">
+                <span class="mode-dot ${item.mode === 'instruct_tts' ? 'instruct' : ''}" aria-hidden="true"></span>
+                <div style="min-width:0">
+                  <div class="prompt-text">${esc(item.text)}</div>
+                  <div class="prompt-meta"><span>${esc(item.familyLabel)}</span><span>${item.mode === 'instruct_tts' ? 'instruct' : 'design'}</span></div>
+                </div>
+              </button>`,
+            )
+            .join('')}</div>
+          <p class="tiny dim">${muestra.length} de ${PROMPT_TOTAL} coincidencias. Pulsa una para usarla.</p>
         </div>
       </section>
     </div>
   </div>`;
 }
+
 
 /* ================================= VOCES ================================= */
 function viewVoces() {
@@ -1526,7 +1528,7 @@ function viewProduce() {
   };
   const block = findBlock(state.blockId) || doc.blocks[0];
   return `
-  <div class="stack-3 screen-fill">
+  <div class="stack-3 screen-fill produce-screen">
     <div class="panel produce-head">
       <div class="produce-title">
         <div class="row wrap">
@@ -1549,7 +1551,7 @@ function viewProduce() {
     <div class="produce-grid">
       <aside class="panel produce-col docs">
         <div class="panel-head"><div><p class="eyebrow">Documentos</p><h2>${esc(p.name)}</h2></div></div>
-        <div class="panel-body tight">
+        <div class="panel-body tight scroll-area" data-scroll-area="documentos">
           ${p.docs
             .map(
               (item) => `<button class="doc-row ${item.id === state.docId ? 'active' : ''}" data-action="doc:select" data-doc="${item.id}">
@@ -1578,7 +1580,7 @@ function viewProduce() {
         ${blockEditorHtml(block)}
       </aside>
     </div>
-    ${queueStripHtml()}
+    <div class="produce-queue">${queueStripHtml()}</div>
   </div>`;
 }
 
@@ -1608,7 +1610,7 @@ function blockEditorHtml(block) {
   const take = chosenTake(block);
   const voice = catalogVoice(project().cast?.find((slot) => slot.role === block.role)?.voiceId);
   return `<div class="panel-head"><div><p class="eyebrow">Inspector</p><h2>${esc(block.id)}</h2></div></div>
-    <div class="panel-body stack-3">
+    <div class="panel-body stack-3 inspector-body">
       <label class="sr-only" for="block-text">Texto del bloque</label>
       <textarea id="block-text" class="textarea" data-block="${block.id}">${esc(block.text)}</textarea>
       <div class="spec-inline" style="grid-template-columns:repeat(2,minmax(0,1fr))">
@@ -1618,7 +1620,7 @@ function blockEditorHtml(block) {
         <div><span>RTF</span><b>${take ? take.rtf.toFixed(3) : '-'}</b></div>
       </div>
       <div class="takes-head eyebrow">Tomas</div>
-      ${block.takes
+      <div class="takes-list" data-scroll-area="tomas">${block.takes
         .map(
           (item) => `<div class="take ${item.id === block.takeId ? 'chosen' : ''}">
             <button class="btn sm icon-only" data-action="block:play" data-block="${block.id}" aria-label="Escuchar toma">${icon('play', 'sm')}</button>
@@ -1627,8 +1629,8 @@ function blockEditorHtml(block) {
             <span class="meta">${esc(engineById(item.engine).name)} · RTF ${item.rtf.toFixed(3)} · ${esc(item.qa || 'OK')}</span>
           </div>`,
         )
-        .join('')}
-      <div class="row wrap">
+        .join('')}</div>
+      <div class="row wrap inspector-actions">
         <button class="btn primary" data-action="block:approve" data-block="${block.id}">${icon('check', 'sm')} Aprobar</button>
         <button class="btn" data-action="block:render" data-block="${block.id}">${icon('refresh', 'sm')} Regenerar</button>
       </div>

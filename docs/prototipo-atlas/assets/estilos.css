@@ -3457,7 +3457,22 @@ body {
 .stack-3,
 .scroll,
 .table-wrap,
-.produce {
+.produce,
+.read-col,
+.design-board,
+.design-library-col > .panel-body,
+.design-result-col > .panel-body,
+.preset-body,
+.takes-list,
+.inspector-body,
+.tray-import > .panel-body,
+.scroll-area,
+#block-list,
+#prompt-results,
+.main,
+.content > .screen-fill,
+.produce-col.docs > .panel-body,
+.inspector-body > #block-text {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -3784,4 +3799,333 @@ body {
 .card > .card-foot,
 .preset-card > .specs {
   margin-top: auto;
+}
+
+/* -------------------------------------------------------------------------
+   LECTURA: las columnas 1 y 3 llegan al margen inferior sin perder contenido.
+   La columna 2 no scrollea entera: los presets scrollean y la bandeja de
+   importacion se queda siempre visible.
+   ------------------------------------------------------------------------- */
+
+/* Las tres columnas ocupan todo el alto disponible. */
+.read-col.c1,
+.read-col.c3 {
+  overflow: hidden;
+}
+.read-col.c1 > .panel,
+.read-col.c3 > .panel {
+  min-height: 0;
+}
+
+/* Columna 1: el editor absorbe el alto que sobra. */
+.read-col.c1 {
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c1 > .panel {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c1 .read-editor {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c1 .read-editor textarea {
+  flex: 1 1 auto;
+  min-height: 120px;
+  resize: none;
+}
+
+/* Columna 3: paso 3 crece, entregables se queda abajo. */
+.read-col.c3 {
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c3 > .panel:first-child {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c3 > .panel:first-child > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.read-col.c3 > .panel:last-child {
+  flex: none;
+}
+
+/* Columna 2: presets con scroll propio y bandeja de importacion fija abajo. */
+.read-col.c2 {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.read-col.c2 > .preset-panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c2 > .preset-panel > .preset-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(168px, 100%), 1fr));
+  gap: var(--space-2);
+  align-content: start;
+}
+.read-col.c2 > .tray-import {
+  flex: none;
+}
+.read-col.c2 > .tray-import > .panel-body {
+  max-height: 34vh;
+  overflow-y: auto;
+}
+
+/* Los 12 presets en dos columnas, para que quepan sin apretarse. */
+/* Las tarjetas del preset conservan su alto: la rejilla del cuerpo decide. */
+.read-col.c2 .preset-card {
+  height: auto;
+}
+
+/* Pantallas bajas: mejor un carril propio que recortar contenido. */
+@media (max-height: 760px) and (min-width: 1281px) {
+  .read-col.c1,
+  .read-col.c3 {
+    overflow-y: auto;
+  }
+  .read-col.c3 > .panel:first-child > .panel-body {
+    overflow: visible;
+  }
+  .produce-screen .inspector-body {
+    overflow-y: auto;
+  }
+  .produce-screen .takes-list {
+    max-height: 120px;
+  }
+}
+
+@media (max-width: 1280px) {
+  .read-col.c1,
+  .read-col.c2,
+  .read-col.c3 {
+    overflow: visible;
+    display: grid;
+  }
+  .read-col.c1 .read-editor textarea {
+    min-height: 200px;
+  }
+  .read-col.c2 > .preset-panel > .preset-body,
+  .read-col.c3 > .panel:first-child > .panel-body,
+  .read-col.c2 > .tray-import > .panel-body {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* -------------------------------------------------------------------------
+   DISENO DE VOZ: todo a la vista, sin scroll.
+   Tres columnas: lo que se pide al motor, el resultado y la biblioteca.
+   La biblioteca tiene su propio carril; las otras dos crecen con el contenido.
+   ------------------------------------------------------------------------- */
+
+.design-screen {
+  min-height: 0;
+}
+
+.design-board {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(0, 1fr);
+  gap: var(--space-3);
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.design-prompt-col,
+.design-result-col,
+.design-library-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* Solo la biblioteca se desplaza: su lista puede ser de 60 entradas. */
+.design-library-col > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.design-library-col #prompt-results {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* El resultado se queda a la vista; si algo no cabe, el cuerpo respira. */
+.design-result-col > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+.design-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+/* Piezas del editor, mas compactas para que quepan sin desplazar. */
+.design-prompt-col .prompt-box textarea {
+  min-height: 92px;
+}
+.design-prompt-col .engine-fields .field-group {
+  padding: 8px 10px;
+}
+.design-prompt-col .grid-2,
+.design-prompt-col .grid-3,
+.design-prompt-col .grid-4 {
+  display: grid;
+  gap: var(--space-2);
+}
+.design-prompt-col .grid-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.design-prompt-col .grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.design-prompt-col .grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.design-prompt-col .field label,
+.design-prompt-col .field-hint {
+  font-size: var(--text-xs);
+}
+.design-library-col .library-item .prompt-text {
+  -webkit-line-clamp: 2;
+}
+
+@media (max-width: 1400px) {
+  .design-board {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+  .design-library-col {
+    grid-column: 1 / -1;
+  }
+  .design-library-col > .panel-body {
+    max-height: 320px;
+  }
+}
+@media (max-width: 980px) {
+  .design-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .design-prompt-col .grid-4,
+  .design-prompt-col .grid-3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* -------------------------------------------------------------------------
+   PRODUCIR: la pantalla no scrollea. La cabecera y la cola del proyecto son
+   fijas; cada columna tiene su propio carril y solo se desplaza lo que lo
+   necesita: la lista de documentos, la lista de segmentos y las tomas.
+   ------------------------------------------------------------------------- */
+
+.screen-fill.produce-screen {
+  min-height: 0;
+  overflow: hidden;
+}
+
+.produce-screen .produce-grid {
+  flex: 1 1 auto;
+  min-height: 0;
+  align-items: stretch;
+}
+
+.produce-screen .produce-col {
+  min-height: 0;
+  height: 100%;
+}
+
+/* La columna del medio: cabecera fija y lista con su carril. */
+.produce-screen .produce-col.editor {
+  display: flex;
+  flex-direction: column;
+}
+.produce-screen .produce-col.editor > .panel-head {
+  flex: none;
+}
+.produce-screen #block-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Documentos: la cabecera del panel no se mueve. */
+.produce-screen .produce-col.docs {
+  display: flex;
+  flex-direction: column;
+}
+.produce-screen .produce-col.docs > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* Inspector: texto y datos fijos, las tomas con su propio carril. */
+.produce-screen .produce-col.inspector {
+  display: flex;
+  flex-direction: column;
+}
+.produce-screen .inspector-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.produce-screen .inspector-body > #block-text {
+  flex: none;
+  min-height: 70px;
+  max-height: 120px;
+}
+.produce-screen .inspector-body > .spec-inline,
+.produce-screen .inspector-body > .takes-head {
+  flex: none;
+}
+.produce-screen .takes-list {
+  flex: 1 1 auto;
+  min-height: 46px;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.produce-screen .inspector-actions {
+  flex: none;
+  margin-top: auto;
+}
+
+/* La cola del proyecto: fija al pie de la pantalla. */
+.produce-screen .produce-queue {
+  flex: none;
+}
+.produce-screen .produce-queue .queue-strip {
+  height: auto;
+}
+
+@media (max-width: 1160px) {
+  .screen-fill.produce-screen {
+    overflow: visible;
+  }
+  .produce-screen .takes-list {
+    max-height: 180px;
+  }
 }
