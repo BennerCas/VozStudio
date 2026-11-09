@@ -3606,94 +3606,92 @@ body {
 /* ------------------------------ bandeja ---------------------------------- */
 
 .tray {
-  position: relative;
+  display: grid;
+  gap: var(--space-3);
   min-width: 0;
 }
 
+/*
+  Una pagina exacta por vista: tantas columnas y filas como declare cada
+  bandeja (--tray-cols y --tray-rows). El resto vive a la derecha y se alcanza
+  desplazando; nunca se estira ni se encoge una tarjeta para hacer hueco.
+*/
 .tray-viewport {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--tray-rows, 3), auto);
+  grid-auto-columns: calc((100% - (var(--tray-cols, 4) - 1) * var(--space-3)) / var(--tray-cols, 4));
+  gap: var(--space-3);
+  align-content: start;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
   cursor: grab;
-  border-radius: var(--radius-lg);
+  padding-bottom: 2px;
 }
 .tray-viewport.dragging {
   cursor: grabbing;
   scroll-behavior: auto;
   user-select: none;
 }
-
-/* 4 columnas por vista, con las filas que hagan falta. */
-.tray-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(3, auto);
-  grid-auto-columns: calc((100% - 3 * var(--space-3)) / 4);
-  gap: var(--space-3);
-  align-content: start;
-  /* Aire a los lados para que el foco y el hover no queden recortados. */
-  padding: 2px;
-  width: max-content;
-  min-width: 100%;
-}
-.tray-track > * {
+.tray-viewport > * {
   scroll-snap-align: start;
-  min-width: 0;
-  /* Las tarjetas conservan su alto natural: las filas se alinean arriba. */
   align-self: start;
+  min-width: 0;
 }
 
-/* Con 8 por vista se reparten en 4 columnas y 2 filas. */
-.tray[data-tray-visible="8"] .tray-track {
-  grid-template-rows: repeat(2, auto);
-}
-/* Con 12 por vista, 4 columnas y 3 filas. */
-.tray[data-tray-visible="12"] .tray-track {
-  grid-template-rows: repeat(3, auto);
+/* ------------------------ navegacion bajo la bandeja ---------------------- */
+
+.tray-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: 2px;
 }
 
-/* ------------------------------ flechas ---------------------------------- */
+.tray-count {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tray-count b {
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+.tray-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
 
 .tray-arrow {
-  position: absolute;
-  top: 50%;
-  z-index: 5;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  margin-top: -17px;
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
-  color: var(--text);
-  box-shadow: var(--shadow-pop);
-  cursor: pointer;
-  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+  width: 32px;
+  height: 32px;
+  transition: opacity 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
 .tray-arrow:hover:not(:disabled) {
   border-color: var(--accent-line);
   color: var(--accent);
-  transform: scale(1.06);
 }
 .tray-arrow:disabled {
-  opacity: 0;
-  pointer-events: none;
-}
-.tray-arrow.prev {
-  left: -10px;
-}
-.tray-arrow.next {
-  right: -10px;
+  opacity: 0.38;
+  cursor: default;
 }
 
+/* La nota al pie sobraba: el contador de la bandeja ya lo dice. */
 .tray-note {
-  margin: 0;
-  text-align: right;
+  display: none;
 }
 
 /* -------------------- solo el cuerpo de una lista scrollea ----------------- */
@@ -3784,6 +3782,20 @@ body {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* -------------------------------------------------------------------------
+   Todas las tarjetas de una fila miden lo mismo. Sin esto, una tarjeta con
+   mas texto estiraria su fila y descuadraria las tres filas de la bandeja.
+   ------------------------------------------------------------------------- */
+.card,
+.preset-card {
+  height: 100%;
+}
+/* Y el contenido se reparte: el pie de la tarjeta queda siempre abajo. */
+.card > .card-foot,
+.preset-card > .specs {
+  margin-top: auto;
 }
 
     </style>
@@ -5742,15 +5754,23 @@ function bar(value, tone = '') {
 */
 function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' }) {
   const paginas = Math.ceil(items.length / porVista);
-  const flechas = paginas > 1
-    ? `<button class="tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
-       <button class="tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>`
-    : '';
-  return `<div class="tray" data-tray-id="${id}" data-tray-cols="${cols}" data-tray-visible="${porVista}" data-tray-total="${items.length}">
-    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista">
-      <div class="tray-track">${items.join('')}</div>
-    </div>
-    ${flechas}
+  const filas = Math.ceil(porVista / cols);
+  const hayMas = paginas > 1;
+  const nav = `<footer class="tray-nav">
+      <span class="tray-count"><b data-tray-page>1</b> / <b>${paginas || 1}</b> <span class="dim">·</span> ${items.length} ${esc(etiqueta)}</span>
+      ${
+        hayMas
+          ? `<div class="tray-buttons">
+              <button class="btn sm icon-only tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
+              <button class="btn sm icon-only tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>
+            </div>`
+          : ''
+      }
+    </footer>`;
+  return `<div class="tray" data-tray-id="${id}" data-tray-visible="${porVista}" data-tray-cols="${cols}" data-tray-total="${items.length}" data-tray-pages="${paginas || 1}">
+    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista"
+      style="--tray-cols:${cols};--tray-rows:${filas}">${items.join('')}</div>
+    ${nav}
   </div>`;
 }
 
@@ -5761,18 +5781,22 @@ function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' }) {
 */
 function trayStep(tray) {
   const viewport = tray.querySelector('.tray-viewport');
-  const cards = tray.querySelectorAll('.tray-track > *');
-  if (!viewport || !cards.length) return { step: 0, max: 0 };
-  const visible = Number(tray.dataset.trayVisible) || 1;
-  let step = 0;
-  if (cards.length >= visible) {
-    const first = cards[0].getBoundingClientRect().width;
-    const last = cards[visible - 1].getBoundingClientRect().width;
-    if (first > 0) step = last + (first * 0.75); // ancho de la ultima visible + hueco
-  }
+  const cards = tray.querySelectorAll('.tray-viewport > *');
+  if (!viewport || !cards.length) return { step: 0, page: 1, pages: 1 };
+  const cols = Number(tray.dataset.trayCols) || 4;
+  const pages = Number(tray.dataset.trayPages) || 1;
+
+  // Una pagina = el ancho de la primera columna multiplicado por las columnas,
+  // mas los huecos entre ellas.
+  const ancho = cards[0].getBoundingClientRect().width;
+  const estilo = window.getComputedStyle ? window.getComputedStyle(viewport) : null;
+  const hueco = parseFloat(estilo?.columnGap || estilo?.gap || '0') || 0;
+  let step = ancho > 0 ? cols * ancho + (cols - 1) * hueco : 0;
   if (!step) step = viewport.clientWidth; // sin motor de layout: una pagina entera
+
   const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-  return { step, max };
+  const page = step > 0 ? Math.min(pages, Math.round(viewport.scrollLeft / step) + 1) : 1;
+  return { step, max, page, pages };
 }
 
 function syncTrays(root = document) {
@@ -5782,10 +5806,14 @@ function syncTrays(root = document) {
     const prev = tray.querySelector('.tray-arrow.prev');
     const next = tray.querySelector('.tray-arrow.next');
     const max = viewport.scrollWidth - viewport.clientWidth;
+    const { page } = trayStep(tray);
     // Sin motor de layout no se puede medir: no se apaga nada, o la flecha
     // quedaria muerta para siempre en un render temprano.
     if (prev) prev.disabled = viewport.scrollLeft <= 2;
     if (next) next.disabled = max > 0 ? viewport.scrollLeft >= max - 2 : false;
+    const contador = tray.querySelector('[data-tray-page]');
+    if (contador) contador.textContent = String(viewport.scrollLeft <= 2 ? 1 : page);
+    tray.dataset.trayPage = String(page || 1);
   });
 }
 
@@ -5794,8 +5822,13 @@ function moveTray(id, direction, root = document) {
   if (!tray) return;
   const viewport = tray.querySelector('.tray-viewport');
   if (!viewport) return;
-  const { step } = trayStep(tray);
-  viewport.scrollBy({ left: direction * step, behavior: 'smooth' });
+  const { step, max } = trayStep(tray);
+  const destino = Math.max(0, Math.min(max, viewport.scrollLeft + direction * step));
+  // Si el navegador no anima (o no hay layout), al menos se coloca en el destino.
+  if (typeof viewport.scrollTo === 'function') viewport.scrollTo({ left: destino, behavior: 'smooth' });
+  else viewport.scrollLeft = destino;
+  // El estado de las flechas se actualiza ya; se repasa al acabar la animacion.
+  syncTrays(root);
   window.setTimeout(() => syncTrays(root), 340);
 }
 
@@ -6969,9 +7002,12 @@ function viewVoces() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Recuento real</p><h2>${CATALOG_TOTAL} voces en ${ENGINES.length} motores</h2></div></div>
       <div class="panel-body tight">
-        <div class="grid-cards">
-          ${byEngine
-            .map(
+        ${carrusel({
+          id: 'motores',
+          porVista: ENGINES.length,
+          cols: 4,
+          etiqueta: 'motores',
+          items: byEngine.map(
               (item) => `<button class="preset-card" style="--tone:${item.engine.commercial ? 'var(--accent)' : 'var(--info)'}" data-action="voices:filter" data-filter="engine:${item.engine.id}" aria-pressed="${engineFilter === item.engine.id}">
                 <header>${icon('cpu', 'sm')}<h3>${esc(item.engine.name)}</h3></header>
                 <div class="specs">
@@ -6981,9 +7017,8 @@ function viewVoces() {
                 </div>
                 <p>${esc(item.engine.note)}</p>
               </button>`,
-            )
-            .join('')}
-        </div>
+          ),
+        })}
       </div>
     </section>
 
@@ -7001,7 +7036,6 @@ function viewVoces() {
         ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.')
         : carrusel({ id: 'voces', porVista, cols: 4, etiqueta: 'voces', items: list.map((voice) => voiceCard(voice)) })
     }
-    <p class="tray-note tiny dim">${Math.min(porVista, list.length)} de ${list.length} voces a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -7053,7 +7087,6 @@ function viewRecetas() {
           </article>`;
       }),
     })}
-    <p class="tray-note tiny dim">${Math.min(8, list.length)} de ${list.length} recetas a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -7152,7 +7185,6 @@ function viewPresets() {
         </article>`;
       }),
     })}
-    <p class="tray-note tiny dim">${Math.min(12, CLIENT_PRESETS.length)} de ${CLIENT_PRESETS.length} presets a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 

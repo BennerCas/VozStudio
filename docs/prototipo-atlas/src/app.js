@@ -1132,9 +1132,12 @@ function viewVoces() {
     <section class="panel">
       <div class="panel-head"><div><p class="eyebrow">Recuento real</p><h2>${CATALOG_TOTAL} voces en ${ENGINES.length} motores</h2></div></div>
       <div class="panel-body tight">
-        <div class="grid-cards">
-          ${byEngine
-            .map(
+        ${carrusel({
+          id: 'motores',
+          porVista: ENGINES.length,
+          cols: 4,
+          etiqueta: 'motores',
+          items: byEngine.map(
               (item) => `<button class="preset-card" style="--tone:${item.engine.commercial ? 'var(--accent)' : 'var(--info)'}" data-action="voices:filter" data-filter="engine:${item.engine.id}" aria-pressed="${engineFilter === item.engine.id}">
                 <header>${icon('cpu', 'sm')}<h3>${esc(item.engine.name)}</h3></header>
                 <div class="specs">
@@ -1144,9 +1147,8 @@ function viewVoces() {
                 </div>
                 <p>${esc(item.engine.note)}</p>
               </button>`,
-            )
-            .join('')}
-        </div>
+          ),
+        })}
       </div>
     </section>
 
@@ -1164,7 +1166,6 @@ function viewVoces() {
         ? emptyState('Sin voces con ese filtro', 'Cambia el filtro de motor o el texto de busqueda.')
         : carrusel({ id: 'voces', porVista, cols: 4, etiqueta: 'voces', items: list.map((voice) => voiceCard(voice)) })
     }
-    <p class="tray-note tiny dim">${Math.min(porVista, list.length)} de ${list.length} voces a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -1216,7 +1217,6 @@ function viewRecetas() {
           </article>`;
       }),
     })}
-    <p class="tray-note tiny dim">${Math.min(8, list.length)} de ${list.length} recetas a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 
@@ -1315,7 +1315,6 @@ function viewPresets() {
         </article>`;
       }),
     })}
-    <p class="tray-note tiny dim">${Math.min(12, CLIENT_PRESETS.length)} de ${CLIENT_PRESETS.length} presets a la vista. Desplaza la bandeja con las flechas, la rueda, el raton o el dedo.</p>
   </div>`;
 }
 

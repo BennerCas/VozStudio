@@ -220,15 +220,23 @@ export function bar(value, tone = '') {
 */
 export function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' }) {
   const paginas = Math.ceil(items.length / porVista);
-  const flechas = paginas > 1
-    ? `<button class="tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
-       <button class="tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>`
-    : '';
-  return `<div class="tray" data-tray-id="${id}" data-tray-cols="${cols}" data-tray-visible="${porVista}" data-tray-total="${items.length}">
-    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista">
-      <div class="tray-track">${items.join('')}</div>
-    </div>
-    ${flechas}
+  const filas = Math.ceil(porVista / cols);
+  const hayMas = paginas > 1;
+  const nav = `<footer class="tray-nav">
+      <span class="tray-count"><b data-tray-page>1</b> / <b>${paginas || 1}</b> <span class="dim">·</span> ${items.length} ${esc(etiqueta)}</span>
+      ${
+        hayMas
+          ? `<div class="tray-buttons">
+              <button class="btn sm icon-only tray-arrow prev" data-action="tray:prev" data-tray="${id}" aria-label="Ver ${etiqueta} anteriores" disabled>${icon('arrowLeft', 'sm')}</button>
+              <button class="btn sm icon-only tray-arrow next" data-action="tray:next" data-tray="${id}" aria-label="Ver mas ${etiqueta}">${icon('arrow', 'sm')}</button>
+            </div>`
+          : ''
+      }
+    </footer>`;
+  return `<div class="tray" data-tray-id="${id}" data-tray-visible="${porVista}" data-tray-cols="${cols}" data-tray-total="${items.length}" data-tray-pages="${paginas || 1}">
+    <div class="tray-viewport" tabindex="0" role="group" aria-label="Bandeja de ${esc(etiqueta)}: ${items.length} en total, ${porVista} por vista"
+      style="--tray-cols:${cols};--tray-rows:${filas}">${items.join('')}</div>
+    ${nav}
   </div>`;
 }
 
@@ -239,18 +247,22 @@ export function carrusel({ id, items, porVista, cols = 4, etiqueta = 'tarjetas' 
 */
 function trayStep(tray) {
   const viewport = tray.querySelector('.tray-viewport');
-  const cards = tray.querySelectorAll('.tray-track > *');
-  if (!viewport || !cards.length) return { step: 0, max: 0 };
-  const visible = Number(tray.dataset.trayVisible) || 1;
-  let step = 0;
-  if (cards.length >= visible) {
-    const first = cards[0].getBoundingClientRect().width;
-    const last = cards[visible - 1].getBoundingClientRect().width;
-    if (first > 0) step = last + (first * 0.75); // ancho de la ultima visible + hueco
-  }
+  const cards = tray.querySelectorAll('.tray-viewport > *');
+  if (!viewport || !cards.length) return { step: 0, page: 1, pages: 1 };
+  const cols = Number(tray.dataset.trayCols) || 4;
+  const pages = Number(tray.dataset.trayPages) || 1;
+
+  // Una pagina = el ancho de la primera columna multiplicado por las columnas,
+  // mas los huecos entre ellas.
+  const ancho = cards[0].getBoundingClientRect().width;
+  const estilo = window.getComputedStyle ? window.getComputedStyle(viewport) : null;
+  const hueco = parseFloat(estilo?.columnGap || estilo?.gap || '0') || 0;
+  let step = ancho > 0 ? cols * ancho + (cols - 1) * hueco : 0;
   if (!step) step = viewport.clientWidth; // sin motor de layout: una pagina entera
+
   const max = Math.max(0, viewport.scrollWidth - viewport.clientWidth);
-  return { step, max };
+  const page = step > 0 ? Math.min(pages, Math.round(viewport.scrollLeft / step) + 1) : 1;
+  return { step, max, page, pages };
 }
 
 export function syncTrays(root = document) {
@@ -260,10 +272,14 @@ export function syncTrays(root = document) {
     const prev = tray.querySelector('.tray-arrow.prev');
     const next = tray.querySelector('.tray-arrow.next');
     const max = viewport.scrollWidth - viewport.clientWidth;
+    const { page } = trayStep(tray);
     // Sin motor de layout no se puede medir: no se apaga nada, o la flecha
     // quedaria muerta para siempre en un render temprano.
     if (prev) prev.disabled = viewport.scrollLeft <= 2;
     if (next) next.disabled = max > 0 ? viewport.scrollLeft >= max - 2 : false;
+    const contador = tray.querySelector('[data-tray-page]');
+    if (contador) contador.textContent = String(viewport.scrollLeft <= 2 ? 1 : page);
+    tray.dataset.trayPage = String(page || 1);
   });
 }
 
@@ -272,8 +288,13 @@ export function moveTray(id, direction, root = document) {
   if (!tray) return;
   const viewport = tray.querySelector('.tray-viewport');
   if (!viewport) return;
-  const { step } = trayStep(tray);
-  viewport.scrollBy({ left: direction * step, behavior: 'smooth' });
+  const { step, max } = trayStep(tray);
+  const destino = Math.max(0, Math.min(max, viewport.scrollLeft + direction * step));
+  // Si el navegador no anima (o no hay layout), al menos se coloca en el destino.
+  if (typeof viewport.scrollTo === 'function') viewport.scrollTo({ left: destino, behavior: 'smooth' });
+  else viewport.scrollLeft = destino;
+  // El estado de las flechas se actualiza ya; se repasa al acabar la animacion.
+  syncTrays(root);
   window.setTimeout(() => syncTrays(root), 340);
 }
 

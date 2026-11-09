@@ -61,11 +61,11 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **332 comprobaciones en doce suites**
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **386 comprobaciones en catorce suites**
 (189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
 HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
-sobre el modelo de caja del shell, 35 sobre la reorganización de pantallas y 14 sobre la mecánica
-de las bandejas).
+sobre el modelo de caja del shell, 38 sobre la reorganización de pantallas, 14 sobre la mecánica
+de las bandejas y 53 sobre la rejilla exacta y la navegación inferior).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
@@ -158,15 +158,25 @@ de las bandejas).
     `min-height: 100vh` y con el pie en su fila eso empujaría el pie fuera de la ventana.
     `navigate()` reinicia `#content.scrollTop` para que cada pantalla empiece arriba.
 
-14. **Las bandejas de tarjetas se desplazan, no se paginan.** `carrusel()` en `src/ui.js`
-    dibuja una rejilla de 4 columnas con flujo por columnas y `grid-auto-columns`
-    calculado sobre el ancho real, así que funciona a cualquier tamaño de ventana.
-    Se mueve con las flechas, la rueda, el arrastre del ratón y el dedo
+14. **Cada bandeja muestra exactamente sus tarjetas, y los botones van debajo.**
+    `carrusel()` recibe `porVista` y `cols`, y emite `--tray-cols` y `--tray-rows`
+    en el propio viewport: 12 tarjetas son 4x3, 8 son 4x2 y los 8 motores 4x2.
+    La rejilla no se estira ni se encoge: lo que no cabe vive a la derecha y se
+    alcanza desplazando, con `scroll-snap` obligatorio para que siempre encaje
+    una página completa. La navegación (`<` `>` y el contador `1 / 5 · 34 voces`)
+    va en un `.tray-nav` **después** del viewport, nunca flotando a los lados.
+    `moveTray()` mide la página como columnas x ancho + huecos, sincroniza las
+    flechas al instante (no solo tras la animación) y no pasa del final.
+    Todas las tarjetas de una fila llevan `height: 100%` para que una más alta
+    no descuadre las tres filas.
+    Bandejas: proyectos 12, voces 8, motores 8, recetas 8, presets de cliente 12.
+
+    Se mueve también con la rueda, el arrastre del ratón y el dedo
     (`attachTrayDrag`, enganchado una sola vez en el arranque). En táctil **no** se
     secuestra el gesto: manda el scroll nativo. Ojo: `syncTrays()` no apaga la flecha
     siguiente si `scrollWidth` aún vale 0, porque en un render temprano la bandeja se
     quedaría muerta para siempre.
-    Cantidades: proyectos 12 por vista, voces 8, recetas 8, presets de cliente 12.
+
 15. **Solo se desplaza la lista, nunca el encabezado.** Las listas llevan
     `data-scroll-area` y su `thead` es `sticky`. Producir tiene su propio carril en
     `#block-list`; Biblioteca, Glosario, Lotes y Elenco lo tienen en el cuerpo de la
@@ -221,7 +231,7 @@ python3 -c "import re,pathlib;c=pathlib.Path('assets/estilos.css').read_text();p
 
 Y abrir la página: si hay un error de sintaxis, la pantalla queda en blanco.
 Las suites de verificación (`check2`, `flows`, `selects`, `inputs`, `lectura2`, `filetest`,
-`httptest`, `layout`, `scroll`, `box`, `pantallas`, `tray`) se ejecutan
+`httptest`, `layout`, `scroll`, `box`, `pantallas`, `tray`, `rejilla`, `rejilla2`) se ejecutan
 con jsdom instalado aparte (`npm install jsdom`) y **no** forman parte del repositorio: el
 prototipo no tiene dependencias. Recuerda neutralizar `setInterval`/`setTimeout` en el
 arnés: `tickSystem`, la cola y el splash dejan temporizadores vivos que impiden salir a node.

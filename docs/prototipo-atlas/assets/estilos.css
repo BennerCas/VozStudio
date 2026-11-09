@@ -3594,94 +3594,92 @@ body {
 /* ------------------------------ bandeja ---------------------------------- */
 
 .tray {
-  position: relative;
+  display: grid;
+  gap: var(--space-3);
   min-width: 0;
 }
 
+/*
+  Una pagina exacta por vista: tantas columnas y filas como declare cada
+  bandeja (--tray-cols y --tray-rows). El resto vive a la derecha y se alcanza
+  desplazando; nunca se estira ni se encoge una tarjeta para hacer hueco.
+*/
 .tray-viewport {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(var(--tray-rows, 3), auto);
+  grid-auto-columns: calc((100% - (var(--tray-cols, 4) - 1) * var(--space-3)) / var(--tray-cols, 4));
+  gap: var(--space-3);
+  align-content: start;
   overflow-x: auto;
   overflow-y: hidden;
-  scroll-snap-type: x proximity;
+  scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   overscroll-behavior-x: contain;
   cursor: grab;
-  border-radius: var(--radius-lg);
+  padding-bottom: 2px;
 }
 .tray-viewport.dragging {
   cursor: grabbing;
   scroll-behavior: auto;
   user-select: none;
 }
-
-/* 4 columnas por vista, con las filas que hagan falta. */
-.tray-track {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-rows: repeat(3, auto);
-  grid-auto-columns: calc((100% - 3 * var(--space-3)) / 4);
-  gap: var(--space-3);
-  align-content: start;
-  /* Aire a los lados para que el foco y el hover no queden recortados. */
-  padding: 2px;
-  width: max-content;
-  min-width: 100%;
-}
-.tray-track > * {
+.tray-viewport > * {
   scroll-snap-align: start;
-  min-width: 0;
-  /* Las tarjetas conservan su alto natural: las filas se alinean arriba. */
   align-self: start;
+  min-width: 0;
 }
 
-/* Con 8 por vista se reparten en 4 columnas y 2 filas. */
-.tray[data-tray-visible="8"] .tray-track {
-  grid-template-rows: repeat(2, auto);
-}
-/* Con 12 por vista, 4 columnas y 3 filas. */
-.tray[data-tray-visible="12"] .tray-track {
-  grid-template-rows: repeat(3, auto);
+/* ------------------------ navegacion bajo la bandeja ---------------------- */
+
+.tray-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  padding-inline: 2px;
 }
 
-/* ------------------------------ flechas ---------------------------------- */
+.tray-count {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tray-count b {
+  color: var(--text-2);
+  font-weight: 650;
+}
+
+.tray-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
 
 .tray-arrow {
-  position: absolute;
-  top: 50%;
-  z-index: 5;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  margin-top: -17px;
-  padding: 0;
-  border: 1px solid var(--line-strong);
-  border-radius: 50%;
-  background: color-mix(in srgb, var(--surface-raised) 92%, transparent);
-  color: var(--text);
-  box-shadow: var(--shadow-pop);
-  cursor: pointer;
-  transition: opacity 0.16s var(--ease), transform 0.16s var(--ease);
+  width: 32px;
+  height: 32px;
+  transition: opacity 0.16s var(--ease), border-color 0.16s var(--ease), color 0.16s var(--ease);
 }
 .tray-arrow:hover:not(:disabled) {
   border-color: var(--accent-line);
   color: var(--accent);
-  transform: scale(1.06);
 }
 .tray-arrow:disabled {
-  opacity: 0;
-  pointer-events: none;
-}
-.tray-arrow.prev {
-  left: -10px;
-}
-.tray-arrow.next {
-  right: -10px;
+  opacity: 0.38;
+  cursor: default;
 }
 
+/* La nota al pie sobraba: el contador de la bandeja ya lo dice. */
 .tray-note {
-  margin: 0;
-  text-align: right;
+  display: none;
 }
 
 /* -------------------- solo el cuerpo de una lista scrollea ----------------- */
@@ -3772,4 +3770,18 @@ body {
   min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* -------------------------------------------------------------------------
+   Todas las tarjetas de una fila miden lo mismo. Sin esto, una tarjeta con
+   mas texto estiraria su fila y descuadraria las tres filas de la bandeja.
+   ------------------------------------------------------------------------- */
+.card,
+.preset-card {
+  height: 100%;
+}
+/* Y el contenido se reparte: el pie de la tarjeta queda siempre abajo. */
+.card > .card-foot,
+.preset-card > .specs {
+  margin-top: auto;
 }
