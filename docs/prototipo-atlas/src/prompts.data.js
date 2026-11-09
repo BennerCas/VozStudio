@@ -375,3 +375,102 @@ export function searchPrompts(query, family, mode) {
     return `${item.text} ${item.familyLabel} ${item.accent}`.toLowerCase().includes(q);
   });
 }
+
+/* ------------------------------------------------------------------ *
+ * VERSION MEJORADA
+ *
+ * La auditoria del modulo Qwen Voice Studio encontro que 654 de los 654
+ * prompts de VoiceDesign no declaran emocion ni grabacion, y que ninguno
+ * llega al maximo de los controles. En vez de reescribir la biblioteca a
+ * mano (que destruiria el texto auditado), cada prompt guarda aqui su
+ * version mejorada: el original se conserva intacto y se puede comparar.
+ *
+ * Las instrucciones de CosyVoice ya cumplen los cinco controles de su modo,
+ * asi que su version mejorada es identica al original y no se duplica.
+ * ------------------------------------------------------------------ */
+
+// Frases fijas del compilador. Se anaden solo cuando el original no las dice.
+const IMPROVE_ADDITIONS = [
+  { check: 'age', re: /\b(anos|años|joven|adult[ao]|madur[ao]|senior|ancian)\b/i, text: 'adulta de unos 35 a 45 anos' },
+  { check: 'timbre', re: /\b(timbre|grave|agudo|calid|brillante|nasal|ronc|asper|sedos|aterciopelad|metalic|profund)/i, text: 'timbre calido y aterciopelado' },
+  { check: 'cadence', re: /\b(cadencia|ritmo|pausad|lento|rapid|agil|conversacional|contemplativ)\b/i, text: 'cadencia pausada y reflexiva' },
+  { check: 'emotion', re: /\b(emocion|tono (alegre|serio|triste|solemne|ironic|epic)|alegre|solemne|triste|serio|ironic|misterios|urgente|tierno|epico|complice|divertid|melancol|seductor|autoritari|calmad|sarcast|nervios|entusiast)/i, text: 'emocion serena y contenida' },
+  { check: 'accent', re: /\b(acento|castellano|mexican|rioplatense|colombian|chilen|peruan|caribe|venezolan|andaluz|latinoamerican|neutro)\b/i, text: 'acento castellano neutro de Espana' },
+  { check: 'purpose', re: /\b(audiolibro|documental|comercial|spot|noticias|podcast|videojuego|doblaje|cuento|elearning|telefonia|ivr|poesia|meditacion|audiodescripcion|narracion|locucion)/i, text: '' },
+  { check: 'recording', re: /\b(estudio|microfono|microfon|cercan|grabacion|reverberacion|sala peque|seca|distancia)/i, text: 'grabacion de estudio seca y cercana al microfono' },
+];
+
+/**
+ * El proposito no se inventa: se deriva de lo que el texto ya dice que va a
+ * hacer la voz. Si no se reconoce ninguna pista, no se anade nada.
+ */
+const PURPOSE_HINTS = [
+  { re: /audiolibro|narrar|novela|ficcion literaria|capitulo/i, text: 'pensada para audiolibro de ficcion' },
+  { re: /documental|divulgacion|cientific/i, text: 'pensada para documental de divulgacion' },
+  { re: /spot|comercial|publicidad|cu[nñ]a/i, text: 'pensada para locucion comercial' },
+  { re: /boletin|noticias|informativ|periodis/i, text: 'pensada para boletin informativo' },
+  { re: /podcast|episodio|entrevista/i, text: 'pensada para podcast conversacional' },
+  { re: /videojuego|npc|mision/i, text: 'pensada para videojuego' },
+  { re: /doblaje|animacion|caricatur/i, text: 'pensada para doblaje de animacion' },
+  { re: /cuento|infantil|ni[nñ]os/i, text: 'pensada para cuentos infantiles' },
+  { re: /telefon|ivr|atencion al cliente/i, text: 'pensada para telefonia e IVR' },
+  { re: /meditacion|respiracion|descanso/i, text: 'pensada para meditacion guiada' },
+  { re: /poesia|teatro|recital/i, text: 'pensada para poesia y teatro' },
+  { re: /audiodescripcion/i, text: 'pensada para audiodescripcion' },
+  { re: /deporte|futbol|retransmision/i, text: 'pensada para radio deportiva' },
+  { re: /elearning|formacion|curso|corporativ/i, text: 'pensada para formacion corporativa' },
+];
+
+/**
+ * Version mejorada de un prompt de VoiceDesign: conserva el texto original y
+ * anade, al final, solo los atributos que faltan.
+ */
+export function improveVoiceDesignPrompt(text) {
+  const original = String(text || '').trim();
+  const faltantes = IMPROVE_ADDITIONS.filter((item) => item.re.test(original) === false && item.text).map((item) => item.text);
+  // El proposito se toma de lo que el texto ya declara, nunca de un catalogo.
+  if (!/\b(pensad[ao] para|para (un|una|el|la) )/.test(original)) {
+    const pista = PURPOSE_HINTS.find((hint) => hint.re.test(original));
+    if (pista) faltantes.push(pista.text);
+  }
+  if (!faltantes.length) return original;
+  return `${original.replace(/\.$/, '')}, ${faltantes.join(', ')}.`;
+}
+
+/** La biblioteca con `improved` en cada entrada. Los instruct no cambian. */
+export const PROMPT_LIBRARY_V2 = PROMPT_LIBRARY.map((item) => ({
+  ...item,
+  improved: item.mode === 'voice_design' ? improveVoiceDesignPrompt(item.text) : item.text,
+  added:
+    item.mode === 'voice_design'
+      ? [
+          ...IMPROVE_ADDITIONS.filter((a) => !a.re.test(item.text) && a.text).map((a) => a.check),
+          ...(!/\b(pensad[ao] para|para (un|una|el|la) )/.test(item.text) && PURPOSE_HINTS.some((h) => h.re.test(item.text))
+            ? ['purpose']
+            : []),
+        ]
+      : [],
+}));
+
+/** Cuantos prompts cambiarian y cuantos caracteres se anaden de media. */
+export const PROMPT_V2_STATS = (() => {
+  const mejorados = PROMPT_LIBRARY_V2.filter((item) => item.improved !== item.text);
+  const extra = mejorados.reduce((acc, item) => acc + (item.improved.length - item.text.length), 0);
+  return {
+    total: PROMPT_LIBRARY_V2.length,
+    mejorados: mejorados.length,
+    intactos: PROMPT_LIBRARY_V2.length - mejorados.length,
+    mediaExtra: mejorados.length ? Math.round(extra / mejorados.length) : 0,
+  };
+})();
+
+/** Busqueda sobre la version mejorada, con la misma firma que searchPrompts. */
+export function searchPromptsV2(query, family, mode) {
+  const q = (query || '').toLowerCase().trim();
+  return PROMPT_LIBRARY_V2.filter((item) => {
+    if (family !== 'todas' && item.family !== family) return false;
+    if (mode !== 'todos' && item.mode !== mode) return false;
+    if (!q) return true;
+    return `${item.improved} ${item.text} ${item.familyLabel} ${item.accent}`.toLowerCase().includes(q);
+  });
+}

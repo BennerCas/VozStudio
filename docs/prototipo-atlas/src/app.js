@@ -19,7 +19,15 @@ import {
   seeded,
 } from './data.js';
 import { CATALOG, catalogVoice, CATALOG_TOTAL, catalogByEngine } from './voces.data.js';
-import { PROMPT_LIBRARY, PROMPT_FAMILIES, PROMPT_TOTAL, searchPrompts } from './prompts.data.js';
+import {
+  PROMPT_LIBRARY,
+  PROMPT_FAMILIES,
+  PROMPT_TOTAL,
+  searchPrompts,
+  PROMPT_LIBRARY_V2,
+  PROMPT_V2_STATS,
+  searchPromptsV2,
+} from './prompts.data.js';
 import {
   READ_PRESETS,
   readPresetById,
@@ -42,6 +50,24 @@ import {
   evaluateReference,
   estimateClone,
 } from './clonacion.data.js';
+import {
+  VOICE_FIELDS,
+  emptyProfile,
+  parseDescription,
+  compileProfile,
+  profileParts,
+  profileCoverage,
+  buildPayload,
+  SEED_VOICES,
+  SEED_CATEGORIES,
+  DEFAULT_SPEECH,
+  QWEN_MAX_TEXT,
+  MAX_INSTRUCTION,
+  MASTER_TEMPLATE,
+  PROMPT_CHECKS,
+  auditPrompt,
+  improvePrompt,
+} from './qwen.data.js';
 import { BRAND, APP_ICON_URI, appMark } from './brand.js';
 import {
   esc,
@@ -77,6 +103,7 @@ const TITLES = {
   lectura: 'Lectura y narracion',
   diseno: 'Diseno de voz',
   clonacion: 'Clonacion de voz',
+  qwen: 'Qwen Voice Studio',
   produce: 'Producir',
   voces: 'Voces',
   recetas: 'Recetas',
@@ -183,6 +210,30 @@ const state = {
     pause: null,
     chunk: null,
     emotion: null,
+  },
+
+  // Modulo Qwen Voice Studio (Qwen3-TTS VoiceDesign)
+  // Version de la biblioteca de prompts que usa Diseno de voz.
+  promptVersion: 'v2',
+
+  qwen: {
+    description: '',
+    profile: emptyProfile(),
+    parsed: null,
+    phi: false,
+    prompt: '',
+    promptMode: 'voice_design',
+    promptFilter: 'todos',
+    promptOpen: null,
+    query: '',
+    category: 'todas',
+    activeTitle: '',
+    title: 'Nueva voz',
+    speech: DEFAULT_SPEECH,
+    master: MASTER_TEMPLATE,
+    lastRender: null,
+    renders: [],
+    saved: [],
   },
 
   // Modulo de clonacion de voz (F5, XTTS y StyleTTS 2)
@@ -537,6 +588,7 @@ function sidebarHtml() {
       ${navItem('inicio', 'home', 'Inicio')}
       ${navItem('lectura', 'book', 'Lectura y narracion')}
       ${navItem('diseno', 'wand', 'Diseno de voz', String(PROMPT_TOTAL))}
+      ${navItem('qwen', 'cpu', 'Qwen Voice Studio', 'Qwen3')}
       ${navItem('clonacion', 'mic', 'Clonacion de voz', String(CLONE_PRESETS.length))}
       ${navItem('produce', 'grid', 'Producir', stats.review ? String(stats.review) : '')}
       ${navItem('biblioteca', 'folder', 'Biblioteca')}
@@ -982,7 +1034,9 @@ function viewDiseno() {
   const voiceCount = CATALOG.filter((voice) => voice.engine === engine).length;
   const bars = waveBars(`design-${d.prompt.length}-${engine}`);
   const familias = [{ id: 'todas', label: 'Todas las familias', count: PROMPT_TOTAL }, ...PROMPT_FAMILIES];
-  const muestra = searchPrompts(d.query, d.family, d.promptMode).slice(0, 60);
+  const usaV2 = state.promptVersion !== 'v1';
+  const busca = usaV2 ? searchPromptsV2 : searchPrompts;
+  const muestra = busca(d.query, d.family, d.promptMode).slice(0, 60);
   void voiceCount;
 
   return `
@@ -1129,6 +1183,13 @@ function viewDiseno() {
               <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
               <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
             </div>
+            <div class="row between v2-switch">
+              <span class="tiny dim">${usaV2 ? `Version mejorada · +${PROMPT_V2_STATS.mediaExtra} car. de media` : 'Version original auditada'}</span>
+              <div class="segmented sm" role="group" aria-label="Version de los prompts">
+                <button data-action="diseno:prompt-version" data-version="v1" aria-pressed="${!usaV2}">Original</button>
+                <button data-action="diseno:prompt-version" data-version="v2" aria-pressed="${usaV2}">Mejorada</button>
+              </div>
+            </div>
             <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
             <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
             <label class="sr-only" for="prompt-family">Familia</label>
@@ -1141,7 +1202,7 @@ function viewDiseno() {
               (item) => `<button class="library-item" data-action="diseno:use-prompt" data-prompt="${item.id}">
                 <span class="mode-dot ${item.mode === 'instruct_tts' ? 'instruct' : ''}" aria-hidden="true"></span>
                 <div style="min-width:0">
-                  <div class="prompt-text">${esc(item.text)}</div>
+                  <div class="prompt-text">${esc(usaV2 && item.improved ? item.improved : item.text)}</div>
                   <div class="prompt-meta"><span>${esc(item.familyLabel)}</span><span>${item.mode === 'instruct_tts' ? 'instruct' : 'design'}</span></div>
                 </div>
               </button>`,
@@ -1152,6 +1213,344 @@ function viewDiseno() {
       </section>
     </div>
   </div>`;
+}
+
+
+/* Auditoria de la biblioteca de 1.110: se calcula una vez al cargar. */
+const PROMPT_AUDIT = (() => {
+  let mejorables = 0;
+  let completos = 0;
+  let suma = 0;
+  PROMPT_LIBRARY.forEach((item) => {
+    const audit = auditPrompt(item.text, item.mode);
+    suma += audit.puntos;
+    if (audit.hallazgos.length) mejorables += 1;
+    else completos += 1;
+  });
+  return { mejorables, completos, media: Math.round(suma / Math.max(1, PROMPT_LIBRARY.length)) };
+})();
+
+
+/* ------------------------- modulo qwen: repintados ------------------------ */
+/*
+  Estos dos no llaman a render(): reemplazar el panel destruiria el input que
+  tiene el foco. Solo actualizan las piezas que cambian.
+*/
+function syncQwenCompiled() {
+  const q = state.qwen;
+  const pre = $('.qwen-instruction');
+  if (pre) pre.textContent = compileProfile(q.profile, q.master);
+  const cobertura = profileCoverage(q.profile);
+  const barra = $('.qwen-bar i');
+  if (barra) barra.style.width = `${cobertura.pct}%`;
+  const etiqueta = $('.qwen-matrix .tiny.dim');
+  if (etiqueta) etiqueta.textContent = `${cobertura.pct} % cubierto`;
+  const badge = $('.qwen-head .badge:nth-of-type(2)');
+  if (badge) badge.textContent = `${cobertura.done} / ${cobertura.total} campos`;
+  const partes = profileParts(q.profile);
+  $$('.qwen-parts > div').forEach((div) => {
+    const key = div.querySelector('span').textContent.toLowerCase();
+    const mapa = { identidad: 'identity', timbre: 'timbre', entrega: 'delivery', grabacion: 'recording' };
+    const b = div.querySelector('b');
+    if (b && mapa[key]) b.textContent = partes[mapa[key]];
+  });
+}
+
+function syncQwenLibrary() {
+  const lista = $('.qwen-library-list');
+  if (!lista) return;
+  const q = state.qwen;
+  lista.innerHTML =
+    filteredProfiles(q)
+      .map(
+        (item) => `<button class="qwen-profile ${item.title === q.activeTitle ? 'active' : ''}" data-action="qwen:use" data-title="${esc(item.title)}">
+          <span class="qp-dot" style="--tone:${item.tone}" aria-hidden="true"></span>
+          <span class="qp-text"><b>${esc(item.title)}</b><small>${esc(item.category)}${item.saved ? ' · guardado' : ''}</small></span>
+          <span class="qp-count mono">${profileCoverage(item.profile).done}/14</span>
+        </button>`,
+      )
+      .join('') || '<p class="tiny dim">Ningun perfil con ese filtro.</p>';
+}
+
+/* ========================== QWEN VOICE STUDIO ============================ */
+/*
+  Modulo de diseno de voz con Qwen3-TTS VoiceDesign. Reproduce el flujo del
+  backend compartido: descripcion libre -> perfil acustico de catorce campos ->
+  instruccion compilada -> payload real del motor. Todo determinista y local.
+*/
+function viewQwen() {
+  const q = state.qwen;
+  const perfil = q.profile;
+  const cobertura = profileCoverage(perfil);
+  const audit = auditPrompt(q.prompt || '', q.promptMode);
+  const partes = profileParts(perfil);
+  const instruccion = compileProfile(perfil, q.master);
+  const payload = buildPayload({ text: q.speech, instruction: instruccion, profile: perfil });
+  const textosLargos = q.speech.length > QWEN_MAX_TEXT;
+  const recientes = q.renders.slice(0, 8);
+
+  return `
+  <div class="stack-3 screen-fill qwen-screen">
+    <!-- Cabecera fija del modulo. -->
+    <div class="row between wrap qwen-head">
+      <div>
+        <h1 style="font-size:var(--text-2xl)">Qwen Voice Studio</h1>
+        <p class="tiny muted mt-2">Qwen3-TTS VoiceDesign · perfil acustico de 14 campos, instruccion compilada y payload real. Sin red: el parser es lexico y declara su confianza.</p>
+      </div>
+      <div class="row wrap">
+        <span class="badge ${q.phi ? 'ok' : 'info'}">${icon('cpu', 'sm')} ${q.phi ? 'Phi-3.5 local' : 'heuristicas locales'}</span>
+        <span class="badge">${cobertura.done} / ${cobertura.total} campos</span>
+        <button class="btn sm" data-action="qwen:templates">${icon('sliders', 'sm')} Plantillas</button>
+      </div>
+    </div>
+
+    <div class="qwen-board">
+      <!-- Columna 1: biblioteca de perfiles. -->
+      <aside class="panel qwen-col library">
+        <div class="panel-head"><div><p class="eyebrow">Biblioteca</p><h2>${SEED_VOICES.length + q.saved.length} perfiles</h2></div></div>
+        <div class="panel-body stack-2 qwen-library-fixed">
+          <label class="sr-only" for="qwen-search">Buscar perfiles</label>
+          <input id="qwen-search" class="input" placeholder="Buscar perfil o categoria..." value="${esc(q.query)}" data-action="qwen:query" />
+          <div class="chips">
+            <button class="chip ${q.category === 'todas' ? 'active' : ''}" data-action="qwen:category" data-category="todas">Todas</button>
+            ${SEED_CATEGORIES.map((cat) => `<button class="chip ${q.category === cat ? 'active' : ''}" data-action="qwen:category" data-category="${cat}">${esc(cat)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="panel-body stack-2 qwen-library-list">
+          ${
+            filteredProfiles(q)
+              .map(
+                (item) => `<button class="qwen-profile ${item.title === q.activeTitle ? 'active' : ''}" data-action="qwen:use" data-title="${esc(item.title)}">
+                  <span class="qp-dot" style="--tone:${item.tone}" aria-hidden="true"></span>
+                  <span class="qp-text"><b>${esc(item.title)}</b><small>${esc(item.category)}${item.saved ? ' · guardado' : ''}</small></span>
+                  <span class="qp-count mono">${profileCoverage(item.profile).done}/14</span>
+                </button>`,
+              )
+              .join('') || '<p class="tiny dim">Ningun perfil con ese filtro.</p>'
+          }
+        </div>
+      </aside>
+
+      <!-- Columna 2: copiloto, matriz acustica e instruccion. -->
+      <section class="panel qwen-col work">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso 1 · Descripcion</p><h2>Copiloto de diseno vocal</h2></div>
+          <span class="spacer"></span>
+          <span class="badge ${audit.puntos >= 80 ? 'ok' : audit.puntos >= 50 ? 'warn' : 'danger'}">${audit.puntos} / 100</span>
+        </div>
+        <div class="panel-body stack-2 qwen-work-body">
+          <div class="qwen-copilot">
+            <label class="sr-only" for="qwen-description">Descripcion de la voz</label>
+            <textarea id="qwen-description" class="textarea qwen-description" placeholder="Ejemplo: Quiero un narrador peruano de 55 anos, voz profunda, calida, ritmo pausado y emocion solemne." data-action="qwen:description">${esc(q.description)}</textarea>
+            <div class="row wrap">
+              <button class="btn sm primary" data-action="qwen:analyze">${icon('wand', 'sm')} Analizar descripcion</button>
+              <button class="btn sm" data-action="qwen:clear-profile">${icon('trash', 'sm')} Vaciar perfil</button>
+              <span class="spacer"></span>
+              <span class="tiny dim">${q.parsed ? `confianza ${Math.round(q.parsed.confidence * 100)} %` : 'sin analizar'}</span>
+            </div>
+            ${
+              q.parsed && q.parsed.ambiguities.length
+                ? `<div class="qwen-notes">${q.parsed.ambiguities.map((a) => `<div class="qwen-note info">${icon('info', 'sm')}<span>${esc(a)}</span></div>`).join('')}</div>`
+                : ''
+            }
+            ${
+              q.parsed && q.parsed.conflicts.length
+                ? `<div class="qwen-notes">${q.parsed.conflicts.map((a) => `<div class="qwen-note danger">${icon('alert', 'sm')}<span>${esc(a)}</span></div>`).join('')}</div>`
+                : ''
+            }
+          </div>
+
+          <div class="qwen-matrix">
+            <div class="row between">
+              <p class="eyebrow">Matriz acustica</p>
+              <span class="tiny dim">${cobertura.pct} % cubierto</span>
+            </div>
+            <div class="qwen-bar"><i style="width:${cobertura.pct}%"></i></div>
+            <div class="qwen-fields">
+              ${VOICE_FIELDS.map((campo) => {
+                const valor = perfil[campo.id];
+                if (campo.kind === 'enum') {
+                  return `<label class="field"><span>${esc(campo.label)}</span>
+                    <select class="select" data-action="qwen:field" data-field="${campo.id}">
+                      <option value="">sin especificar</option>
+                      ${campo.options.map((opt) => `<option value="${opt}" ${opt === valor ? 'selected' : ''}>${esc(opt)}</option>`).join('')}
+                    </select>
+                  </label>`;
+                }
+                if (campo.kind === 'number') {
+                  return `<label class="field"><span>${esc(campo.label)}</span>
+                    <input class="input" type="number" min="${campo.min}" max="${campo.max}" placeholder="5 a 100" value="${valor ?? ''}" data-action="qwen:field" data-field="${campo.id}" />
+                  </label>`;
+                }
+                return `<label class="field"><span>${esc(campo.label)}</span>
+                  <input class="input" type="text" maxlength="${campo.max}" placeholder="libre" value="${esc(valor ?? '')}" data-action="qwen:field" data-field="${campo.id}" />
+                </label>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="qwen-compiled">
+            <div class="row between">
+              <p class="eyebrow">Paso 2 · Instruccion compilada</p>
+              <div class="row">
+                <button class="btn sm" data-action="qwen:copy">${icon('copy', 'sm')} Copiar</button>
+                <button class="btn sm" data-action="qwen:payload">${icon('terminal', 'sm')} Ver payload</button>
+              </div>
+            </div>
+            <pre class="code qwen-instruction" data-scroll-area="instruccion">${esc(instruccion)}</pre>
+            <div class="qwen-parts">
+              ${[['identity', 'Identidad'], ['timbre', 'Timbre'], ['delivery', 'Entrega'], ['recording', 'Grabacion']]
+                .map(([key, label]) => `<div><span>${esc(label)}</span><b>${esc(partes[key])}</b></div>`)
+                .join('')}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna 3: laboratorio y biblioteca de prompts mejorados. -->
+      <section class="panel qwen-col lab">
+        <div class="panel-head"><div><p class="eyebrow">Laboratorio</p><h2>Prueba la voz</h2></div></div>
+        <div class="panel-body stack-2 qwen-lab-body">
+          <label class="field"><span>Nombre del render</span><input class="input" value="${esc(q.title)}" data-action="qwen:title" /></label>
+          <label class="field"><span>Texto que pronuncia la voz</span>
+            <textarea class="textarea qwen-speech" data-action="qwen:speech">${esc(q.speech)}</textarea>
+          </label>
+          <div class="row between tiny ${textosLargos ? 'text-danger' : 'dim'}">
+            <span id="qwen-speech-count">${q.speech.length} / ${QWEN_MAX_TEXT} caracteres</span>
+            <span>${textosLargos ? 'recorta antes de generar' : 'dentro del limite del motor'}</span>
+          </div>
+          <div class="qwen-actions">
+            <button class="btn primary" data-action="qwen:generate" ${textosLargos || !q.speech.trim() ? 'disabled' : ''}>${icon('zap', 'sm')} Generar audio local</button>
+            <button class="btn" data-action="qwen:save-profile">${icon('plus', 'sm')} Guardar perfil</button>
+          </div>
+          <p class="tiny dim">La primera generacion carga el modelo: el prototipo simula el RTF del backend (CPU, 12 hilos).</p>
+          ${
+            q.lastRender
+              ? `<div class="qwen-render">
+                  <div class="spec-inline">
+                    <div><span>Duracion</span><b>${q.lastRender.duration} s</b></div>
+                    <div><span>Calculo</span><b>${q.lastRender.elapsed} s</b></div>
+                    <div><span>RTF</span><b>${q.lastRender.rtf}</b></div>
+                    <div><span>Modelo</span><b>1.7B VoiceDesign</b></div>
+                  </div>
+                  <div class="row wrap">
+                    <button class="btn sm primary" data-action="qwen:play">${icon('play', 'sm')} Escuchar WAV</button>
+                    <button class="btn sm" data-action="qwen:reuse">${icon('refresh', 'sm')} Reutilizar</button>
+                  </div>
+                </div>`
+              : `<div class="empty">${icon('wave', 'hero')}<h3>Sin renders</h3><p class="tiny muted">El perfil ya esta listo: pulsa Generar audio local.</p></div>`
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Historial de renders, fijo al pie. -->
+    <div class="panel qwen-history">
+      <div class="row between">
+        <div><p class="eyebrow">Historial</p><h2>${q.renders.length} audios</h2></div>
+        <div class="row"><span class="tiny dim">Un WAV por render · se puede descargar y eliminar</span></div>
+      </div>
+      <div class="qwen-history-list" data-scroll-area="renders">
+        ${
+          recientes.length
+            ? recientes
+                .map(
+                  (r) => `<article class="qwen-render-card">
+                    <header><b>${esc(r.title)}</b><span class="badge">${esc(r.category)}</span></header>
+                    <p>${esc(r.text.slice(0, 96))}${r.text.length > 96 ? '...' : ''}</p>
+                    <div class="specs"><span>${r.duration} s</span><span>${r.elapsed} s de calculo</span><span>RTF ${r.rtf}</span></div>
+                    <div class="row wrap">
+                      <button class="btn sm" data-action="qwen:render-play" data-render="${r.id}">${icon('play', 'sm')} Escuchar</button>
+                      <button class="btn sm" data-action="qwen:render-reuse" data-render="${r.id}">${icon('refresh', 'sm')} Reutilizar</button>
+                      <button class="btn sm icon-only" data-action="qwen:render-delete" data-render="${r.id}" aria-label="Eliminar render">${icon('trash', 'sm')}</button>
+                    </div>
+                  </article>`,
+                )
+                .join('')
+            : '<p class="tiny dim">Aun no hay renders en esta sesion.</p>'
+        }
+      </div>
+    </div>
+
+    <!-- Biblioteca de prompts con auditoria: los 1.110, mejorables uno a uno. -->
+    <div class="panel qwen-prompts">
+      <div class="panel-head">
+        <div><p class="eyebrow">Biblioteca de prompts</p><h2>${PROMPT_TOTAL} prompts auditados</h2></div>
+        <span class="spacer"></span>
+        <span class="badge ok">${PROMPT_AUDIT.mejorables} mejorables</span>
+        <span class="badge">${PROMPT_AUDIT.completos} completos</span>
+      </div>
+      <div class="panel-body stack-2">
+        <div class="chips">
+          ${[['todos', 'Todos'], ['voice_design', 'VoiceDesign'], ['instruct_tts', 'Instruct'], ['mejorables', 'Solo mejorables']]
+            .map(([id, label]) => `<button class="chip ${q.promptFilter === id ? 'active' : ''}" data-action="qwen:prompt-filter" data-filter="${id}">${label}</button>`)
+            .join('')}
+        </div>
+        <div class="qwen-prompt-list" data-scroll-area="prompts-qwen">
+          ${qwenPromptRows(q)}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** Perfiles filtrados por categoria y busqueda. */
+function filteredProfiles(q) {
+  const tonos = ['var(--accent)', 'var(--ok)', 'var(--info)', 'var(--amber)', 'var(--warn)'];
+  const base = SEED_VOICES.map((v, i) => ({ ...v, saved: false, tone: tonos[i % tonos.length] })).concat(
+    (q.saved || []).map((v, i) => ({ ...v, saved: true, tone: tonos[(i + 2) % tonos.length] })),
+  );
+  const texto = (q.query || '').toLowerCase().trim();
+  return base.filter((v) => {
+    if (q.category !== 'todas' && v.category !== q.category) return false;
+    if (!texto) return true;
+    return `${v.title} ${v.category}`.toLowerCase().includes(texto);
+  });
+}
+
+/** Filas de la biblioteca de prompts, con el diagnostico ya calculado. */
+function qwenPromptRows(q) {
+  const lista = PROMPT_LIBRARY.filter((item) => {
+    if (q.promptFilter === 'voice_design' || q.promptFilter === 'instruct_tts') return item.mode === q.promptFilter;
+    if (q.promptFilter === 'mejorables') return auditPrompt(item.text, item.mode).hallazgos.length > 0;
+    return true;
+  }).slice(0, 60);
+  if (!lista.length) return '<p class="tiny dim">Ningun prompt con ese filtro.</p>';
+  return lista
+    .map((item) => {
+      const audit = auditPrompt(item.text, item.mode);
+      const abierto = q.promptOpen === item.id;
+      return `<article class="qwen-prompt ${abierto ? 'open' : ''}">
+        <button class="qwen-prompt-head" data-action="qwen:prompt-toggle" data-prompt="${item.id}" aria-expanded="${abierto}">
+          <span class="mode-dot ${item.mode === 'instruct_tts' ? 'instruct' : ''}" aria-hidden="true"></span>
+          <span class="qwp-text">${esc(item.text)}</span>
+          <span class="badge ${audit.completo ? 'ok' : audit.puntos >= 50 ? 'warn' : 'danger'}">${audit.puntos}</span>
+          ${icon(abierto ? 'chevronDown' : 'chevron', 'sm')}
+        </button>
+        ${
+          abierto
+            ? `<div class="qwen-prompt-body">
+                <div class="qwp-meta"><span>${esc(item.familyLabel)}</span><span>${item.mode === 'instruct_tts' ? 'Instruct-TTS' : 'VoiceDesign'}</span><span>${item.text.length} caracteres</span></div>
+                ${
+                  audit.hallazgos.length
+                    ? `<ul class="qwp-checks">${audit.hallazgos
+                        .map((h) => `<li class="g-${h.gravedad}"><b>${esc(h.label)}</b><span>${esc(h.fix)}</span></li>`)
+                        .join('')}</ul>`
+                    : `<p class="tiny ok-text">${icon('check', 'sm')} Cumple los diez controles: no hay nada que anadir.</p>`
+                }
+                ${
+                  audit.hallazgos.length
+                    ? `<div class="qwp-fix"><p class="eyebrow">Version mejorada</p><p class="qwp-improved">${esc(improvePrompt(item.text, { mode: item.mode }).text)}</p>
+                        <div class="row wrap"><button class="btn sm primary" data-action="qwen:apply-prompt" data-prompt="${item.id}">${icon('check', 'sm')} Usar esta version</button>
+                        <button class="btn sm" data-action="qwen:prompt-editor" data-prompt="${item.id}">${icon('edit', 'sm')} Abrir en el editor</button></div></div>`
+                    : ''
+                }
+              </div>`
+            : ''
+        }
+      </article>`;
+    })
+    .join('');
 }
 
 
@@ -1971,6 +2370,34 @@ entregables: [${recipe.delivery.split(' · ').map((x) => x.toLowerCase().replace
        <button class="btn primary" data-action="recipe:use" data-recipe="${recipe.id}">${icon('plus', 'sm')} Crear proyecto con esta receta</button>`,
     );
   }
+  if (modal.type === 'qwen-payload') {
+    const q = state.qwen;
+    const instruccion = compileProfile(q.profile, q.master);
+    const payload = buildPayload({ text: q.speech, instruction: instruccion, profile: q.profile });
+    const cobertura = profileCoverage(q.profile);
+    return modalWrapper(
+      'Payload para Qwen3-TTS',
+      `<p class="tiny muted">Esto es exactamente lo que viaja al motor con <span class="mono">generate_voice_design</span>: ${cobertura.done} de 14 campos del perfil, la instruccion compilada y el texto. ${esc(payload.model)}.</p>
+      <pre class="code qwen-payload" style="max-height:340px">${esc(JSON.stringify(payload, null, 2))}</pre>
+      <div class="prompt-note">${icon('info', 'sm')}<div>El texto del <b>input</b> no se recorta: si pasa de ${QWEN_MAX_TEXT} caracteres, el laboratorio bloquea la generacion antes de llegar aqui.</div></div>`,
+      `<button class="btn" data-action="modal:close">Cerrar</button>
+       <button class="btn primary" data-action="qwen:copy-payload">${icon('copy', 'sm')} Copiar payload</button>`,
+    );
+  }
+  if (modal.type === 'qwen-templates') {
+    const q = state.qwen;
+    return modalWrapper(
+      'Plantillas internas',
+      `<div class="stack-3">
+        <p class="tiny muted">La plantilla maestra es la del backend compartido, literal. Al editarla, el compilador rellena las cuatro variables: <span class="mono">{{identity}}</span>, <span class="mono">{{timbre}}</span>, <span class="mono">{{delivery}}</span> y <span class="mono">{{recording}}</span>.</p>
+        ${field('Plantilla maestra de Qwen3', `<textarea class="textarea mono" style="min-height:240px" data-action="qwen:master">${esc(q.master)}</textarea>`)}
+        <div class="prompt-note">${icon('alert', 'sm')}<div>Si dejas una variable sin resolver, el compilador <b>falla en voz alta</b> en vez de mandar un prompt roto. Es la misma regla del backend.</div></div>
+      </div>`,
+      `<button class="btn" data-action="modal:close">Cancelar</button>
+       <button class="btn" data-action="qwen:master-reset">Restaurar original</button>
+       <button class="btn primary" data-action="qwen:master-save">Guardar plantilla</button>`,
+    );
+  }
   if (modal.type === 'export') {
     const stats = projectStats();
     return modalWrapper(
@@ -2133,6 +2560,8 @@ function view() {
       return viewDiseno();
     case 'clonacion':
       return viewClonacion();
+    case 'qwen':
+      return viewQwen();
     case 'produce':
       return viewProduce();
     case 'voces':
@@ -2705,6 +3134,203 @@ document.addEventListener('click', (event) => {
       state.produceFilter = target.dataset.filter;
       render();
       break;
+    case 'qwen:query':
+      state.qwen.query = target.value;
+      syncQwenLibrary();
+      break;
+    case 'qwen:category':
+      state.qwen.category = target.dataset.category;
+      render();
+      break;
+    case 'qwen:use': {
+      const titulo = target.dataset.title;
+      const base = SEED_VOICES.find((v) => v.title === titulo) || state.qwen.saved.find((v) => v.title === titulo);
+      if (!base) break;
+      state.qwen.profile = { ...emptyProfile(), ...base.profile };
+      state.qwen.activeTitle = base.title;
+      state.qwen.title = base.title;
+      state.qwen.parsed = null;
+      state.qwen.phi = false;
+      notify('Perfil cargado', `${base.title} · ${profileCoverage(base.profile).done} de 14 campos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:analyze': {
+      const texto = (state.qwen.description || '').trim();
+      if (!texto) {
+        notify('Falta la descripcion', 'Escribe como suena la voz antes de analizar', 'warn');
+        break;
+      }
+      const r = parseDescription(texto);
+      state.qwen.profile = r.profile;
+      state.qwen.parsed = { ...r.analysis, matched: r.matched };
+      state.qwen.activeTitle = '';
+      if (r.analysis.conflicts.length) {
+        notify('Hay conflictos', `${r.analysis.conflicts.length} atributos se contradicen`, 'warn');
+      } else {
+        notify('Perfil extraido', `${r.matched} atributos · confianza ${Math.round(r.analysis.confidence * 100)} %`, 'ok');
+      }
+      render();
+      break;
+    }
+    case 'qwen:clear-profile':
+      state.qwen.profile = emptyProfile();
+      state.qwen.parsed = null;
+      state.qwen.activeTitle = '';
+      notify('Perfil vaciado', 'Los catorce campos vuelven a null', 'info');
+      render();
+      break;
+    case 'qwen:copy':
+      notify('Instruccion copiada', `${compileProfile(state.qwen.profile, state.qwen.master).length} caracteres`, 'ok');
+      break;
+    case 'qwen:payload':
+      openModal({ type: 'qwen-payload' });
+      break;
+    case 'qwen:templates':
+      openModal({ type: 'qwen-templates' });
+      break;
+    case 'qwen:generate': {
+      const q = state.qwen;
+      if (!q.speech.trim()) {
+        notify('Falta el texto', 'El laboratorio necesita una frase para sintetizar', 'warn');
+        break;
+      }
+      if (q.speech.length > QWEN_MAX_TEXT) {
+        notify('Texto demasiado largo', `El contrato admite ${QWEN_MAX_TEXT} caracteres y hay ${q.speech.length}`, 'warn');
+        break;
+      }
+      const instruccion = compileProfile(q.profile, q.master);
+      const random = seeded(`qwen-${q.profile.gender}-${q.profile.age}-${q.speech.length}-${q.title}`);
+      const duration = 2 + random() * 3.4;
+      const rtf = 1.4 + random() * 1.6; // CPU: mas lento que tiempo real
+      // Ojo: no se puede llamar `render` a esta variable, taparia la funcion global.
+      const toma = {
+        id: `r-${Date.now()}`,
+        title: q.title || 'Nueva voz',
+        category: q.activeTitle ? 'Biblioteca' : 'Personalizada',
+        text: q.speech,
+        instruction: instruccion,
+        profile: { ...q.profile },
+        duration: Number(duration.toFixed(2)),
+        elapsed: Number((duration * rtf).toFixed(2)),
+        rtf: Number(rtf.toFixed(2)),
+      };
+      q.lastRender = toma;
+      q.renders = [toma, ...q.renders].slice(0, 24);
+      notify('Audio generado', `${toma.duration} s en ${toma.elapsed} s · RTF ${toma.rtf}`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:play':
+      if (state.qwen.lastRender) notify('Reproduciendo WAV', state.qwen.lastRender.title, 'info');
+      break;
+    case 'qwen:reuse': {
+      const r = state.qwen.lastRender;
+      if (!r) break;
+      state.qwen.title = r.title;
+      state.qwen.speech = r.text;
+      if (r.profile) state.qwen.profile = { ...emptyProfile(), ...r.profile };
+      notify('Render cargado', 'El estudio vuelve al estado de esa toma', 'ok');
+      render();
+      break;
+    }
+    case 'qwen:save-profile': {
+      const q = state.qwen;
+      const cobertura = profileCoverage(q.profile);
+      if (!cobertura.done) {
+        notify('Perfil vacio', 'Rellena al menos un atributo antes de guardar', 'warn');
+        break;
+      }
+      const titulo = q.title.trim() || `Perfil ${q.saved.length + 1}`;
+      q.saved = [{ title: titulo, category: 'Personalizada', profile: { ...q.profile } }, ...q.saved].slice(0, 30);
+      q.activeTitle = titulo;
+      notify('Perfil guardado', `${titulo} · ${cobertura.done} de 14 campos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:render-play':
+      notify('Reproduciendo WAV', (state.qwen.renders.find((r) => r.id === target.dataset.render) || {}).title || '', 'info');
+      break;
+    case 'qwen:render-reuse': {
+      const r = state.qwen.renders.find((item) => item.id === target.dataset.render);
+      if (!r) break;
+      state.qwen.title = r.title;
+      state.qwen.speech = r.text;
+      if (r.profile) state.qwen.profile = { ...emptyProfile(), ...r.profile };
+      notify('Render cargado', 'El estudio vuelve al estado de esa toma', 'ok');
+      render();
+      break;
+    }
+    case 'qwen:render-delete':
+      state.qwen.renders = state.qwen.renders.filter((item) => item.id !== target.dataset.render);
+      if (state.qwen.lastRender && state.qwen.lastRender.id === target.dataset.render) state.qwen.lastRender = null;
+      notify('Render eliminado', 'El WAV simulado sale del historial', 'info');
+      render();
+      break;
+    case 'qwen:prompt-filter':
+      state.qwen.promptFilter = target.dataset.filter;
+      state.qwen.promptOpen = null;
+      render();
+      break;
+    case 'qwen:prompt-toggle':
+      state.qwen.promptOpen = state.qwen.promptOpen === target.dataset.prompt ? null : target.dataset.prompt;
+      render();
+      break;
+    case 'qwen:apply-prompt': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      const mejorado = improvePrompt(item.text, { mode: item.mode });
+      state.qwen.prompt = mejorado.text;
+      state.qwen.promptMode = item.mode;
+      notify('Prompt aplicado', `${mejorado.added.length} atributos anadidos · ${mejorado.text.length} caracteres`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:prompt-editor': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      state.qwen.prompt = improvePrompt(item.text, { mode: item.mode }).text;
+      state.qwen.promptMode = item.mode;
+      state.qwen.promptOpen = null;
+      notify('Prompt en el editor', 'Puedes retocarlo antes de usarlo', 'info');
+      render();
+      break;
+    }
+    case 'qwen:use-prompt': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      state.qwen.description = item.text;
+      const r = parseDescription(item.text);
+      state.qwen.profile = r.profile;
+      state.qwen.parsed = { ...r.analysis, matched: r.matched };
+      notify('Descripcion cargada', `${r.matched} atributos reconocidos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:copy-payload': {
+      const instruccion = compileProfile(state.qwen.profile, state.qwen.master);
+      const payload = buildPayload({ text: state.qwen.speech, instruction: instruccion, profile: state.qwen.profile });
+      notify('Payload copiado', `${JSON.stringify(payload).length} caracteres de JSON`, 'ok');
+      closeModal();
+      break;
+    }
+    case 'qwen:master-save': {
+      const area = $('[data-action="qwen:master"]');
+      const valor = area ? area.value : '';
+      if (!/\{\{identity\}\}/.test(valor) || !/\{\{timbre\}\}/.test(valor) || !/\{\{delivery\}\}/.test(valor) || !/\{\{recording\}\}/.test(valor)) {
+        notify('Plantilla invalida', 'Faltan las cuatro variables del contrato', 'warn');
+        break;
+      }
+      state.qwen.master = valor.trim();
+      notify('Plantilla guardada', 'El compilador la usara en la proxima instruccion', 'ok');
+      closeModal();
+      break;
+    }
+    case 'qwen:master-reset':
+      state.qwen.master = MASTER_TEMPLATE;
+      notify('Plantilla restaurada', 'Vuelve el texto original del backend', 'ok');
+      closeModal();
+      break;
     case 'clone:step':
       state.clonacion.step = target.dataset.step;
       render();
@@ -2857,13 +3483,31 @@ document.addEventListener('click', (event) => {
       state.diseno.libraryPage = 0;
       render();
       break;
+    case 'diseno:prompt-version':
+      state.promptVersion = target.dataset.version;
+      notify(
+        state.promptVersion === 'v2' ? 'Version mejorada' : 'Version original',
+        state.promptVersion === 'v2'
+          ? `${PROMPT_V2_STATS.mejorados} prompts completados con emocion, grabacion y proposito`
+          : 'El texto auditado, sin cambios',
+        'ok',
+      );
+      render();
+      break;
     case 'diseno:use-prompt': {
       const prompt = PROMPT_LIBRARY.find((item) => item.id === target.dataset.prompt);
       if (prompt) {
-        state.diseno.prompt = prompt.text;
+        // Con la version mejorada se aplica el texto completado; el original queda intacto.
+        const usaV2 = state.promptVersion !== 'v1';
+        const v2 = PROMPT_LIBRARY_V2.find((item) => item.id === prompt.id);
+        state.diseno.prompt = usaV2 && v2 && v2.improved ? v2.improved : prompt.text;
         state.diseno.mode = prompt.mode;
         if (prompt.mode === 'instruct_tts') state.diseno.engine = 'cosyvoice';
-        notify('Prompt cargado', `${prompt.id} · ${prompt.familyLabel}`, 'ok');
+        notify(
+          'Prompt cargado',
+          usaV2 && v2 && v2.improved !== prompt.text ? `${prompt.id} · version mejorada (+${v2.improved.length - prompt.text.length} car.)` : `${prompt.id} · ${prompt.familyLabel}`,
+          'ok',
+        );
         render();
       }
       break;
@@ -2933,6 +3577,21 @@ document.addEventListener('click', (event) => {
 });
 
 /* ------------------------------- formularios ------------------------------ */
+document.addEventListener('change', (event) => {
+  const target = event.target;
+  if (target.dataset && target.dataset.action === 'qwen:field') {
+    // El select de la matriz se maneja con change, no con click.
+    const campo = target.dataset.field;
+    const valor = String(target.value).trim();
+    state.qwen.profile = {
+      ...state.qwen.profile,
+      [campo]: valor === '' ? null : campo === 'age' ? Number(valor) : valor,
+    };
+    syncQwenCompiled();
+    return;
+  }
+});
+
 document.addEventListener('input', (event) => {
   const target = event.target;
   const action = target.dataset.action;
@@ -2949,6 +3608,33 @@ document.addEventListener('input', (event) => {
   }
   if (action === 'diseno:sample') {
     state.diseno.sample = target.value;
+    return;
+  }
+  if (action === 'qwen:description') {
+    state.qwen.description = target.value;
+    return;
+  }
+  if (action === 'qwen:speech') {
+    state.qwen.speech = target.value;
+    // Solo se repinta el contador y el boton: reemplazar el panel perderia el foco.
+    const contador = $('#qwen-speech-count');
+    if (contador) contador.textContent = `${target.value.length} / ${QWEN_MAX_TEXT} caracteres`;
+    const boton = $('[data-action="qwen:generate"]');
+    if (boton) boton.disabled = target.value.length > QWEN_MAX_TEXT || !target.value.trim();
+    return;
+  }
+  if (action === 'qwen:title') {
+    state.qwen.title = target.value;
+    return;
+  }
+  if (action === 'qwen:field') {
+    const campo = target.dataset.field;
+    const valor = target.value.trim();
+    state.qwen.profile = {
+      ...state.qwen.profile,
+      [campo]: valor === '' ? null : campo === 'age' ? Number(valor) : valor,
+    };
+    syncQwenCompiled();
     return;
   }
   if (action === 'clone:transcript') {

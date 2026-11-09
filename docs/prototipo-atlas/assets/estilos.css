@@ -4974,3 +4974,557 @@ body {
     flex-wrap: wrap;
   }
 }
+
+/* =======================================================================
+   QWEN VOICE STUDIO
+   Tres columnas (biblioteca / trabajo / laboratorio) y dos franjas fijas
+   (historial y auditoria de prompts). Solo se desplazan las listas: la
+   pantalla nunca scrollea entera y las cabeceras no se mueven.
+   ======================================================================= */
+
+.qwen-screen {
+  align-content: normal;
+  overflow: hidden;
+}
+
+.qwen-screen > .qwen-head {
+  flex: none;
+}
+
+.qwen-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(212px, 0.78fr) minmax(420px, 1.85fr) minmax(268px, 1fr);
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.qwen-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.qwen-col > .panel-head {
+  flex: none;
+}
+
+/* ---- Columna 1: biblioteca de perfiles -------------------------------- */
+
+.qwen-library-fixed {
+  flex: none;
+  gap: var(--space-2);
+}
+.qwen-library-list {
+  flex: 1 1 auto;
+  min-height: 90px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.qwen-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.qwen-profile:hover {
+  background: var(--surface-2);
+}
+.qwen-profile.active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.qwen-profile .qp-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tone, var(--accent));
+}
+.qwen-profile .qp-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.qwen-profile .qp-text b {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-profile .qp-text small {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.qwen-profile .qp-count {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+
+/* ---- Columna 2: trabajo ----------------------------------------------- */
+
+.qwen-col.work > .panel-body.qwen-work-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.qwen-copilot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.qwen-description {
+  min-height: 76px;
+  resize: none;
+}
+
+.qwen-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qwen-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.qwen-note.danger {
+  border-left-color: var(--danger);
+}
+.qwen-note.info {
+  border-left-color: var(--info);
+}
+.qwen-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* Matriz acustica: catorce campos en tres columnas. */
+.qwen-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  flex: none;
+}
+.qwen-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.qwen-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  transition: width 0.2s ease;
+}
+.qwen-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.qwen-fields .field {
+  gap: 3px;
+  min-width: 0;
+}
+.qwen-fields .field > span {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.qwen-fields .select,
+.qwen-fields .input {
+  min-height: 30px;
+  padding: 4px 7px;
+  font-size: var(--text-sm);
+}
+
+/* Instruccion compilada. */
+.qwen-compiled {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.qwen-instruction {
+  margin: 0;
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+.qwen-parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px var(--space-3);
+}
+.qwen-parts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.qwen-parts span {
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.qwen-parts b {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* ---- Columna 3: laboratorio ------------------------------------------- */
+
+.qwen-col.lab > .panel-body.qwen-lab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.qwen-speech {
+  min-height: 96px;
+  resize: none;
+}
+.qwen-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.qwen-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+.qwen-actions .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.qwen-render {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.text-danger {
+  color: var(--danger);
+}
+
+/* ---- Franjas fijas: historial y prompts ------------------------------- */
+
+.qwen-history {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  max-height: 168px;
+}
+.qwen-history-list {
+  display: flex;
+  gap: var(--space-2);
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+.qwen-render-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+  width: 250px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.qwen-render-card header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.qwen-render-card header b {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-render-card p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qwen-render-card .specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  font-size: var(--text-xs);
+  color: var(--text-4);
+}
+
+.qwen-prompts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 244px;
+  min-height: 0;
+}
+.qwen-prompts > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.qwen-prompt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qwen-prompt {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.qwen-prompt.open {
+  border-color: var(--accent-line);
+}
+.qwen-prompt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.qwen-prompt-head:hover {
+  background: var(--surface-3);
+}
+.qwen-prompt-head .qwp-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-prompt-head .mode-dot {
+  flex: none;
+}
+.qwen-prompt-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 9px var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.qwp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: var(--text-xs);
+  color: var(--text-4);
+}
+.qwp-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.qwp-checks li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 8px;
+  border-left: 3px solid var(--line);
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.qwp-checks li.g-alta {
+  border-left-color: var(--danger);
+}
+.qwp-checks li.g-media {
+  border-left-color: var(--warn);
+}
+.qwp-checks li.g-baja {
+  border-left-color: var(--info);
+}
+.qwp-checks li b {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.qwp-fix {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.qwp-improved {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.ok-text {
+  color: var(--ok);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.qwen-payload {
+  max-height: 340px;
+  overflow: auto;
+  font-size: var(--text-xs);
+}
+
+/* Los carriles de este modulo, sin barra visible. */
+.qwen-library-list,
+.qwen-col.work > .panel-body.qwen-work-body,
+.qwen-col.lab > .panel-body.qwen-lab-body,
+.qwen-history-list,
+.qwen-prompts > .panel-body,
+.qwen-instruction {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.qwen-library-list::-webkit-scrollbar,
+.qwen-col.work > .panel-body.qwen-work-body::-webkit-scrollbar,
+.qwen-col.lab > .panel-body.qwen-lab-body::-webkit-scrollbar,
+.qwen-history-list::-webkit-scrollbar,
+.qwen-prompts > .panel-body::-webkit-scrollbar,
+.qwen-instruction::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* ---- Adaptaciones de ancho ------------------------------------------- */
+
+@media (max-width: 1320px) {
+  .qwen-board {
+    grid-template-columns: minmax(190px, 0.7fr) minmax(380px, 1.7fr) minmax(240px, 0.95fr);
+  }
+  .qwen-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .qwen-screen {
+    overflow: visible;
+  }
+  .qwen-board {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .qwen-col.lab {
+    grid-column: 1 / -1;
+  }
+  .qwen-col.work > .panel-body.qwen-work-body,
+  .qwen-col.lab > .panel-body.qwen-lab-body {
+    overflow-y: visible;
+  }
+  .qwen-prompts {
+    max-height: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .qwen-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qwen-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .qwen-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* Conmutador original / mejorada en la biblioteca de Diseno de voz. */
+.v2-switch {
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.v2-switch > .tiny {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.v2-switch .segmented {
+  flex: none;
+}

@@ -4987,6 +4987,560 @@ body {
   }
 }
 
+/* =======================================================================
+   QWEN VOICE STUDIO
+   Tres columnas (biblioteca / trabajo / laboratorio) y dos franjas fijas
+   (historial y auditoria de prompts). Solo se desplazan las listas: la
+   pantalla nunca scrollea entera y las cabeceras no se mueven.
+   ======================================================================= */
+
+.qwen-screen {
+  align-content: normal;
+  overflow: hidden;
+}
+
+.qwen-screen > .qwen-head {
+  flex: none;
+}
+
+.qwen-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(212px, 0.78fr) minmax(420px, 1.85fr) minmax(268px, 1fr);
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.qwen-col {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.qwen-col > .panel-head {
+  flex: none;
+}
+
+/* ---- Columna 1: biblioteca de perfiles -------------------------------- */
+
+.qwen-library-fixed {
+  flex: none;
+  gap: var(--space-2);
+}
+.qwen-library-list {
+  flex: 1 1 auto;
+  min-height: 90px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line);
+}
+
+.qwen-profile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.qwen-profile:hover {
+  background: var(--surface-2);
+}
+.qwen-profile.active {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.qwen-profile .qp-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--tone, var(--accent));
+}
+.qwen-profile .qp-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.qwen-profile .qp-text b {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-profile .qp-text small {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.qwen-profile .qp-count {
+  flex: none;
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+
+/* ---- Columna 2: trabajo ----------------------------------------------- */
+
+.qwen-col.work > .panel-body.qwen-work-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.qwen-copilot {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.qwen-description {
+  min-height: 76px;
+  resize: none;
+}
+
+.qwen-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qwen-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--text-xs);
+  color: var(--text-2);
+  line-height: 1.45;
+}
+.qwen-note.danger {
+  border-left-color: var(--danger);
+}
+.qwen-note.info {
+  border-left-color: var(--info);
+}
+.qwen-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* Matriz acustica: catorce campos en tres columnas. */
+.qwen-matrix {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  flex: none;
+}
+.qwen-bar {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.qwen-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  transition: width 0.2s ease;
+}
+.qwen-fields {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.qwen-fields .field {
+  gap: 3px;
+  min-width: 0;
+}
+.qwen-fields .field > span {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.qwen-fields .select,
+.qwen-fields .input {
+  min-height: 30px;
+  padding: 4px 7px;
+  font-size: var(--text-sm);
+}
+
+/* Instruccion compilada. */
+.qwen-compiled {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.qwen-instruction {
+  margin: 0;
+  max-height: 132px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+  color: var(--text-2);
+  white-space: pre-wrap;
+}
+.qwen-parts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px var(--space-3);
+}
+.qwen-parts > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.qwen-parts span {
+  font-size: var(--text-xs);
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+.qwen-parts b {
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--text-2);
+  line-height: 1.4;
+}
+
+/* ---- Columna 3: laboratorio ------------------------------------------- */
+
+.qwen-col.lab > .panel-body.qwen-lab-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.qwen-speech {
+  min-height: 96px;
+  resize: none;
+}
+.qwen-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+.qwen-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+.qwen-actions .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.qwen-render {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.text-danger {
+  color: var(--danger);
+}
+
+/* ---- Franjas fijas: historial y prompts ------------------------------- */
+
+.qwen-history {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  max-height: 168px;
+}
+.qwen-history-list {
+  display: flex;
+  gap: var(--space-2);
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+}
+.qwen-render-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: none;
+  width: 250px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.qwen-render-card header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.qwen-render-card header b {
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-render-card p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.qwen-render-card .specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 8px;
+  font-size: var(--text-xs);
+  color: var(--text-4);
+}
+
+.qwen-prompts {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  max-height: 244px;
+  min-height: 0;
+}
+.qwen-prompts > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.qwen-prompt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.qwen-prompt {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.qwen-prompt.open {
+  border-color: var(--accent-line);
+}
+.qwen-prompt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.qwen-prompt-head:hover {
+  background: var(--surface-3);
+}
+.qwen-prompt-head .qwp-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.qwen-prompt-head .mode-dot {
+  flex: none;
+}
+.qwen-prompt-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2) 9px var(--space-3);
+  border-top: 1px solid var(--line);
+}
+.qwp-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  font-size: var(--text-xs);
+  color: var(--text-4);
+}
+.qwp-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.qwp-checks li {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-left: 8px;
+  border-left: 3px solid var(--line);
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.qwp-checks li.g-alta {
+  border-left-color: var(--danger);
+}
+.qwp-checks li.g-media {
+  border-left-color: var(--warn);
+}
+.qwp-checks li.g-baja {
+  border-left-color: var(--info);
+}
+.qwp-checks li b {
+  color: var(--text-2);
+  font-weight: 600;
+}
+.qwp-fix {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.qwp-improved {
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.ok-text {
+  color: var(--ok);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.qwen-payload {
+  max-height: 340px;
+  overflow: auto;
+  font-size: var(--text-xs);
+}
+
+/* Los carriles de este modulo, sin barra visible. */
+.qwen-library-list,
+.qwen-col.work > .panel-body.qwen-work-body,
+.qwen-col.lab > .panel-body.qwen-lab-body,
+.qwen-history-list,
+.qwen-prompts > .panel-body,
+.qwen-instruction {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.qwen-library-list::-webkit-scrollbar,
+.qwen-col.work > .panel-body.qwen-work-body::-webkit-scrollbar,
+.qwen-col.lab > .panel-body.qwen-lab-body::-webkit-scrollbar,
+.qwen-history-list::-webkit-scrollbar,
+.qwen-prompts > .panel-body::-webkit-scrollbar,
+.qwen-instruction::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* ---- Adaptaciones de ancho ------------------------------------------- */
+
+@media (max-width: 1320px) {
+  .qwen-board {
+    grid-template-columns: minmax(190px, 0.7fr) minmax(380px, 1.7fr) minmax(240px, 0.95fr);
+  }
+  .qwen-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1120px) {
+  .qwen-screen {
+    overflow: visible;
+  }
+  .qwen-board {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .qwen-col.lab {
+    grid-column: 1 / -1;
+  }
+  .qwen-col.work > .panel-body.qwen-work-body,
+  .qwen-col.lab > .panel-body.qwen-lab-body {
+    overflow-y: visible;
+  }
+  .qwen-prompts {
+    max-height: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .qwen-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .qwen-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .qwen-actions {
+    flex-wrap: wrap;
+  }
+}
+
+/* Conmutador original / mejorada en la biblioteca de Diseno de voz. */
+.v2-switch {
+  gap: var(--space-2);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+.v2-switch > .tiny {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.v2-switch .segmented {
+  flex: none;
+}
+
     </style>
   </head>
   <body>
@@ -6332,6 +6886,105 @@ function searchPrompts(query, family, mode) {
   });
 }
 
+/* ------------------------------------------------------------------ *
+ * VERSION MEJORADA
+ *
+ * La auditoria del modulo Qwen Voice Studio encontro que 654 de los 654
+ * prompts de VoiceDesign no declaran emocion ni grabacion, y que ninguno
+ * llega al maximo de los controles. En vez de reescribir la biblioteca a
+ * mano (que destruiria el texto auditado), cada prompt guarda aqui su
+ * version mejorada: el original se conserva intacto y se puede comparar.
+ *
+ * Las instrucciones de CosyVoice ya cumplen los cinco controles de su modo,
+ * asi que su version mejorada es identica al original y no se duplica.
+ * ------------------------------------------------------------------ */
+
+// Frases fijas del compilador. Se anaden solo cuando el original no las dice.
+const IMPROVE_ADDITIONS = [
+  { check: 'age', re: /\b(anos|años|joven|adult[ao]|madur[ao]|senior|ancian)\b/i, text: 'adulta de unos 35 a 45 anos' },
+  { check: 'timbre', re: /\b(timbre|grave|agudo|calid|brillante|nasal|ronc|asper|sedos|aterciopelad|metalic|profund)/i, text: 'timbre calido y aterciopelado' },
+  { check: 'cadence', re: /\b(cadencia|ritmo|pausad|lento|rapid|agil|conversacional|contemplativ)\b/i, text: 'cadencia pausada y reflexiva' },
+  { check: 'emotion', re: /\b(emocion|tono (alegre|serio|triste|solemne|ironic|epic)|alegre|solemne|triste|serio|ironic|misterios|urgente|tierno|epico|complice|divertid|melancol|seductor|autoritari|calmad|sarcast|nervios|entusiast)/i, text: 'emocion serena y contenida' },
+  { check: 'accent', re: /\b(acento|castellano|mexican|rioplatense|colombian|chilen|peruan|caribe|venezolan|andaluz|latinoamerican|neutro)\b/i, text: 'acento castellano neutro de Espana' },
+  { check: 'purpose', re: /\b(audiolibro|documental|comercial|spot|noticias|podcast|videojuego|doblaje|cuento|elearning|telefonia|ivr|poesia|meditacion|audiodescripcion|narracion|locucion)/i, text: '' },
+  { check: 'recording', re: /\b(estudio|microfono|microfon|cercan|grabacion|reverberacion|sala peque|seca|distancia)/i, text: 'grabacion de estudio seca y cercana al microfono' },
+];
+
+/**
+ * El proposito no se inventa: se deriva de lo que el texto ya dice que va a
+ * hacer la voz. Si no se reconoce ninguna pista, no se anade nada.
+ */
+const PURPOSE_HINTS = [
+  { re: /audiolibro|narrar|novela|ficcion literaria|capitulo/i, text: 'pensada para audiolibro de ficcion' },
+  { re: /documental|divulgacion|cientific/i, text: 'pensada para documental de divulgacion' },
+  { re: /spot|comercial|publicidad|cu[nñ]a/i, text: 'pensada para locucion comercial' },
+  { re: /boletin|noticias|informativ|periodis/i, text: 'pensada para boletin informativo' },
+  { re: /podcast|episodio|entrevista/i, text: 'pensada para podcast conversacional' },
+  { re: /videojuego|npc|mision/i, text: 'pensada para videojuego' },
+  { re: /doblaje|animacion|caricatur/i, text: 'pensada para doblaje de animacion' },
+  { re: /cuento|infantil|ni[nñ]os/i, text: 'pensada para cuentos infantiles' },
+  { re: /telefon|ivr|atencion al cliente/i, text: 'pensada para telefonia e IVR' },
+  { re: /meditacion|respiracion|descanso/i, text: 'pensada para meditacion guiada' },
+  { re: /poesia|teatro|recital/i, text: 'pensada para poesia y teatro' },
+  { re: /audiodescripcion/i, text: 'pensada para audiodescripcion' },
+  { re: /deporte|futbol|retransmision/i, text: 'pensada para radio deportiva' },
+  { re: /elearning|formacion|curso|corporativ/i, text: 'pensada para formacion corporativa' },
+];
+
+/**
+ * Version mejorada de un prompt de VoiceDesign: conserva el texto original y
+ * anade, al final, solo los atributos que faltan.
+ */
+function improveVoiceDesignPrompt(text) {
+  const original = String(text || '').trim();
+  const faltantes = IMPROVE_ADDITIONS.filter((item) => item.re.test(original) === false && item.text).map((item) => item.text);
+  // El proposito se toma de lo que el texto ya declara, nunca de un catalogo.
+  if (!/\b(pensad[ao] para|para (un|una|el|la) )/.test(original)) {
+    const pista = PURPOSE_HINTS.find((hint) => hint.re.test(original));
+    if (pista) faltantes.push(pista.text);
+  }
+  if (!faltantes.length) return original;
+  return `${original.replace(/\.$/, '')}, ${faltantes.join(', ')}.`;
+}
+
+/** La biblioteca con `improved` en cada entrada. Los instruct no cambian. */
+const PROMPT_LIBRARY_V2 = PROMPT_LIBRARY.map((item) => ({
+  ...item,
+  improved: item.mode === 'voice_design' ? improveVoiceDesignPrompt(item.text) : item.text,
+  added:
+    item.mode === 'voice_design'
+      ? [
+          ...IMPROVE_ADDITIONS.filter((a) => !a.re.test(item.text) && a.text).map((a) => a.check),
+          ...(!/\b(pensad[ao] para|para (un|una|el|la) )/.test(item.text) && PURPOSE_HINTS.some((h) => h.re.test(item.text))
+            ? ['purpose']
+            : []),
+        ]
+      : [],
+}));
+
+/** Cuantos prompts cambiarian y cuantos caracteres se anaden de media. */
+const PROMPT_V2_STATS = (() => {
+  const mejorados = PROMPT_LIBRARY_V2.filter((item) => item.improved !== item.text);
+  const extra = mejorados.reduce((acc, item) => acc + (item.improved.length - item.text.length), 0);
+  return {
+    total: PROMPT_LIBRARY_V2.length,
+    mejorados: mejorados.length,
+    intactos: PROMPT_LIBRARY_V2.length - mejorados.length,
+    mediaExtra: mejorados.length ? Math.round(extra / mejorados.length) : 0,
+  };
+})();
+
+/** Busqueda sobre la version mejorada, con la misma firma que searchPrompts. */
+function searchPromptsV2(query, family, mode) {
+  const q = (query || '').toLowerCase().trim();
+  return PROMPT_LIBRARY_V2.filter((item) => {
+    if (family !== 'todas' && item.family !== family) return false;
+    if (mode !== 'todos' && item.mode !== mode) return false;
+    if (!q) return true;
+    return `${item.improved} ${item.text} ${item.familyLabel} ${item.accent}`.toLowerCase().includes(q);
+  });
+}
+
 // ---------------------------------------------------------------------------
 // lectura.data.js
 // ---------------------------------------------------------------------------
@@ -6872,6 +7525,671 @@ function estimateClone(engineId, seconds) {
 }
 
 // ---------------------------------------------------------------------------
+// qwen.data.js
+// ---------------------------------------------------------------------------
+// VozStudio Atlas - Qwen Voice Studio (modulo de diseno de voz con Qwen3-TTS).
+//
+// Este modulo reproduce el contrato del backend compartido (qwen3vd.txt,
+// "Qwen Voice Studio Pro v2") dentro del prototipo, sin red y sin Python:
+//
+//   1. DESCRIPCION LIBRE -> perfil acustico estructurado (VoiceProfileParser v2).
+//      Catorce campos, `null` cuando el atributo no se especifica, y un bloque
+//      de analisis con confianza, ambiguedades y conflictos.
+//   2. PERFIL -> instruccion en lenguaje natural para Qwen3-TTS VoiceDesign.
+//      La compilacion es determinista: mismas piezas, misma frase.
+//   3. INSTRUCCION -> payload real de `generate_voice_design`:
+//      { text, language: "Spanish", instruct } dentro del contrato de SynthesizeRequest.
+//
+// La diferencia con el archivo original: aqui no se inventa nada. El parser es
+// lexico y determinista (no hay Phi-3.5 en el prototipo), y declara su confianza
+// y sus ambiguedades en vez de fingir una llamada a un modelo.
+
+/** Los catorce campos, en el orden del contrato. */
+const VOICE_FIELDS = [
+  { id: 'gender', label: 'Genero', kind: 'enum', options: ['masculino', 'femenino', 'androgino'] },
+  { id: 'age', label: 'Edad aparente', kind: 'number', min: 5, max: 100 },
+  { id: 'accent', label: 'Acento', kind: 'text', max: 120 },
+  { id: 'texture', label: 'Textura', kind: 'text', max: 160 },
+  { id: 'emotion', label: 'Emocion', kind: 'text', max: 100 },
+  { id: 'purpose', label: 'Proposito', kind: 'text', max: 160 },
+  { id: 'pitch', label: 'Tono (pitch)', kind: 'enum', options: ['grave', 'medio', 'agudo'] },
+  { id: 'pacing', label: 'Ritmo', kind: 'enum', options: ['lento', 'conversacional', 'rapido'] },
+  { id: 'energy', label: 'Energia', kind: 'enum', options: ['letargica', 'contenida', 'conversacional', 'proyectada', 'euforica'] },
+  { id: 'f0Curve', label: 'Entonacion F0', kind: 'enum', options: ['plana', 'estable', 'dinamica', 'expresiva', 'erratica'] },
+  { id: 'micProximity', label: 'Proximidad', kind: 'enum', options: ['cercana', 'estudio', 'media', 'lejana'] },
+  { id: 'breathiness', label: 'Aire', kind: 'enum', options: ['nula', 'ligera', 'natural', 'fuerte'] },
+  { id: 'formants', label: 'Resonancia', kind: 'enum', options: ['calidos', 'neutros', 'brillantes'] },
+  { id: 'articulation', label: 'Articulacion', kind: 'enum', options: ['relajada', 'normal', 'precisa'] },
+];
+
+/** Perfil vacio: todos los atributos en null, como exige el contrato. */
+function emptyProfile() {
+  return VOICE_FIELDS.reduce((acc, item) => ({ ...acc, [item.id]: null }), {});
+}
+
+/**
+ * Lexico del parser. Cada entrada tiene patron, valor y peso (cuanto de fiable
+ * es la pista). Se recorren de mas especifico a mas general para que
+ * "latinoamericano neutro" gane a "neutro".
+ */
+const LEXICON = [
+  // Genero
+  { field: 'gender', value: 'femenino', weight: 0.9, re: /\b(mujer|femenin[ao]s?|narradora|locutora|actriz|chica|senora|dama)\b/ },
+  { field: 'gender', value: 'masculino', weight: 0.9, re: /\b(hombre|masculin[ao]s?|narrador|locutor|actor|chico|caballero|senor)\b/ },
+  { field: 'gender', value: 'androgino', weight: 0.85, re: /\b(androg[ií]n[ao]s?|neutr[ao] en genero|sin genero)\b/ },
+
+  // Edad
+  { field: 'age', value: 22, weight: 0.8, re: /\b(18|19|2[0-4])\s*(anos|años)\b/ },
+  { field: 'age', value: 28, weight: 0.75, re: /\bjoven\b/ },
+  { field: 'age', value: 55, weight: 0.75, re: /\b(madur[ao]|mediana edad)\b/ },
+  { field: 'age', value: 68, weight: 0.8, re: /\b(senior|mayor|abuel[oa])\b/ },
+  { field: 'age', value: 78, weight: 0.8, re: /\b(ancian[oa]|viejo|viejecita|setenton)\b/ },
+
+  // Acento
+  { field: 'accent', value: 'peruano urbano', weight: 0.95, re: /\b(peru|lime[nñ]o)/ },
+  { field: 'accent', value: 'espanol latinoamericano neutro', weight: 0.9, re: /\b(latinoamerican[ao] neutro|neutro latino|espanol neutro)\b/ },
+  { field: 'accent', value: 'castellano neutro de Espana', weight: 0.9, re: /\b(castellano|espanol de espana|peninsular|madrilen[oa])\b/ },
+  { field: 'accent', value: 'mexicano del centro', weight: 0.9, re: /\b(mexic|chilang)/ },
+  { field: 'accent', value: 'rioplatense argentino', weight: 0.9, re: /\b(argentin|rioplatense|bonaerense|porte[nñ])/ },
+  { field: 'accent', value: 'colombiano andino', weight: 0.9, re: /\b(colombian|bogotan|paisa)\b/ },
+  { field: 'accent', value: 'chileno santiaguino', weight: 0.9, re: /\b(chilen|santiaguin)/ },
+  { field: 'accent', value: 'caribeno cubano', weight: 0.9, re: /\b(cuban|caribe[nñ]|habaner)/ },
+  { field: 'accent', value: 'venezolano central', weight: 0.9, re: /\b(venezolan|carague[nñ])/ },
+  { field: 'accent', value: 'andaluz suave', weight: 0.9, re: /\b(andaluz|sevillan|malague[nñ])/ },
+
+  // Textura (timbre)
+  { field: 'texture', value: 'profunda y resonante', weight: 0.85, re: /\b(profund[ao]s?|resonante|pectoral|de pecho)\b/ },
+  { field: 'texture', value: 'calida y aterciopelada', weight: 0.8, re: /\b(calid[ao]|aterciopelad[ao]|sedos[ao])/ },
+  { field: 'texture', value: 'aspera y gastada', weight: 0.8, re: /\b(asper[ao]s?|rasp[ao]s?|gastad[ao]|ronc[ao]|quebrad[ao])\b/ },
+  { field: 'texture', value: 'brillante y limpia', weight: 0.8, re: /\b(brillante|limpia|luminos[ao]|cristalin[ao])\b/ },
+  { field: 'texture', value: 'nasal y caracteristica', weight: 0.8, re: /\b(nasal|gangos[ao])\b/ },
+  { field: 'texture', value: 'aerea y ligera', weight: 0.8, re: /\b(aere[ao]|ligera|etere[ao]|vaporos[ao])\b/ },
+  { field: 'texture', value: 'metalica y cortante', weight: 0.8, re: /\b(metalic[ao]|cortante|filos[ao])\b/ },
+
+  // Emocion
+  { field: 'emotion', value: 'solemnidad', weight: 0.8, re: /\b(solemne|solemnidad|ceremonios[ao]|epic[ao])\b/ },
+  { field: 'emotion', value: 'tension contenida', weight: 0.85, re: /\b(tension|suspense|amenaza|thriller|misterio)\b/ },
+  { field: 'emotion', value: 'alegria', weight: 0.8, re: /\b(alegria|alegre|feliz|optimis|entusiasmo|divertid[ao])\b/ },
+  { field: 'emotion', value: 'tristeza', weight: 0.8, re: /\b(triste|melancol|nostalgi|duelo)\b/ },
+  { field: 'emotion', value: 'serenidad', weight: 0.8, re: /\b(seren[ao]|calma|tranquil[ao]|relajad[ao])\b/ },
+  { field: 'emotion', value: 'urgencia', weight: 0.85, re: /\b(urgencia|urgente|apuro|emergencia)\b/ },
+  { field: 'emotion', value: 'empatia', weight: 0.8, re: /\b(empatia|comprension|cercania emocional)\b/ },
+  { field: 'emotion', value: 'autoridad', weight: 0.8, re: /\b(autoridad|autoritari[ao]|mando|jefe|rey|reina)\b/ },
+  { field: 'emotion', value: 'vulnerabilidad', weight: 0.85, re: /\b(vulnerab|confesion|intim[ao]|fragilidad)\b/ },
+  { field: 'emotion', value: 'ironia', weight: 0.8, re: /\b(ironic[ao]|sarcas|burlon|guino)\b/ },
+
+  // Proposito
+  { field: 'purpose', value: 'audiolibro de ficcion', weight: 0.85, re: /\b(audiolibro|novela|ficcion literaria|capitulo)\b/ },
+  { field: 'purpose', value: 'documental', weight: 0.85, re: /\b(documental|divulgacion|naturaleza|cientific)/ },
+  { field: 'purpose', value: 'locucion comercial', weight: 0.85, re: /\b(comercial|spot|anuncio|publicidad|cu[nñ]a)\b/ },
+  { field: 'purpose', value: 'noticias', weight: 0.85, re: /\b(noticias|boletin|informativ|periodis)/ },
+  { field: 'purpose', value: 'podcast', weight: 0.85, re: /\b(podcast|episodio|entrevista)\b/ },
+  { field: 'purpose', value: 'videojuego', weight: 0.85, re: /\b(videojuego|npc|mision)\b/ },
+  { field: 'purpose', value: 'doblaje de animacion', weight: 0.85, re: /\b(doblaje|animacion|caricatur)/ },
+  { field: 'purpose', value: 'cuento infantil', weight: 0.85, re: /\b(cuento|infantil|ni[nñ]os|dormir)\b/ },
+  { field: 'purpose', value: 'asistente de voz', weight: 0.85, re: /\b(asistente|ivr|telefon|atencion al cliente|recepcion)/ },
+  { field: 'purpose', value: 'meditacion guiada', weight: 0.85, re: /\b(meditacion|respiracion|mindfulness|descanso)\b/ },
+  { field: 'purpose', value: 'mensaje personal', weight: 0.8, re: /\b(mensaje personal|nota de voz)\b/ },
+
+  // Pitch
+  { field: 'pitch', value: 'grave', weight: 0.8, re: /\b(grave|registro bajo|de bajo)\b/ },
+  { field: 'pitch', value: 'agudo', weight: 0.8, re: /\b(agud[ao]|registro alto|tesitura alta|chillon)\b/ },
+  { field: 'pitch', value: 'medio', weight: 0.7, re: /\b(tono medio|registro medio|intermedio)\b/ },
+
+  // Pacing
+  { field: 'pacing', value: 'lento', weight: 0.8, re: /\b(lento|pausad[ao]|contemplativ|sin prisa)\b/ },
+  { field: 'pacing', value: 'rapido', weight: 0.8, re: /\b(rapid[ao]|agil|acelerad[ao]|dinamic|vertiginos)/ },
+  { field: 'pacing', value: 'conversacional', weight: 0.8, re: /\b(conversacional|coloquial)\b/ },
+
+  // Energy
+  { field: 'energy', value: 'proyectada', weight: 0.8, re: /\b(proyectad[ao]|proyeccion|escenario|potente)\b/ },
+  { field: 'energy', value: 'euforica', weight: 0.85, re: /\b(eufori|euforic|exaltad[ao]|a gritos)\b/ },
+  { field: 'energy', value: 'contenida', weight: 0.8, re: /\b(contenid[ao]|reservad[ao]|discret[ao])\b/ },
+  { field: 'energy', value: 'letargica', weight: 0.85, re: /\b(letargic|sin energia|apagad[ao])\b/ },
+
+  // F0
+  { field: 'f0Curve', value: 'expresiva', weight: 0.8, re: /\b(expresiv[ao]|melodic[ao]|modulad[ao]|teatral)\b/ },
+  { field: 'f0Curve', value: 'estable', weight: 0.8, re: /\b(estable|controlad[ao]|uniforme)\b/ },
+  { field: 'f0Curve', value: 'plana', weight: 0.85, re: /\b(plana|monoton[ao]|sin variacion)\b/ },
+  { field: 'f0Curve', value: 'dinamica', weight: 0.8, re: /\b(dinamic[ao]|variad[ao]|ondulante)\b/ },
+  { field: 'f0Curve', value: 'erratica', weight: 0.85, re: /\b(erratic|inestable|impredecible|nervios[ao])\b/ },
+
+  // Proximidad de microfono
+  { field: 'micProximity', value: 'cercana', weight: 0.85, re: /\b(cercan[ao] al microfono|intim[ao]|al oido)\b/ },
+  { field: 'micProximity', value: 'estudio', weight: 0.85, re: /\b(estudio|seca|cabina)\b/ },
+  { field: 'micProximity', value: 'lejana', weight: 0.85, re: /\b(lejan[ao]|distante|sala grande)\b/ },
+  { field: 'micProximity', value: 'media', weight: 0.7, re: /\b(sala peque[nñ]a|de habitacion)\b/ },
+
+  // Aire
+  { field: 'breathiness', value: 'fuerte', weight: 0.85, re: /\b(mucho aire|aspirad[ao]|respirad[ao]|aire fuerte)\b/ },
+  { field: 'breathiness', value: 'ligera', weight: 0.85, re: /\b(ligero aire|aire tenue|airead[ao]|respiracion audible|sopl[oa])\b/ },
+  { field: 'breathiness', value: 'nula', weight: 0.85, re: /\b(sin aire|limpia de aire)\b/ },
+  { field: 'breathiness', value: 'natural', weight: 0.7, re: /\b(aire natural|respiracion natural)\b/ },
+
+  // Resonancia
+  { field: 'formants', value: 'calidos', weight: 0.8, re: /\b(resonancia calid|formantes calid|redond[ao])\b/ },
+  { field: 'formants', value: 'brillantes', weight: 0.8, re: /\b(resonancia brillante|formantes brillante)\b/ },
+  { field: 'formants', value: 'neutros', weight: 0.7, re: /\b(resonancia neutr|formantes neutr|equilibrad[ao])\b/ },
+
+  // Articulacion
+  { field: 'articulation', value: 'precisa', weight: 0.8, re: /\b(precis[ao]|impecable|diccion|articulad[ao]|muy clar[ao])\b/ },
+  { field: 'articulation', value: 'relajada', weight: 0.8, re: /\b(relajad[ao]|suelta|despreocupad[ao])\b/ },
+  { field: 'articulation', value: 'normal', weight: 0.6, re: /\b(articulacion normal)\b/ },
+];
+
+/** Conflictos conocidos: pares que el contrato prohibe ir juntos. */
+const CONFLICTS = [
+  {
+    test: (p) => p.breathiness === 'fuerte' && p.articulation === 'precisa',
+    text: 'Aire fuerte con articulacion precisa: las sibilancias se comen las consonantes. Baja el aire o relaja la articulacion.',
+  },
+  {
+    test: (p) => p.energy === 'euforica' && p.pacing === 'lento',
+    text: 'Energia euforica con ritmo lento: el motor recibe dos ordenes opuestas y suele resolver a media. Elige una.',
+  },
+  {
+    test: (p) => p.pitch === 'agudo' && p.texture === 'profunda y resonante',
+    text: 'Tono agudo con textura profunda: un tono agudo no tiene graves solidos. Se contradicen.',
+  },
+  {
+    test: (p) => p.micProximity === 'lejana' && p.energy === 'contenida',
+    text: 'Voz lejana y contenida: el resultado suena ininteligible. Si es lejana, sube la energia.',
+  },
+  {
+    test: (p) => p.f0Curve === 'plana' && p.emotion === 'alegria',
+    text: 'Entonacion plana con emocion alegre: la alegria vive en la curva de F0.',
+  },
+];
+
+/**
+ * Parser lexico de la descripcion libre. Mismo formato de salida que
+ * POST /api/translate: { profile, analysis: { confidence, ambiguities, conflicts } }.
+ */
+function parseDescription(description) {
+  const text = String(description || '').toLowerCase();
+  const profile = emptyProfile();
+  const hits = [];
+  const ambiguities = [];
+
+  if (!text.trim()) {
+    return {
+      profile,
+      analysis: { confidence: 0, ambiguities: ['No hay descripcion que analizar.'], conflicts: [] },
+      matched: 0,
+    };
+  }
+
+  LEXICON.forEach((entry) => {
+    if (!entry.re.test(text)) return;
+    if (profile[entry.field] === null) {
+      profile[entry.field] = entry.value;
+      hits.push(entry);
+      return;
+    }
+    if (profile[entry.field] === entry.value) return;
+
+    // Segundo valor distinto para el mismo campo: gana el de mas peso.
+    const previo = hits.filter((c) => c.field === entry.field).sort((a, b) => b.weight - a.weight)[0];
+    if (previo && entry.weight > previo.weight) {
+      ambiguities.push(`«${entry.field}»: el texto sugiere «${entry.value}» y «${previo.value}»; se aplico el de mas peso.`);
+      profile[entry.field] = entry.value;
+      hits.push(entry);
+    } else if (previo) {
+      ambiguities.push(`«${entry.field}» podria ser «${entry.value}», pero el texto lo describe como «${previo.value}».`);
+    }
+  });
+
+  // La edad en cifras gana al adjetivo.
+  const edadExplicita = text.match(/\b(?:de|con|tiene|unos|aparenta)\s+(\d{1,3})\s*(?:anos|años)\b/);
+  if (edadExplicita) {
+    const edad = Number(edadExplicita[1]);
+    if (edad >= 5 && edad <= 100) {
+      if (profile.age !== null && profile.age !== edad) {
+        ambiguities.push(`Hay dos edades en el texto: se aplica la cifra explicita (${edad} anos).`);
+      }
+      profile.age = edad;
+    }
+  }
+
+  const conflicts = CONFLICTS.filter((item) => item.test(profile)).map((item) => item.text);
+
+  const cubiertos = VOICE_FIELDS.filter((f) => profile[f.id] !== null).length / VOICE_FIELDS.length;
+  const pesoMedio = hits.length ? hits.reduce((acc, h) => acc + h.weight, 0) / hits.length : 0;
+  let confidence = cubiertos * 0.7 + pesoMedio * 0.3;
+  if (conflicts.length) confidence *= 0.85;
+  confidence = Math.max(0, Math.min(1, Number(confidence.toFixed(2))));
+
+  if (!hits.length) {
+    ambiguities.push('No se reconocio ningun atributo: describe genero, edad, timbre, emocion o acento.');
+  } else if (cubiertos < 0.35) {
+    ambiguities.push('El texto cubre pocos atributos: el prompt compilado sera generico.');
+  }
+
+  return { profile, analysis: { confidence, ambiguities, conflicts }, matched: hits.length };
+}
+
+/* ------------------------- compilador semantico ------------------------- */
+/*
+  Traducciones cerradas del contrato. Arma identidad, timbre, interpretacion y
+  grabacion, y las une en la instruccion que viaja tal cual en `instruct`.
+*/
+const GENDER = {
+  masculino: 'A masculine-sounding voice',
+  femenino: 'A feminine-sounding voice',
+  androgino: 'An androgynous-sounding voice',
+};
+const PITCH = { grave: 'low-pitched', medio: 'mid-pitched', agudo: 'high-pitched' };
+const PACING = {
+  lento: 'slow and measured pacing',
+  conversacional: 'natural conversational pacing',
+  rapido: 'brisk but intelligible pacing',
+};
+const ENERGY = {
+  letargica: 'very low vocal energy',
+  contenida: 'restrained vocal energy',
+  conversacional: 'natural conversational energy',
+  proyectada: 'confident projected delivery',
+  euforica: 'highly energetic delivery',
+};
+const F0 = {
+  plana: 'minimal pitch variation',
+  estable: 'controlled natural intonation',
+  dinamica: 'naturally varied intonation',
+  expresiva: 'expressive melodic intonation',
+  erratica: 'deliberately unstable intonation',
+};
+const BREATH = {
+  nula: 'clean, minimally breathy phonation',
+  ligera: 'subtly airy phonation',
+  natural: 'natural breathiness',
+  fuerte: 'noticeably breathy phonation',
+};
+const ARTICULATION = {
+  relajada: 'relaxed articulation',
+  normal: 'natural clear articulation',
+  precisa: 'crisp and precise articulation',
+};
+const RECORDING = {
+  cercana: 'an intimate, close-recorded impression',
+  estudio: 'a clean, dry studio-recorded impression',
+  media: 'a natural conversational recording impression',
+  lejana: 'a slightly distant vocal impression',
+};
+const FORMANTS = {
+  calidos: 'warm and rounded vocal resonance',
+  neutros: 'balanced vocal resonance',
+  brillantes: 'bright vocal resonance',
+};
+
+const joinParts = (parts) => parts.filter(Boolean).join('; ') || 'Natural voice';
+
+/** Plantilla maestra: texto literal de MASTER_PROMPT del backend compartido. */
+const MASTER_TEMPLATE = `You are preparing a natural-language voice design instruction for Qwen3-TTS VoiceDesign.
+
+The target spoken language is Spanish.
+
+Describe one coherent voice identity and one coherent delivery style. Preserve the intended accent, timbre and emotional tone.
+
+VOICE IDENTITY:
+{{identity}}
+
+VOICE TIMBRE:
+{{timbre}}
+
+VOICE DELIVERY:
+{{delivery}}
+
+PERCEPTUAL RECORDING STYLE:
+{{recording}}
+
+GENERAL REQUIREMENTS:
+Natural human speech, clear Spanish pronunciation, coherent prosody, stable vocal identity and intelligible articulation.
+
+Avoid contradictory instructions and excessive exaggeration. Do not generate stage directions or sound effects as speech.`;
+
+/** Las cuatro piezas del prompt, para poder ensenarlas por separado. */
+function profileParts(profile) {
+  const p = { ...emptyProfile(), ...profile };
+  const tieneEdad = p.age !== null && p.age !== undefined && p.age !== '';
+  return {
+    identity: joinParts([
+      GENDER[p.gender],
+      tieneEdad ? `with the perceived maturity of a ${p.age}-year-old` : null,
+      p.accent ? `speaking with a ${p.accent} accent` : null,
+    ]),
+    timbre: joinParts([
+      p.texture ? `A ${p.texture} vocal texture` : null,
+      PITCH[p.pitch],
+      FORMANTS[p.formants],
+      BREATH[p.breathiness],
+    ]),
+    delivery: joinParts([
+      p.emotion ? `Convey ${p.emotion}` : null,
+      p.purpose ? `Suitable for ${p.purpose}` : null,
+      PACING[p.pacing],
+      ENERGY[p.energy],
+      F0[p.f0Curve],
+      ARTICULATION[p.articulation],
+    ]),
+    recording: joinParts([RECORDING[p.micProximity]]),
+  };
+}
+
+/**
+ * Compila el perfil a la instruccion final. Determinista y sin variables sin
+ * resolver: si quedara alguna, se lanza en vez de mandar un prompt roto.
+ */
+function compileProfile(profile, template = MASTER_TEMPLATE) {
+  const parts = profileParts(profile);
+  let out = template;
+  Object.entries(parts).forEach(([key, value]) => {
+    out = out.replaceAll(`{{${key}}}`, value);
+  });
+  const pendientes = out.match(/\{\{[^{}]+\}\}/g);
+  if (pendientes) throw new Error(`Variables sin resolver: ${pendientes.join(', ')}`);
+  return out.trim();
+}
+
+/** Cuantos de los catorce campos estan cubiertos y su porcentaje. */
+function profileCoverage(profile) {
+  const p = profile || {};
+  const done = VOICE_FIELDS.filter((f) => p[f.id] !== null && p[f.id] !== undefined && p[f.id] !== '').length;
+  return { done, total: VOICE_FIELDS.length, pct: Math.round((done / VOICE_FIELDS.length) * 100) };
+}
+
+/** El payload que viaja al motor, igual que el contrato del backend. */
+function buildPayload({ text, instruction, profile, language = 'Spanish' }) {
+  return {
+    schema_version: '2.0',
+    model: 'Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign',
+    task: 'voice_design',
+    input: { text, language, instruct: instruction },
+    output: { format: 'wav' },
+    profile: profile || null,
+  };
+}
+
+/* ---------------------------- biblioteca ---------------------------- */
+/*
+  Las quince voces semilla del backend compartido, con sus mismos atributos.
+  Son perfiles completos: sirven de ejemplo y de punto de partida.
+*/
+const SEED_VOICES = [
+  {
+    title: 'Narrador epico',
+    category: 'Audiolibros',
+    profile: { gender: 'masculino', age: 50, accent: 'espanol latinoamericano neutro', texture: 'profunda y resonante', emotion: 'solemnidad', pitch: 'grave', pacing: 'lento', energy: 'proyectada', f0Curve: 'expresiva' },
+  },
+  {
+    title: 'Cuentacuentos infantil',
+    category: 'Audiolibros',
+    profile: { gender: 'femenino', age: 60, texture: 'calida y aterciopelada', emotion: 'alegria', pacing: 'conversacional', f0Curve: 'expresiva', articulation: 'precisa' },
+  },
+  {
+    title: 'Thriller psicologico',
+    category: 'Audiolibros',
+    profile: { gender: 'androgino', age: 35, texture: 'aspera y gastada', emotion: 'tension contenida', energy: 'contenida', pacing: 'lento' },
+  },
+  {
+    title: 'Narradora documental',
+    category: 'Audiolibros',
+    profile: { gender: 'femenino', age: 42, accent: 'peruano urbano', texture: 'calida y aterciopelada', emotion: 'serenidad', energy: 'conversacional', articulation: 'precisa' },
+  },
+  {
+    title: 'Villano calculador',
+    category: 'Videojuegos',
+    profile: { gender: 'masculino', age: 45, texture: 'aspera y gastada', emotion: 'tension contenida', pitch: 'grave', pacing: 'lento', energy: 'contenida' },
+  },
+  {
+    title: 'Heroina tactica',
+    category: 'Videojuegos',
+    profile: { gender: 'femenino', age: 28, emotion: 'urgencia', energy: 'proyectada', articulation: 'precisa', pacing: 'rapido' },
+  },
+  {
+    title: 'Mago anciano',
+    category: 'Videojuegos',
+    profile: { gender: 'masculino', age: 80, texture: 'aspera y gastada', pitch: 'grave', pacing: 'lento' },
+  },
+  {
+    title: 'IA de nave',
+    category: 'Videojuegos',
+    profile: { gender: 'femenino', age: 30, texture: 'brillante y limpia', emotion: 'serenidad', f0Curve: 'estable', articulation: 'precisa' },
+  },
+  {
+    title: 'Asistente ejecutivo',
+    category: 'Asistentes AI',
+    profile: { gender: 'masculino', age: 40, texture: 'calida y aterciopelada', emotion: 'autoridad', articulation: 'precisa' },
+  },
+  {
+    title: 'Recepcionista clinica',
+    category: 'Asistentes AI',
+    profile: { gender: 'femenino', age: 35, texture: 'calida y aterciopelada', emotion: 'empatia', energy: 'contenida', pacing: 'conversacional' },
+  },
+  {
+    title: 'Guia de meditacion',
+    category: 'Asistentes AI',
+    profile: { gender: 'femenino', age: 40, texture: 'calida y aterciopelada', emotion: 'serenidad', pacing: 'lento', breathiness: 'ligera' },
+  },
+  {
+    title: 'Locutor juvenil',
+    category: 'Publicidad',
+    profile: { gender: 'masculino', age: 22, texture: 'brillante y limpia', emotion: 'alegria', energy: 'euforica', pacing: 'rapido' },
+  },
+  {
+    title: 'Automoviles de lujo',
+    category: 'Publicidad',
+    profile: { gender: 'masculino', age: 50, texture: 'profunda y resonante', emotion: 'autoridad', pitch: 'grave', pacing: 'lento' },
+  },
+  {
+    title: 'Confesion intima',
+    category: 'Doblaje',
+    profile: { gender: 'femenino', age: 28, emotion: 'vulnerabilidad', energy: 'contenida', breathiness: 'ligera', micProximity: 'cercana' },
+  },
+  {
+    title: 'Rey medieval',
+    category: 'Doblaje',
+    profile: { gender: 'masculino', age: 60, texture: 'profunda y resonante', emotion: 'solemnidad', energy: 'proyectada', articulation: 'precisa' },
+  },
+];
+
+const SEED_CATEGORIES = [...new Set(SEED_VOICES.map((v) => v.category))];
+
+/** Texto de prueba por defecto del laboratorio. */
+const DEFAULT_SPEECH =
+  'Hola. Esta es una prueba de voz generada localmente con Qwen tres. Estoy evaluando la naturalidad, la entonacion y la claridad.';
+
+/** Limites del contrato (MAX_TEXT y MAX_PROMPT del backend). */
+const QWEN_MAX_TEXT = 2000;
+const MAX_INSTRUCTION = 3000;
+
+/**
+ * Diagnostico de un prompt de la biblioteca de 1.110.
+ *
+ * Regla de oro del modulo: no se reescribe ningun texto existente. Se dice que
+ * le falta, que se puede anadir sin inventar, y se ofrece una version mejorada
+ * que el usuario decide aplicar.
+ *
+ * Cada hallazgo tiene id estable, gravedad y una pista concreta.
+ */
+const PROMPT_CHECKS = [
+  {
+    id: 'gender',
+    label: 'Genero explicito',
+    gravedad: 'alta',
+    test: (text) => /\b(voz (femenina|masculina|androgina)|femenin|masculin|androg)/i.test(text),
+    fix: 'Di el genero percibido: el motor lo usa como ancla de identidad.',
+  },
+  {
+    id: 'age',
+    label: 'Edad aparente',
+    gravedad: 'alta',
+    test: (text) => /\b(anos|años|joven|adult[ao]|madur[ao]|senior|ancian)\b/i.test(text),
+    fix: 'Añade la madurez percibida ("de unos 35 anos"): mueve el peso de los formantes.',
+  },
+  {
+    id: 'accent',
+    label: 'Acento',
+    gravedad: 'media',
+    test: (text) => /\b(acento|castellano|mexican|rioplatense|colombian|chilen|peruan|caribe|venezolan|andaluz|latinoamerican|neutro)\b/i.test(text),
+    fix: 'Concreta el acento: es lo que mas cambia la inteligibilidad percibida.',
+  },
+  {
+    id: 'timbre',
+    label: 'Timbre',
+    gravedad: 'alta',
+    test: (text) => /\b(timbre|grave|agudo|calid|brillante|nasal|ronc|asper|sedos|aterciopelad|metalic|profund)/i.test(text),
+    fix: 'Anade el timbre ("calido y aterciopelado"): sin el, el motor elige uno al azar.',
+  },
+  {
+    id: 'cadence',
+    label: 'Cadencia',
+    gravedad: 'media',
+    test: (text) => /\b(cadencia|ritmo|pausad|lento|rapid|agil|conversacional|contemplativ)\b/i.test(text),
+    fix: 'Di la cadencia ("pausada y reflexiva" o "agil y ritmica").',
+  },
+  {
+    id: 'emotion',
+    label: 'Emocion',
+    gravedad: 'media',
+    test: (text) => /\b(emocion|tono (alegre|serio|triste|solemne|ironic|epic)|alegre|solemne|triste|serio|ironic|misterios|urgente|tierno|epico|complice|divertid|melancol|seductor|autoritari|calmad|sarcast|nervios|entusiast)/i.test(text),
+    fix: 'Declara la emocion dominante: es el eje de la interpretacion.',
+  },
+  {
+    id: 'purpose',
+    label: 'Proposito',
+    gravedad: 'baja',
+    test: (text) => /\b(audiolibro|documental|comercial|spot|noticias|podcast|videojuego|doblaje|cuento|elearning|telefonia|ivr|poesia|meditacion|audiodescripcion|narracion|locucion)/i.test(text),
+    fix: 'Anade el uso ("para audiolibro", "para spot de radio"): fija la intensidad.',
+  },
+  {
+    id: 'recording',
+    label: 'Grabacion',
+    gravedad: 'baja',
+    test: (text) => /\b(estudio|microfono|microfon|cercan|grabacion|reverberacion|sala peque|seca|distancia)/i.test(text),
+    fix: 'Describe la grabacion percibida ("de estudio", "cercano al microfono").',
+  },
+  {
+    id: 'length',
+    label: 'Longitud util',
+    gravedad: 'alta',
+    test: (text) => text.length >= 120 && text.length <= 700,
+    fix: 'El prompt util va de 120 a 700 caracteres: menos deja huecos, mas diluye la instruccion.',
+  },
+  {
+    id: 'clean',
+    label: 'Sin contradicciones',
+    gravedad: 'alta',
+    test: (text) => !/\b(a la vez|y a la vez|tan\b.*\bcomo\b)/i.test(text),
+    fix: 'Evita "X y a la vez lo contrario": son ordenes que el motor no puede cumplir juntas.',
+  },
+];
+
+/** Analiza un prompt y devuelve sus hallazgos ordenados por gravedad. */
+function auditPrompt(text, mode = 'voice_design') {
+  const original = String(text || '');
+  // La instruccion de CosyVoice no lleva genero, edad ni timbre: pide entrega.
+  if (mode === 'instruct_tts') {
+    const checks = ['style', 'context', 'accent', 'length', 'clean'];
+    const hallazgos = PROMPT_CHECKS.filter((c) => checks.includes(c.id) && !c.test(original)).map((c) => ({
+      id: c.id,
+      label: c.label,
+      gravedad: c.gravedad,
+      fix: c.fix,
+    }));
+    const orden = { alta: 0, media: 1, baja: 2 };
+    hallazgos.sort((a, b) => orden[a.gravedad] - orden[b.gravedad]);
+    return {
+      hallazgos,
+      puntos: Math.round(((checks.length - hallazgos.length) / checks.length) * 100),
+      completo: hallazgos.length === 0,
+    };
+  }
+  // Solo los controles de VoiceDesign: style y context son de la instruccion.
+  const checksVD = PROMPT_CHECKS.filter((check) => !['style', 'context'].includes(check.id));
+  const hallazgos = checksVD.filter((check) => !check.test(original)).map((check) => ({
+    id: check.id,
+    label: check.label,
+    gravedad: check.gravedad,
+    fix: check.fix,
+  }));
+  const orden = { alta: 0, media: 1, baja: 2 };
+  hallazgos.sort((a, b) => orden[a.gravedad] - orden[b.gravedad]);
+  const puntos = Math.round(((checksVD.length - hallazgos.length) / checksVD.length) * 100);
+  return { hallazgos, puntos, completo: hallazgos.length === 0 };
+}
+
+/* Controles propios del prompt de instruccion (CosyVoice Instruct-TTS). */
+PROMPT_CHECKS.push(
+  {
+    id: 'style',
+    label: 'Estilo explicito',
+    gravedad: 'alta',
+    test: (text) => /^habla\b/i.test(text.trim()),
+    fix: 'La instruccion empieza por "Habla ...": es el contrato de CosyVoice.',
+  },
+  {
+    id: 'context',
+    label: 'Contexto de habla',
+    gravedad: 'media',
+    test: (text) => /\b(corresponde a|en una|en un|durante|mientras)\b/i.test(text),
+    fix: 'Di en que situacion se habla: da la intencion al motor.',
+  },
+);
+
+/**
+ * Mejora un prompt respetando lo que ya dice: no borra texto, anade por detras
+ * solo lo que falta, con frases fijas del compilador. Si esta completo, se
+ * devuelve tal cual y se dice.
+ */
+function improvePrompt(text, { accent = 'castellano neutro de Espana', purpose = '', mode = 'voice_design' } = {}) {
+  const original = String(text || '').trim();
+  const { hallazgos } = auditPrompt(original, mode);
+
+  if (mode === 'instruct_tts') {
+    const falta = new Set(hallazgos.map((h) => h.id));
+    const partes = [];
+    if (falta.has('style')) partes.push('Habla con tono sereno y cercano, modulando la intensidad en cada frase');
+    if (falta.has('context')) partes.push('El texto corresponde a una lectura natural en voz alta');
+    if (falta.has('accent')) partes.push(`y debe sonar con acento ${accent}`);
+    return {
+      text: partes.length ? `${original.replace(/\.$/, '')}. ${partes.join(', ')}.` : original,
+      added: [...falta],
+      changed: partes.length > 0,
+    };
+  }
+  const falta = new Set(hallazgos.map((h) => h.id));
+  if (!falta.size) return { text: original, added: [], changed: false };
+
+  const frases = [];
+  const added = [];
+  const add = (id, frase) => {
+    if (!falta.has(id)) return;
+    frases.push(frase);
+    added.push(id);
+  };
+
+  // Si el prompt no empieza por "Voz", se le da el encabezado del compilador.
+  const encabezado = /^(voz|voz de)\b/i.test(original) ? '' : 'Voz ';
+  // El genero lo aporta el encabezado o el propio texto, nunca una frase suelta.
+  add('age', 'adulta de unos 35 a 45 anos');
+  add('timbre', 'timbre calido y aterciopelado');
+  add('cadence', 'cadencia pausada y reflexiva');
+  add('emotion', 'emocion serena y contenida');
+  add('accent', `acento ${accent}`);
+  add('recording', 'grabacion de estudio seca y cercana al microfono');
+  if (purpose) add('purpose', `pensada para ${purpose}`);
+
+  // Se limpian los huecos de las frases vacias (el genero ya lo trae el texto).
+  const limpio = frases.filter(Boolean);
+  const texto = [encabezado + original.replace(/\.$/, ''), ...limpio].join(', ');
+  return {
+    text: texto.replace(/\s+,/g, ',').replace(/,\s*,/g, ',').replace(/,\s*\./g, '.') + '.',
+    added,
+    changed: true,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // brand.js
 // ---------------------------------------------------------------------------
 // VozStudio Atlas - marca compartida.
@@ -7366,6 +8684,7 @@ function attachTrayDrag(root = document) {
 
 
 
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -7374,6 +8693,7 @@ const TITLES = {
   lectura: 'Lectura y narracion',
   diseno: 'Diseno de voz',
   clonacion: 'Clonacion de voz',
+  qwen: 'Qwen Voice Studio',
   produce: 'Producir',
   voces: 'Voces',
   recetas: 'Recetas',
@@ -7480,6 +8800,30 @@ const state = {
     pause: null,
     chunk: null,
     emotion: null,
+  },
+
+  // Modulo Qwen Voice Studio (Qwen3-TTS VoiceDesign)
+  // Version de la biblioteca de prompts que usa Diseno de voz.
+  promptVersion: 'v2',
+
+  qwen: {
+    description: '',
+    profile: emptyProfile(),
+    parsed: null,
+    phi: false,
+    prompt: '',
+    promptMode: 'voice_design',
+    promptFilter: 'todos',
+    promptOpen: null,
+    query: '',
+    category: 'todas',
+    activeTitle: '',
+    title: 'Nueva voz',
+    speech: DEFAULT_SPEECH,
+    master: MASTER_TEMPLATE,
+    lastRender: null,
+    renders: [],
+    saved: [],
   },
 
   // Modulo de clonacion de voz (F5, XTTS y StyleTTS 2)
@@ -7834,6 +9178,7 @@ function sidebarHtml() {
       ${navItem('inicio', 'home', 'Inicio')}
       ${navItem('lectura', 'book', 'Lectura y narracion')}
       ${navItem('diseno', 'wand', 'Diseno de voz', String(PROMPT_TOTAL))}
+      ${navItem('qwen', 'cpu', 'Qwen Voice Studio', 'Qwen3')}
       ${navItem('clonacion', 'mic', 'Clonacion de voz', String(CLONE_PRESETS.length))}
       ${navItem('produce', 'grid', 'Producir', stats.review ? String(stats.review) : '')}
       ${navItem('biblioteca', 'folder', 'Biblioteca')}
@@ -8279,7 +9624,9 @@ function viewDiseno() {
   const voiceCount = CATALOG.filter((voice) => voice.engine === engine).length;
   const bars = waveBars(`design-${d.prompt.length}-${engine}`);
   const familias = [{ id: 'todas', label: 'Todas las familias', count: PROMPT_TOTAL }, ...PROMPT_FAMILIES];
-  const muestra = searchPrompts(d.query, d.family, d.promptMode).slice(0, 60);
+  const usaV2 = state.promptVersion !== 'v1';
+  const busca = usaV2 ? searchPromptsV2 : searchPrompts;
+  const muestra = busca(d.query, d.family, d.promptMode).slice(0, 60);
   void voiceCount;
 
   return `
@@ -8426,6 +9773,13 @@ function viewDiseno() {
               <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
               <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
             </div>
+            <div class="row between v2-switch">
+              <span class="tiny dim">${usaV2 ? `Version mejorada · +${PROMPT_V2_STATS.mediaExtra} car. de media` : 'Version original auditada'}</span>
+              <div class="segmented sm" role="group" aria-label="Version de los prompts">
+                <button data-action="diseno:prompt-version" data-version="v1" aria-pressed="${!usaV2}">Original</button>
+                <button data-action="diseno:prompt-version" data-version="v2" aria-pressed="${usaV2}">Mejorada</button>
+              </div>
+            </div>
             <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
             <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
             <label class="sr-only" for="prompt-family">Familia</label>
@@ -8438,7 +9792,7 @@ function viewDiseno() {
               (item) => `<button class="library-item" data-action="diseno:use-prompt" data-prompt="${item.id}">
                 <span class="mode-dot ${item.mode === 'instruct_tts' ? 'instruct' : ''}" aria-hidden="true"></span>
                 <div style="min-width:0">
-                  <div class="prompt-text">${esc(item.text)}</div>
+                  <div class="prompt-text">${esc(usaV2 && item.improved ? item.improved : item.text)}</div>
                   <div class="prompt-meta"><span>${esc(item.familyLabel)}</span><span>${item.mode === 'instruct_tts' ? 'instruct' : 'design'}</span></div>
                 </div>
               </button>`,
@@ -8449,6 +9803,344 @@ function viewDiseno() {
       </section>
     </div>
   </div>`;
+}
+
+
+/* Auditoria de la biblioteca de 1.110: se calcula una vez al cargar. */
+const PROMPT_AUDIT = (() => {
+  let mejorables = 0;
+  let completos = 0;
+  let suma = 0;
+  PROMPT_LIBRARY.forEach((item) => {
+    const audit = auditPrompt(item.text, item.mode);
+    suma += audit.puntos;
+    if (audit.hallazgos.length) mejorables += 1;
+    else completos += 1;
+  });
+  return { mejorables, completos, media: Math.round(suma / Math.max(1, PROMPT_LIBRARY.length)) };
+})();
+
+
+/* ------------------------- modulo qwen: repintados ------------------------ */
+/*
+  Estos dos no llaman a render(): reemplazar el panel destruiria el input que
+  tiene el foco. Solo actualizan las piezas que cambian.
+*/
+function syncQwenCompiled() {
+  const q = state.qwen;
+  const pre = $('.qwen-instruction');
+  if (pre) pre.textContent = compileProfile(q.profile, q.master);
+  const cobertura = profileCoverage(q.profile);
+  const barra = $('.qwen-bar i');
+  if (barra) barra.style.width = `${cobertura.pct}%`;
+  const etiqueta = $('.qwen-matrix .tiny.dim');
+  if (etiqueta) etiqueta.textContent = `${cobertura.pct} % cubierto`;
+  const badge = $('.qwen-head .badge:nth-of-type(2)');
+  if (badge) badge.textContent = `${cobertura.done} / ${cobertura.total} campos`;
+  const partes = profileParts(q.profile);
+  $$('.qwen-parts > div').forEach((div) => {
+    const key = div.querySelector('span').textContent.toLowerCase();
+    const mapa = { identidad: 'identity', timbre: 'timbre', entrega: 'delivery', grabacion: 'recording' };
+    const b = div.querySelector('b');
+    if (b && mapa[key]) b.textContent = partes[mapa[key]];
+  });
+}
+
+function syncQwenLibrary() {
+  const lista = $('.qwen-library-list');
+  if (!lista) return;
+  const q = state.qwen;
+  lista.innerHTML =
+    filteredProfiles(q)
+      .map(
+        (item) => `<button class="qwen-profile ${item.title === q.activeTitle ? 'active' : ''}" data-action="qwen:use" data-title="${esc(item.title)}">
+          <span class="qp-dot" style="--tone:${item.tone}" aria-hidden="true"></span>
+          <span class="qp-text"><b>${esc(item.title)}</b><small>${esc(item.category)}${item.saved ? ' · guardado' : ''}</small></span>
+          <span class="qp-count mono">${profileCoverage(item.profile).done}/14</span>
+        </button>`,
+      )
+      .join('') || '<p class="tiny dim">Ningun perfil con ese filtro.</p>';
+}
+
+/* ========================== QWEN VOICE STUDIO ============================ */
+/*
+  Modulo de diseno de voz con Qwen3-TTS VoiceDesign. Reproduce el flujo del
+  backend compartido: descripcion libre -> perfil acustico de catorce campos ->
+  instruccion compilada -> payload real del motor. Todo determinista y local.
+*/
+function viewQwen() {
+  const q = state.qwen;
+  const perfil = q.profile;
+  const cobertura = profileCoverage(perfil);
+  const audit = auditPrompt(q.prompt || '', q.promptMode);
+  const partes = profileParts(perfil);
+  const instruccion = compileProfile(perfil, q.master);
+  const payload = buildPayload({ text: q.speech, instruction: instruccion, profile: perfil });
+  const textosLargos = q.speech.length > QWEN_MAX_TEXT;
+  const recientes = q.renders.slice(0, 8);
+
+  return `
+  <div class="stack-3 screen-fill qwen-screen">
+    <!-- Cabecera fija del modulo. -->
+    <div class="row between wrap qwen-head">
+      <div>
+        <h1 style="font-size:var(--text-2xl)">Qwen Voice Studio</h1>
+        <p class="tiny muted mt-2">Qwen3-TTS VoiceDesign · perfil acustico de 14 campos, instruccion compilada y payload real. Sin red: el parser es lexico y declara su confianza.</p>
+      </div>
+      <div class="row wrap">
+        <span class="badge ${q.phi ? 'ok' : 'info'}">${icon('cpu', 'sm')} ${q.phi ? 'Phi-3.5 local' : 'heuristicas locales'}</span>
+        <span class="badge">${cobertura.done} / ${cobertura.total} campos</span>
+        <button class="btn sm" data-action="qwen:templates">${icon('sliders', 'sm')} Plantillas</button>
+      </div>
+    </div>
+
+    <div class="qwen-board">
+      <!-- Columna 1: biblioteca de perfiles. -->
+      <aside class="panel qwen-col library">
+        <div class="panel-head"><div><p class="eyebrow">Biblioteca</p><h2>${SEED_VOICES.length + q.saved.length} perfiles</h2></div></div>
+        <div class="panel-body stack-2 qwen-library-fixed">
+          <label class="sr-only" for="qwen-search">Buscar perfiles</label>
+          <input id="qwen-search" class="input" placeholder="Buscar perfil o categoria..." value="${esc(q.query)}" data-action="qwen:query" />
+          <div class="chips">
+            <button class="chip ${q.category === 'todas' ? 'active' : ''}" data-action="qwen:category" data-category="todas">Todas</button>
+            ${SEED_CATEGORIES.map((cat) => `<button class="chip ${q.category === cat ? 'active' : ''}" data-action="qwen:category" data-category="${cat}">${esc(cat)}</button>`).join('')}
+          </div>
+        </div>
+        <div class="panel-body stack-2 qwen-library-list">
+          ${
+            filteredProfiles(q)
+              .map(
+                (item) => `<button class="qwen-profile ${item.title === q.activeTitle ? 'active' : ''}" data-action="qwen:use" data-title="${esc(item.title)}">
+                  <span class="qp-dot" style="--tone:${item.tone}" aria-hidden="true"></span>
+                  <span class="qp-text"><b>${esc(item.title)}</b><small>${esc(item.category)}${item.saved ? ' · guardado' : ''}</small></span>
+                  <span class="qp-count mono">${profileCoverage(item.profile).done}/14</span>
+                </button>`,
+              )
+              .join('') || '<p class="tiny dim">Ningun perfil con ese filtro.</p>'
+          }
+        </div>
+      </aside>
+
+      <!-- Columna 2: copiloto, matriz acustica e instruccion. -->
+      <section class="panel qwen-col work">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso 1 · Descripcion</p><h2>Copiloto de diseno vocal</h2></div>
+          <span class="spacer"></span>
+          <span class="badge ${audit.puntos >= 80 ? 'ok' : audit.puntos >= 50 ? 'warn' : 'danger'}">${audit.puntos} / 100</span>
+        </div>
+        <div class="panel-body stack-2 qwen-work-body">
+          <div class="qwen-copilot">
+            <label class="sr-only" for="qwen-description">Descripcion de la voz</label>
+            <textarea id="qwen-description" class="textarea qwen-description" placeholder="Ejemplo: Quiero un narrador peruano de 55 anos, voz profunda, calida, ritmo pausado y emocion solemne." data-action="qwen:description">${esc(q.description)}</textarea>
+            <div class="row wrap">
+              <button class="btn sm primary" data-action="qwen:analyze">${icon('wand', 'sm')} Analizar descripcion</button>
+              <button class="btn sm" data-action="qwen:clear-profile">${icon('trash', 'sm')} Vaciar perfil</button>
+              <span class="spacer"></span>
+              <span class="tiny dim">${q.parsed ? `confianza ${Math.round(q.parsed.confidence * 100)} %` : 'sin analizar'}</span>
+            </div>
+            ${
+              q.parsed && q.parsed.ambiguities.length
+                ? `<div class="qwen-notes">${q.parsed.ambiguities.map((a) => `<div class="qwen-note info">${icon('info', 'sm')}<span>${esc(a)}</span></div>`).join('')}</div>`
+                : ''
+            }
+            ${
+              q.parsed && q.parsed.conflicts.length
+                ? `<div class="qwen-notes">${q.parsed.conflicts.map((a) => `<div class="qwen-note danger">${icon('alert', 'sm')}<span>${esc(a)}</span></div>`).join('')}</div>`
+                : ''
+            }
+          </div>
+
+          <div class="qwen-matrix">
+            <div class="row between">
+              <p class="eyebrow">Matriz acustica</p>
+              <span class="tiny dim">${cobertura.pct} % cubierto</span>
+            </div>
+            <div class="qwen-bar"><i style="width:${cobertura.pct}%"></i></div>
+            <div class="qwen-fields">
+              ${VOICE_FIELDS.map((campo) => {
+                const valor = perfil[campo.id];
+                if (campo.kind === 'enum') {
+                  return `<label class="field"><span>${esc(campo.label)}</span>
+                    <select class="select" data-action="qwen:field" data-field="${campo.id}">
+                      <option value="">sin especificar</option>
+                      ${campo.options.map((opt) => `<option value="${opt}" ${opt === valor ? 'selected' : ''}>${esc(opt)}</option>`).join('')}
+                    </select>
+                  </label>`;
+                }
+                if (campo.kind === 'number') {
+                  return `<label class="field"><span>${esc(campo.label)}</span>
+                    <input class="input" type="number" min="${campo.min}" max="${campo.max}" placeholder="5 a 100" value="${valor ?? ''}" data-action="qwen:field" data-field="${campo.id}" />
+                  </label>`;
+                }
+                return `<label class="field"><span>${esc(campo.label)}</span>
+                  <input class="input" type="text" maxlength="${campo.max}" placeholder="libre" value="${esc(valor ?? '')}" data-action="qwen:field" data-field="${campo.id}" />
+                </label>`;
+              }).join('')}
+            </div>
+          </div>
+
+          <div class="qwen-compiled">
+            <div class="row between">
+              <p class="eyebrow">Paso 2 · Instruccion compilada</p>
+              <div class="row">
+                <button class="btn sm" data-action="qwen:copy">${icon('copy', 'sm')} Copiar</button>
+                <button class="btn sm" data-action="qwen:payload">${icon('terminal', 'sm')} Ver payload</button>
+              </div>
+            </div>
+            <pre class="code qwen-instruction" data-scroll-area="instruccion">${esc(instruccion)}</pre>
+            <div class="qwen-parts">
+              ${[['identity', 'Identidad'], ['timbre', 'Timbre'], ['delivery', 'Entrega'], ['recording', 'Grabacion']]
+                .map(([key, label]) => `<div><span>${esc(label)}</span><b>${esc(partes[key])}</b></div>`)
+                .join('')}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Columna 3: laboratorio y biblioteca de prompts mejorados. -->
+      <section class="panel qwen-col lab">
+        <div class="panel-head"><div><p class="eyebrow">Laboratorio</p><h2>Prueba la voz</h2></div></div>
+        <div class="panel-body stack-2 qwen-lab-body">
+          <label class="field"><span>Nombre del render</span><input class="input" value="${esc(q.title)}" data-action="qwen:title" /></label>
+          <label class="field"><span>Texto que pronuncia la voz</span>
+            <textarea class="textarea qwen-speech" data-action="qwen:speech">${esc(q.speech)}</textarea>
+          </label>
+          <div class="row between tiny ${textosLargos ? 'text-danger' : 'dim'}">
+            <span id="qwen-speech-count">${q.speech.length} / ${QWEN_MAX_TEXT} caracteres</span>
+            <span>${textosLargos ? 'recorta antes de generar' : 'dentro del limite del motor'}</span>
+          </div>
+          <div class="qwen-actions">
+            <button class="btn primary" data-action="qwen:generate" ${textosLargos || !q.speech.trim() ? 'disabled' : ''}>${icon('zap', 'sm')} Generar audio local</button>
+            <button class="btn" data-action="qwen:save-profile">${icon('plus', 'sm')} Guardar perfil</button>
+          </div>
+          <p class="tiny dim">La primera generacion carga el modelo: el prototipo simula el RTF del backend (CPU, 12 hilos).</p>
+          ${
+            q.lastRender
+              ? `<div class="qwen-render">
+                  <div class="spec-inline">
+                    <div><span>Duracion</span><b>${q.lastRender.duration} s</b></div>
+                    <div><span>Calculo</span><b>${q.lastRender.elapsed} s</b></div>
+                    <div><span>RTF</span><b>${q.lastRender.rtf}</b></div>
+                    <div><span>Modelo</span><b>1.7B VoiceDesign</b></div>
+                  </div>
+                  <div class="row wrap">
+                    <button class="btn sm primary" data-action="qwen:play">${icon('play', 'sm')} Escuchar WAV</button>
+                    <button class="btn sm" data-action="qwen:reuse">${icon('refresh', 'sm')} Reutilizar</button>
+                  </div>
+                </div>`
+              : `<div class="empty">${icon('wave', 'hero')}<h3>Sin renders</h3><p class="tiny muted">El perfil ya esta listo: pulsa Generar audio local.</p></div>`
+          }
+        </div>
+      </section>
+    </div>
+
+    <!-- Historial de renders, fijo al pie. -->
+    <div class="panel qwen-history">
+      <div class="row between">
+        <div><p class="eyebrow">Historial</p><h2>${q.renders.length} audios</h2></div>
+        <div class="row"><span class="tiny dim">Un WAV por render · se puede descargar y eliminar</span></div>
+      </div>
+      <div class="qwen-history-list" data-scroll-area="renders">
+        ${
+          recientes.length
+            ? recientes
+                .map(
+                  (r) => `<article class="qwen-render-card">
+                    <header><b>${esc(r.title)}</b><span class="badge">${esc(r.category)}</span></header>
+                    <p>${esc(r.text.slice(0, 96))}${r.text.length > 96 ? '...' : ''}</p>
+                    <div class="specs"><span>${r.duration} s</span><span>${r.elapsed} s de calculo</span><span>RTF ${r.rtf}</span></div>
+                    <div class="row wrap">
+                      <button class="btn sm" data-action="qwen:render-play" data-render="${r.id}">${icon('play', 'sm')} Escuchar</button>
+                      <button class="btn sm" data-action="qwen:render-reuse" data-render="${r.id}">${icon('refresh', 'sm')} Reutilizar</button>
+                      <button class="btn sm icon-only" data-action="qwen:render-delete" data-render="${r.id}" aria-label="Eliminar render">${icon('trash', 'sm')}</button>
+                    </div>
+                  </article>`,
+                )
+                .join('')
+            : '<p class="tiny dim">Aun no hay renders en esta sesion.</p>'
+        }
+      </div>
+    </div>
+
+    <!-- Biblioteca de prompts con auditoria: los 1.110, mejorables uno a uno. -->
+    <div class="panel qwen-prompts">
+      <div class="panel-head">
+        <div><p class="eyebrow">Biblioteca de prompts</p><h2>${PROMPT_TOTAL} prompts auditados</h2></div>
+        <span class="spacer"></span>
+        <span class="badge ok">${PROMPT_AUDIT.mejorables} mejorables</span>
+        <span class="badge">${PROMPT_AUDIT.completos} completos</span>
+      </div>
+      <div class="panel-body stack-2">
+        <div class="chips">
+          ${[['todos', 'Todos'], ['voice_design', 'VoiceDesign'], ['instruct_tts', 'Instruct'], ['mejorables', 'Solo mejorables']]
+            .map(([id, label]) => `<button class="chip ${q.promptFilter === id ? 'active' : ''}" data-action="qwen:prompt-filter" data-filter="${id}">${label}</button>`)
+            .join('')}
+        </div>
+        <div class="qwen-prompt-list" data-scroll-area="prompts-qwen">
+          ${qwenPromptRows(q)}
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/** Perfiles filtrados por categoria y busqueda. */
+function filteredProfiles(q) {
+  const tonos = ['var(--accent)', 'var(--ok)', 'var(--info)', 'var(--amber)', 'var(--warn)'];
+  const base = SEED_VOICES.map((v, i) => ({ ...v, saved: false, tone: tonos[i % tonos.length] })).concat(
+    (q.saved || []).map((v, i) => ({ ...v, saved: true, tone: tonos[(i + 2) % tonos.length] })),
+  );
+  const texto = (q.query || '').toLowerCase().trim();
+  return base.filter((v) => {
+    if (q.category !== 'todas' && v.category !== q.category) return false;
+    if (!texto) return true;
+    return `${v.title} ${v.category}`.toLowerCase().includes(texto);
+  });
+}
+
+/** Filas de la biblioteca de prompts, con el diagnostico ya calculado. */
+function qwenPromptRows(q) {
+  const lista = PROMPT_LIBRARY.filter((item) => {
+    if (q.promptFilter === 'voice_design' || q.promptFilter === 'instruct_tts') return item.mode === q.promptFilter;
+    if (q.promptFilter === 'mejorables') return auditPrompt(item.text, item.mode).hallazgos.length > 0;
+    return true;
+  }).slice(0, 60);
+  if (!lista.length) return '<p class="tiny dim">Ningun prompt con ese filtro.</p>';
+  return lista
+    .map((item) => {
+      const audit = auditPrompt(item.text, item.mode);
+      const abierto = q.promptOpen === item.id;
+      return `<article class="qwen-prompt ${abierto ? 'open' : ''}">
+        <button class="qwen-prompt-head" data-action="qwen:prompt-toggle" data-prompt="${item.id}" aria-expanded="${abierto}">
+          <span class="mode-dot ${item.mode === 'instruct_tts' ? 'instruct' : ''}" aria-hidden="true"></span>
+          <span class="qwp-text">${esc(item.text)}</span>
+          <span class="badge ${audit.completo ? 'ok' : audit.puntos >= 50 ? 'warn' : 'danger'}">${audit.puntos}</span>
+          ${icon(abierto ? 'chevronDown' : 'chevron', 'sm')}
+        </button>
+        ${
+          abierto
+            ? `<div class="qwen-prompt-body">
+                <div class="qwp-meta"><span>${esc(item.familyLabel)}</span><span>${item.mode === 'instruct_tts' ? 'Instruct-TTS' : 'VoiceDesign'}</span><span>${item.text.length} caracteres</span></div>
+                ${
+                  audit.hallazgos.length
+                    ? `<ul class="qwp-checks">${audit.hallazgos
+                        .map((h) => `<li class="g-${h.gravedad}"><b>${esc(h.label)}</b><span>${esc(h.fix)}</span></li>`)
+                        .join('')}</ul>`
+                    : `<p class="tiny ok-text">${icon('check', 'sm')} Cumple los diez controles: no hay nada que anadir.</p>`
+                }
+                ${
+                  audit.hallazgos.length
+                    ? `<div class="qwp-fix"><p class="eyebrow">Version mejorada</p><p class="qwp-improved">${esc(improvePrompt(item.text, { mode: item.mode }).text)}</p>
+                        <div class="row wrap"><button class="btn sm primary" data-action="qwen:apply-prompt" data-prompt="${item.id}">${icon('check', 'sm')} Usar esta version</button>
+                        <button class="btn sm" data-action="qwen:prompt-editor" data-prompt="${item.id}">${icon('edit', 'sm')} Abrir en el editor</button></div></div>`
+                    : ''
+                }
+              </div>`
+            : ''
+        }
+      </article>`;
+    })
+    .join('');
 }
 
 
@@ -9268,6 +10960,34 @@ entregables: [${recipe.delivery.split(' · ').map((x) => x.toLowerCase().replace
        <button class="btn primary" data-action="recipe:use" data-recipe="${recipe.id}">${icon('plus', 'sm')} Crear proyecto con esta receta</button>`,
     );
   }
+  if (modal.type === 'qwen-payload') {
+    const q = state.qwen;
+    const instruccion = compileProfile(q.profile, q.master);
+    const payload = buildPayload({ text: q.speech, instruction: instruccion, profile: q.profile });
+    const cobertura = profileCoverage(q.profile);
+    return modalWrapper(
+      'Payload para Qwen3-TTS',
+      `<p class="tiny muted">Esto es exactamente lo que viaja al motor con <span class="mono">generate_voice_design</span>: ${cobertura.done} de 14 campos del perfil, la instruccion compilada y el texto. ${esc(payload.model)}.</p>
+      <pre class="code qwen-payload" style="max-height:340px">${esc(JSON.stringify(payload, null, 2))}</pre>
+      <div class="prompt-note">${icon('info', 'sm')}<div>El texto del <b>input</b> no se recorta: si pasa de ${QWEN_MAX_TEXT} caracteres, el laboratorio bloquea la generacion antes de llegar aqui.</div></div>`,
+      `<button class="btn" data-action="modal:close">Cerrar</button>
+       <button class="btn primary" data-action="qwen:copy-payload">${icon('copy', 'sm')} Copiar payload</button>`,
+    );
+  }
+  if (modal.type === 'qwen-templates') {
+    const q = state.qwen;
+    return modalWrapper(
+      'Plantillas internas',
+      `<div class="stack-3">
+        <p class="tiny muted">La plantilla maestra es la del backend compartido, literal. Al editarla, el compilador rellena las cuatro variables: <span class="mono">{{identity}}</span>, <span class="mono">{{timbre}}</span>, <span class="mono">{{delivery}}</span> y <span class="mono">{{recording}}</span>.</p>
+        ${field('Plantilla maestra de Qwen3', `<textarea class="textarea mono" style="min-height:240px" data-action="qwen:master">${esc(q.master)}</textarea>`)}
+        <div class="prompt-note">${icon('alert', 'sm')}<div>Si dejas una variable sin resolver, el compilador <b>falla en voz alta</b> en vez de mandar un prompt roto. Es la misma regla del backend.</div></div>
+      </div>`,
+      `<button class="btn" data-action="modal:close">Cancelar</button>
+       <button class="btn" data-action="qwen:master-reset">Restaurar original</button>
+       <button class="btn primary" data-action="qwen:master-save">Guardar plantilla</button>`,
+    );
+  }
   if (modal.type === 'export') {
     const stats = projectStats();
     return modalWrapper(
@@ -9430,6 +11150,8 @@ function view() {
       return viewDiseno();
     case 'clonacion':
       return viewClonacion();
+    case 'qwen':
+      return viewQwen();
     case 'produce':
       return viewProduce();
     case 'voces':
@@ -10002,6 +11724,203 @@ document.addEventListener('click', (event) => {
       state.produceFilter = target.dataset.filter;
       render();
       break;
+    case 'qwen:query':
+      state.qwen.query = target.value;
+      syncQwenLibrary();
+      break;
+    case 'qwen:category':
+      state.qwen.category = target.dataset.category;
+      render();
+      break;
+    case 'qwen:use': {
+      const titulo = target.dataset.title;
+      const base = SEED_VOICES.find((v) => v.title === titulo) || state.qwen.saved.find((v) => v.title === titulo);
+      if (!base) break;
+      state.qwen.profile = { ...emptyProfile(), ...base.profile };
+      state.qwen.activeTitle = base.title;
+      state.qwen.title = base.title;
+      state.qwen.parsed = null;
+      state.qwen.phi = false;
+      notify('Perfil cargado', `${base.title} · ${profileCoverage(base.profile).done} de 14 campos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:analyze': {
+      const texto = (state.qwen.description || '').trim();
+      if (!texto) {
+        notify('Falta la descripcion', 'Escribe como suena la voz antes de analizar', 'warn');
+        break;
+      }
+      const r = parseDescription(texto);
+      state.qwen.profile = r.profile;
+      state.qwen.parsed = { ...r.analysis, matched: r.matched };
+      state.qwen.activeTitle = '';
+      if (r.analysis.conflicts.length) {
+        notify('Hay conflictos', `${r.analysis.conflicts.length} atributos se contradicen`, 'warn');
+      } else {
+        notify('Perfil extraido', `${r.matched} atributos · confianza ${Math.round(r.analysis.confidence * 100)} %`, 'ok');
+      }
+      render();
+      break;
+    }
+    case 'qwen:clear-profile':
+      state.qwen.profile = emptyProfile();
+      state.qwen.parsed = null;
+      state.qwen.activeTitle = '';
+      notify('Perfil vaciado', 'Los catorce campos vuelven a null', 'info');
+      render();
+      break;
+    case 'qwen:copy':
+      notify('Instruccion copiada', `${compileProfile(state.qwen.profile, state.qwen.master).length} caracteres`, 'ok');
+      break;
+    case 'qwen:payload':
+      openModal({ type: 'qwen-payload' });
+      break;
+    case 'qwen:templates':
+      openModal({ type: 'qwen-templates' });
+      break;
+    case 'qwen:generate': {
+      const q = state.qwen;
+      if (!q.speech.trim()) {
+        notify('Falta el texto', 'El laboratorio necesita una frase para sintetizar', 'warn');
+        break;
+      }
+      if (q.speech.length > QWEN_MAX_TEXT) {
+        notify('Texto demasiado largo', `El contrato admite ${QWEN_MAX_TEXT} caracteres y hay ${q.speech.length}`, 'warn');
+        break;
+      }
+      const instruccion = compileProfile(q.profile, q.master);
+      const random = seeded(`qwen-${q.profile.gender}-${q.profile.age}-${q.speech.length}-${q.title}`);
+      const duration = 2 + random() * 3.4;
+      const rtf = 1.4 + random() * 1.6; // CPU: mas lento que tiempo real
+      // Ojo: no se puede llamar `render` a esta variable, taparia la funcion global.
+      const toma = {
+        id: `r-${Date.now()}`,
+        title: q.title || 'Nueva voz',
+        category: q.activeTitle ? 'Biblioteca' : 'Personalizada',
+        text: q.speech,
+        instruction: instruccion,
+        profile: { ...q.profile },
+        duration: Number(duration.toFixed(2)),
+        elapsed: Number((duration * rtf).toFixed(2)),
+        rtf: Number(rtf.toFixed(2)),
+      };
+      q.lastRender = toma;
+      q.renders = [toma, ...q.renders].slice(0, 24);
+      notify('Audio generado', `${toma.duration} s en ${toma.elapsed} s · RTF ${toma.rtf}`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:play':
+      if (state.qwen.lastRender) notify('Reproduciendo WAV', state.qwen.lastRender.title, 'info');
+      break;
+    case 'qwen:reuse': {
+      const r = state.qwen.lastRender;
+      if (!r) break;
+      state.qwen.title = r.title;
+      state.qwen.speech = r.text;
+      if (r.profile) state.qwen.profile = { ...emptyProfile(), ...r.profile };
+      notify('Render cargado', 'El estudio vuelve al estado de esa toma', 'ok');
+      render();
+      break;
+    }
+    case 'qwen:save-profile': {
+      const q = state.qwen;
+      const cobertura = profileCoverage(q.profile);
+      if (!cobertura.done) {
+        notify('Perfil vacio', 'Rellena al menos un atributo antes de guardar', 'warn');
+        break;
+      }
+      const titulo = q.title.trim() || `Perfil ${q.saved.length + 1}`;
+      q.saved = [{ title: titulo, category: 'Personalizada', profile: { ...q.profile } }, ...q.saved].slice(0, 30);
+      q.activeTitle = titulo;
+      notify('Perfil guardado', `${titulo} · ${cobertura.done} de 14 campos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:render-play':
+      notify('Reproduciendo WAV', (state.qwen.renders.find((r) => r.id === target.dataset.render) || {}).title || '', 'info');
+      break;
+    case 'qwen:render-reuse': {
+      const r = state.qwen.renders.find((item) => item.id === target.dataset.render);
+      if (!r) break;
+      state.qwen.title = r.title;
+      state.qwen.speech = r.text;
+      if (r.profile) state.qwen.profile = { ...emptyProfile(), ...r.profile };
+      notify('Render cargado', 'El estudio vuelve al estado de esa toma', 'ok');
+      render();
+      break;
+    }
+    case 'qwen:render-delete':
+      state.qwen.renders = state.qwen.renders.filter((item) => item.id !== target.dataset.render);
+      if (state.qwen.lastRender && state.qwen.lastRender.id === target.dataset.render) state.qwen.lastRender = null;
+      notify('Render eliminado', 'El WAV simulado sale del historial', 'info');
+      render();
+      break;
+    case 'qwen:prompt-filter':
+      state.qwen.promptFilter = target.dataset.filter;
+      state.qwen.promptOpen = null;
+      render();
+      break;
+    case 'qwen:prompt-toggle':
+      state.qwen.promptOpen = state.qwen.promptOpen === target.dataset.prompt ? null : target.dataset.prompt;
+      render();
+      break;
+    case 'qwen:apply-prompt': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      const mejorado = improvePrompt(item.text, { mode: item.mode });
+      state.qwen.prompt = mejorado.text;
+      state.qwen.promptMode = item.mode;
+      notify('Prompt aplicado', `${mejorado.added.length} atributos anadidos · ${mejorado.text.length} caracteres`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:prompt-editor': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      state.qwen.prompt = improvePrompt(item.text, { mode: item.mode }).text;
+      state.qwen.promptMode = item.mode;
+      state.qwen.promptOpen = null;
+      notify('Prompt en el editor', 'Puedes retocarlo antes de usarlo', 'info');
+      render();
+      break;
+    }
+    case 'qwen:use-prompt': {
+      const item = PROMPT_LIBRARY.find((p2) => p2.id === target.dataset.prompt);
+      if (!item) break;
+      state.qwen.description = item.text;
+      const r = parseDescription(item.text);
+      state.qwen.profile = r.profile;
+      state.qwen.parsed = { ...r.analysis, matched: r.matched };
+      notify('Descripcion cargada', `${r.matched} atributos reconocidos`, 'ok');
+      render();
+      break;
+    }
+    case 'qwen:copy-payload': {
+      const instruccion = compileProfile(state.qwen.profile, state.qwen.master);
+      const payload = buildPayload({ text: state.qwen.speech, instruction: instruccion, profile: state.qwen.profile });
+      notify('Payload copiado', `${JSON.stringify(payload).length} caracteres de JSON`, 'ok');
+      closeModal();
+      break;
+    }
+    case 'qwen:master-save': {
+      const area = $('[data-action="qwen:master"]');
+      const valor = area ? area.value : '';
+      if (!/\{\{identity\}\}/.test(valor) || !/\{\{timbre\}\}/.test(valor) || !/\{\{delivery\}\}/.test(valor) || !/\{\{recording\}\}/.test(valor)) {
+        notify('Plantilla invalida', 'Faltan las cuatro variables del contrato', 'warn');
+        break;
+      }
+      state.qwen.master = valor.trim();
+      notify('Plantilla guardada', 'El compilador la usara en la proxima instruccion', 'ok');
+      closeModal();
+      break;
+    }
+    case 'qwen:master-reset':
+      state.qwen.master = MASTER_TEMPLATE;
+      notify('Plantilla restaurada', 'Vuelve el texto original del backend', 'ok');
+      closeModal();
+      break;
     case 'clone:step':
       state.clonacion.step = target.dataset.step;
       render();
@@ -10154,13 +12073,31 @@ document.addEventListener('click', (event) => {
       state.diseno.libraryPage = 0;
       render();
       break;
+    case 'diseno:prompt-version':
+      state.promptVersion = target.dataset.version;
+      notify(
+        state.promptVersion === 'v2' ? 'Version mejorada' : 'Version original',
+        state.promptVersion === 'v2'
+          ? `${PROMPT_V2_STATS.mejorados} prompts completados con emocion, grabacion y proposito`
+          : 'El texto auditado, sin cambios',
+        'ok',
+      );
+      render();
+      break;
     case 'diseno:use-prompt': {
       const prompt = PROMPT_LIBRARY.find((item) => item.id === target.dataset.prompt);
       if (prompt) {
-        state.diseno.prompt = prompt.text;
+        // Con la version mejorada se aplica el texto completado; el original queda intacto.
+        const usaV2 = state.promptVersion !== 'v1';
+        const v2 = PROMPT_LIBRARY_V2.find((item) => item.id === prompt.id);
+        state.diseno.prompt = usaV2 && v2 && v2.improved ? v2.improved : prompt.text;
         state.diseno.mode = prompt.mode;
         if (prompt.mode === 'instruct_tts') state.diseno.engine = 'cosyvoice';
-        notify('Prompt cargado', `${prompt.id} · ${prompt.familyLabel}`, 'ok');
+        notify(
+          'Prompt cargado',
+          usaV2 && v2 && v2.improved !== prompt.text ? `${prompt.id} · version mejorada (+${v2.improved.length - prompt.text.length} car.)` : `${prompt.id} · ${prompt.familyLabel}`,
+          'ok',
+        );
         render();
       }
       break;
@@ -10230,6 +12167,21 @@ document.addEventListener('click', (event) => {
 });
 
 /* ------------------------------- formularios ------------------------------ */
+document.addEventListener('change', (event) => {
+  const target = event.target;
+  if (target.dataset && target.dataset.action === 'qwen:field') {
+    // El select de la matriz se maneja con change, no con click.
+    const campo = target.dataset.field;
+    const valor = String(target.value).trim();
+    state.qwen.profile = {
+      ...state.qwen.profile,
+      [campo]: valor === '' ? null : campo === 'age' ? Number(valor) : valor,
+    };
+    syncQwenCompiled();
+    return;
+  }
+});
+
 document.addEventListener('input', (event) => {
   const target = event.target;
   const action = target.dataset.action;
@@ -10246,6 +12198,33 @@ document.addEventListener('input', (event) => {
   }
   if (action === 'diseno:sample') {
     state.diseno.sample = target.value;
+    return;
+  }
+  if (action === 'qwen:description') {
+    state.qwen.description = target.value;
+    return;
+  }
+  if (action === 'qwen:speech') {
+    state.qwen.speech = target.value;
+    // Solo se repinta el contador y el boton: reemplazar el panel perderia el foco.
+    const contador = $('#qwen-speech-count');
+    if (contador) contador.textContent = `${target.value.length} / ${QWEN_MAX_TEXT} caracteres`;
+    const boton = $('[data-action="qwen:generate"]');
+    if (boton) boton.disabled = target.value.length > QWEN_MAX_TEXT || !target.value.trim();
+    return;
+  }
+  if (action === 'qwen:title') {
+    state.qwen.title = target.value;
+    return;
+  }
+  if (action === 'qwen:field') {
+    const campo = target.dataset.field;
+    const valor = target.value.trim();
+    state.qwen.profile = {
+      ...state.qwen.profile,
+      [campo]: valor === '' ? null : campo === 'age' ? Number(valor) : valor,
+    };
+    syncQwenCompiled();
     return;
   }
   if (action === 'clone:transcript') {

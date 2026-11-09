@@ -19,7 +19,7 @@ const ROOT = resolve(HERE, '..');
 const OUT = join(ROOT, 'index.html');
 
 // Orden de resolucion: cada modulo solo importa de los que estan antes.
-const MODULES = ['data.js', 'voces.data.js', 'prompts.data.js', 'lectura.data.js', 'clonacion.data.js', 'brand.js', 'ui.js', 'app.js'];
+const MODULES = ['data.js', 'voces.data.js', 'prompts.data.js', 'lectura.data.js', 'clonacion.data.js', 'qwen.data.js', 'brand.js', 'ui.js', 'app.js'];
 
 const failures = [];
 const fail = (message) => {

@@ -9,10 +9,10 @@ anterior. Todo lo necesario está en el repositorio.
 | --- | --- | --- |
 | Auditoría de la app real | `docs/MEJORAS_DETECTADAS.md` | completo |
 | Propuesta VozStudio Atlas (21 secciones) | `docs/PROPUESTA_VOZSTUDIO_ATLAS.md` | completo |
-| Prototipo navegable | `docs/prototipo-atlas/` | funcional, **13 pantallas** |
+| Prototipo navegable | `docs/prototipo-atlas/` | funcional, **14 pantallas** |
 
-El prototipo es una SPA sin build y sin dependencias. Tiene **13 pantallas**: las 12 originales
-mas el modulo de **Clonacion de voz**. La portada `index.html` es un
+El prototipo es una SPA sin build y sin dependencias. Tiene **14 pantallas**: las 12 originales
+mas **Clonacion de voz** y **Qwen Voice Studio**. La portada `index.html` es un
 **archivo único autónomo**: el empaquetador `scripts/empaquetar.mjs` incrusta el CSS, los datos
 y todo el JavaScript, de modo que se abre con doble clic (`file://`), como adjunto o dentro de un
 visor de archivos, sin servidor. El fuente sigue modular en `src/` y `assets/estilos.css`, y
@@ -23,7 +23,7 @@ No usa red, ni CDN, ni fuentes externas: funciona dentro de un iframe sandboxead
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `src/app.js` | estado, router, 13 vistas, modales, interacciones |
+| `src/app.js` | estado, router, 14 vistas, modales, interacciones |
 | `src/ui.js` | componentes reutilizables (tarjetas, paginador, toasts, modal) |
 | `src/brand.js` | **emblema único** para sidebar, icono de escritorio y splash |
 | `src/data.js` | motores, recetas, proyectos, bloques, tomas |
@@ -31,6 +31,7 @@ No usa red, ni CDN, ni fuentes externas: funciona dentro de un iframe sandboxead
 | `src/prompts.data.js` | **1.110 prompts** de diseño de voz |
 | `src/lectura.data.js` | 12 presets de lectura y el texto de ejemplo de 12.000 caracteres |
 | `src/clonacion.data.js` | motores que clonan, 8 presets, 6 de limpieza y el evaluador de referencia |
+| `src/qwen.data.js` | perfil acustico de 14 campos, parser, compilador, payload y auditoria de prompts |
 | `scripts/empaquetar.mjs` | incrusta CSS + datos + JS y genera la portada `index.html` |
 | `dev.html` | versión modular para desarrollo (necesita servidor HTTP) |
 | `favicon.svg` | icono de la app, generado desde el mismo emblema |
@@ -63,23 +64,24 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **601 comprobaciones en veintiuna suites**
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **671 comprobaciones en veintitres suites**
 (189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
 HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
 sobre el modelo de caja del shell, 38 sobre la reorganización de pantallas, 14 sobre la mecánica
 de las bandejas, 53 sobre la rejilla exacta y la navegación inferior, 40 sobre el rediseño de
 Lectura, Diseño y Producir, 10 sobre la invisibilidad de todos los carriles, 30 sobre el tablero de
 Diseño de voz (mitad y mitad, vista previa grande, botones en fila y lista fija), 23 sobre la columna
-1 de CosyVoice, 24 sobre el rediseño de Producir y 44 sobre el módulo de clonación).
+1 de CosyVoice, 24 sobre el rediseño de Producir, 44 sobre el módulo de clonación, 40 sobre Qwen
+Voice Studio y 16 sobre la biblioteca mejorada de prompts).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
 
-- Las 13 pantallas pintan sin `undefined`, `NaN` ni `[object Object]`.
+- Las 14 pantallas pintan sin `undefined`, `NaN` ni `[object Object]`.
 - El **archivo único** arranca desde `file://` sin servidor: shell pintado, 12 rutas navegables,
   clicks reales, `change` del tema a AMOLED, 34 voces y cero recursos externos (`filetest.mjs`).
 - **Columnas fijas**: la ventana no scrollea, la sidebar tiene su carril, el pie y el topbar
-  quedan siempre visibles, y en las 13 pantallas la cabecera es el primer hijo de la pila y se
+  quedan siempre visibles, y en las 14 pantallas la cabecera es el primer hijo de la pila y se
   pega arriba (`layout.mjs`, `scroll.mjs`, `box.mjs`).
 - **Bandejas y listas** (`pantallas.mjs`, `tray.mjs`): Inicio en rejilla 3x4 con desplazamiento;
   Lectura en tres columnas 30/40/30 con los pasos repartidos; en Producir solo scrollea la lista
@@ -239,6 +241,14 @@ Diseño de voz (mitad y mitad, vista previa grande, botones en fila y lista fija
   en identificadores; el texto visible de `voces.data.js` y `prompts.data.js` también usa
   ASCII puro y se puede acentuar sin tocar identificadores.
 - **Enlazar el prototipo desde `README.md` y desde la propuesta** (sigue pendiente).
+- **Qwen Voice Studio**: el parser es léxico, no Phi-3.5; el backend real es el del archivo
+  `qwen3vd.txt` (FastAPI + `generate_voice_design`). Para conectarlo de verdad hay que cambiar
+  `parseDescription()` por la llamada a `/api/translate` y `qwen:generate` por `/api/synthesize`.
+  La matriz de 14 campos, el compilador y el payload ya siguen ese contrato exacto.
+- **Biblioteca de prompts**: los 1.110 conservan su texto original en `PROMPT_LIBRARY`; la versión
+  mejorada vive en `PROMPT_LIBRARY_V2.improved` (654 completados, 98/100 de media). Faltan 156
+  prompts de VoiceDesign sin propósito reconocible en su propio texto: se dejaron sin tocar antes
+  que inventarles un uso.
 - **Clonación**: el flujo es completo de mentira (referencia de ejemplo, grabación simulada y
   prueba con semilla). Falta conectar `getUserMedia` y `MediaRecorder` reales para la grabación
   en vivo, y el backend de limpieza (RNNoise o equivalente) que ya existe en la app real.
