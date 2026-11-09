@@ -627,12 +627,15 @@ function topbarHtml() {
   const crumbs =
     state.route === 'produce'
       ? `<span>${esc(project().name)}</span>${icon('chevron', 'sm')}<b>${esc(currentDoc() ? currentDoc().title.split(' - ')[0] : 'Sin documento')}</b>`
-      : state.route === 'elenco' || state.route === 'presets' || state.route === 'lectura' || state.route === 'diseno'
+      : state.route === 'elenco' || state.route === 'presets' || state.route === 'lectura' || state.route === 'diseno' || state.route === 'qwen' || state.route === 'clonacion'
         ? `<span>${esc(project().name)}</span>${icon('chevron', 'sm')}<b>${TITLES[state.route]}</b>`
         : `<b>${TITLES[state.route] || 'Inicio'}</b>`;
   return `<header class="topbar">
     <div class="crumbs">${crumbs}</div>
     <div class="topbar-right">
+      <button class="btn sm tb-shortcut ${state.route === 'qwen' ? 'primary' : ''}" data-action="nav" data-route="qwen" title="Abrir Qwen Voice Studio">
+        ${icon('cpu', 'sm')}<span>Qwen</span>
+      </button>
       <label class="sr-only" for="project-select">Proyecto</label>
       <select id="project-select" class="select" data-action="project:switch" style="width:auto;max-width:170px;height:36px" title="Cambiar de proyecto">
         ${PROJECTS.map((item) => `<option value="${item.id}" ${item.id === state.projectId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
@@ -2624,7 +2627,8 @@ function closeModal() {
 }
 
 function navigate(route) {
-  state.route = route;
+  // Una ruta desconocida (estado viejo, enlace roto) nunca deja la pantalla vacia.
+  state.route = TITLES[route] ? route : 'inicio';
   state.search = '';
   state.modals = [];
   state.palette.open = false;
@@ -4006,6 +4010,15 @@ state.castRole = 'narrador';
 attachTrayDrag(document);
 
 applyTheme();
+// Primer arranque de esta version: se abre el modulo nuevo para que se vea.
+try {
+  if (!localStorage.getItem(`${STORE_KEY}-visto-qwen`)) {
+    localStorage.setItem(`${STORE_KEY}-visto-qwen`, '1');
+    state.route = 'qwen';
+  }
+} catch {
+  /* sin localStorage (iframe sandboxeado): se abre en Inicio */
+}
 render();
 setInterval(tickSystem, 4200);
 setInterval(tickClock, 30000);

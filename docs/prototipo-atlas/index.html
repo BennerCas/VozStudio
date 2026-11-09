@@ -5541,6 +5541,116 @@ body {
   flex: none;
 }
 
+/* =======================================================================
+   BARRA LATERAL COMPACTA
+   Con catorce entradas y cuatro rotulos, la navegacion medía mas de 800 px:
+   en portatiles de 768 u 800 px de alto, el ultimo tercio (incluido Qwen
+   Voice Studio) quedaba por debajo del borde y solo se alcanzaba bajando por
+   una barra invisible. Ahora es mas densa para que todo quepa sin buscarlo.
+   ======================================================================= */
+
+.shell .sidebar {
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+}
+
+/*
+  La navegacion es lo primero que debe verse entera. El carril interno solo
+  actua como red de seguridad en pantallas muy bajas: el pie (salud y perfil)
+  nunca la empuja fuera.
+*/
+.sidebar .nav {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.sidebar .nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.sidebar .brand {
+  padding: 2px 6px 0;
+}
+.sidebar .brand-mark {
+  width: 30px;
+  height: 30px;
+}
+.nav {
+  gap: 1px;
+}
+.nav-label {
+  padding: 7px 8px 2px;
+  font-size: 11px;
+}
+.nav button {
+  padding: 6px 8px;
+  gap: 8px;
+  font-size: var(--text-sm);
+}
+.nav button svg {
+  width: 15px;
+  height: 15px;
+}
+.nav button .badge-x {
+  font-size: 11px;
+  padding: 0 5px;
+  line-height: 1.5;
+}
+.sidebar-foot {
+  gap: 6px;
+}
+.sidebar .health {
+  padding: 7px 8px;
+  gap: 5px;
+}
+
+/* En pantallas bajas se quita la tarjeta de salud antes que la navegacion. */
+@media (max-height: 860px) {
+  .sidebar .health {
+    display: none;
+  }
+}
+@media (max-height: 760px) {
+  .nav-label {
+    padding: 5px 8px 1px;
+  }
+  .nav button {
+    padding: 5px 8px;
+  }
+  .sidebar-foot .side-profile {
+    padding-block: 2px;
+  }
+}
+
+/* La entrada del modulo nuevo, marcada para que se encuentre de un vistazo. */
+.nav button[data-route="qwen"] svg {
+  color: var(--accent);
+}
+.nav button[data-route="qwen"] .badge-x {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent-line);
+}
+
+/* Acceso directo al modulo nuevo desde la cabecera superior. */
+.topbar .tb-shortcut {
+  flex: none;
+  gap: 5px;
+  height: 32px;
+  white-space: nowrap;
+}
+@media (max-width: 1500px) {
+  .topbar .tb-shortcut span {
+    display: none;
+  }
+  .topbar .tb-shortcut {
+    padding-inline: 8px;
+  }
+}
+
     </style>
   </head>
   <body>
@@ -9217,12 +9327,15 @@ function topbarHtml() {
   const crumbs =
     state.route === 'produce'
       ? `<span>${esc(project().name)}</span>${icon('chevron', 'sm')}<b>${esc(currentDoc() ? currentDoc().title.split(' - ')[0] : 'Sin documento')}</b>`
-      : state.route === 'elenco' || state.route === 'presets' || state.route === 'lectura' || state.route === 'diseno'
+      : state.route === 'elenco' || state.route === 'presets' || state.route === 'lectura' || state.route === 'diseno' || state.route === 'qwen' || state.route === 'clonacion'
         ? `<span>${esc(project().name)}</span>${icon('chevron', 'sm')}<b>${TITLES[state.route]}</b>`
         : `<b>${TITLES[state.route] || 'Inicio'}</b>`;
   return `<header class="topbar">
     <div class="crumbs">${crumbs}</div>
     <div class="topbar-right">
+      <button class="btn sm tb-shortcut ${state.route === 'qwen' ? 'primary' : ''}" data-action="nav" data-route="qwen" title="Abrir Qwen Voice Studio">
+        ${icon('cpu', 'sm')}<span>Qwen</span>
+      </button>
       <label class="sr-only" for="project-select">Proyecto</label>
       <select id="project-select" class="select" data-action="project:switch" style="width:auto;max-width:170px;height:36px" title="Cambiar de proyecto">
         ${PROJECTS.map((item) => `<option value="${item.id}" ${item.id === state.projectId ? 'selected' : ''}>${esc(item.name)}</option>`).join('')}
@@ -11214,7 +11327,8 @@ function closeModal() {
 }
 
 function navigate(route) {
-  state.route = route;
+  // Una ruta desconocida (estado viejo, enlace roto) nunca deja la pantalla vacia.
+  state.route = TITLES[route] ? route : 'inicio';
   state.search = '';
   state.modals = [];
   state.palette.open = false;
@@ -12596,6 +12710,15 @@ state.castRole = 'narrador';
 attachTrayDrag(document);
 
 applyTheme();
+// Primer arranque de esta version: se abre el modulo nuevo para que se vea.
+try {
+  if (!localStorage.getItem(`${STORE_KEY}-visto-qwen`)) {
+    localStorage.setItem(`${STORE_KEY}-visto-qwen`, '1');
+    state.route = 'qwen';
+  }
+} catch {
+  /* sin localStorage (iframe sandboxeado): se abre en Inicio */
+}
 render();
 setInterval(tickSystem, 4200);
 setInterval(tickClock, 30000);
