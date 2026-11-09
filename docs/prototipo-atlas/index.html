@@ -3484,7 +3484,10 @@ body {
 .main,
 .content > .screen-fill,
 .produce-col.docs > .panel-body,
-.inspector-body > #block-text {
+.inspector-body > #block-text,
+.clone-main > .panel-body.clone-body,
+.clone-steps > .panel-body,
+.clone-result > .panel-body {
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -3883,21 +3886,85 @@ body {
   display: flex;
   flex-direction: column;
 }
+/*
+  Preset 4 por vista en rejilla 2x2, todas del mismo tamano. La bandeja trae
+  su propio carril: en vertical ocupa el alto que sobra y en horizontal se
+  desplaza por paginas de 4.
+*/
 .read-col.c2 > .preset-panel > .preset-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(168px, 100%), 1fr));
-  gap: var(--space-2);
-  align-content: start;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c2 .tray {
+  flex: 1 1 auto;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+.read-col.c2 .tray-viewport {
+  --tray-cols: 2;
+  --tray-rows: 2;
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  align-content: stretch;
+  min-height: 0;
+}
+/* Iguales dimensiones: la tarjeta llena su celda, no su contenido. */
+.read-col.c2 .tray-viewport > .preset-card {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.read-col.c2 .tray-viewport > .preset-card p {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.read-col.c2 .tray-viewport > .preset-card .specs {
+  margin-top: auto;
 }
 .read-col.c2 > .tray-import {
   flex: none;
 }
+/*
+  La bandeja de importacion no scrollea entera: el drop zone se queda fijo y
+  solo la lista de documentos tiene carril. El padre no lleva overflow a
+  proposito, para que arrastrar sobre el drop no mueva nada.
+*/
+.read-col.c2 > .tray-import {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
 .read-col.c2 > .tray-import > .panel-body {
-  max-height: 34vh;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 40vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.read-col.c2 > .tray-import .drop-import {
+  flex: none;
+}
+.read-col.c2 > .tray-import .file-list {
+  flex: 1 1 auto;
+  min-height: 60px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  gap: var(--space-2);
+  align-content: start;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.read-col.c2 > .tray-import .file-list::-webkit-scrollbar {
+  width: 0;
+  height: 0;
 }
 
 /* Los 12 presets en dos columnas, para que quepan sin apretarse. */
@@ -3966,31 +4033,230 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  overflow: hidden;
 }
 
-/* Solo la biblioteca se desplaza: su lista puede ser de 60 entradas. */
-.design-library-col > .panel-body {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-}
-.design-library-col #prompt-results {
-  flex: 1 1 auto;
-  min-height: 0;
+/* ---- Columna 1: mitad descripcion, mitad motor, ambas exactas ---------- */
+
+.design-prompt-col > .panel-head {
+  flex: none;
 }
 
-/* El resultado se queda a la vista; si algo no cabe, el cuerpo respira. */
+.prompt-half {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  overflow: hidden;
+}
+/* El cajon de texto se queda con el alto de su mitad. */
+.prompt-half .prompt-box {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.prompt-half .prompt-box textarea {
+  flex: 1 1 auto;
+  min-height: 0;
+  resize: none;
+}
+.prompt-half .prompt-actions {
+  flex: none;
+}
+.prompt-half .segmented {
+  flex: none;
+}
+/*
+  El tirador de redimensionado del textarea se dibuja fuera de la caja y,
+  como aqui el alto lo manda el reparto de la columna, se quita: era el
+  cuadradito que aparecia pegado al borde inferior del prompt.
+*/
+.prompt-half .prompt-box textarea::-webkit-resizer,
+.engine-half textarea::-webkit-resizer,
+.design-result-col .sample-box::-webkit-resizer {
+  display: none;
+}
+/* La nota del mejorador ocupa una linea y no empuja el alto. */
+.prompt-half .prompt-footnote {
+  flex: none;
+  margin: 0;
+}
+.prompt-note.compact {
+  flex: none;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 5px 8px;
+}
+.prompt-note.compact > div {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-xs);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.engine-half {
+  flex: 1 1 50%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 var(--space-3) var(--space-3);
+  border-top: 1px solid var(--line);
+  padding-top: var(--space-2);
+  overflow: hidden;
+}
+.engine-half .engine-fields {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: hidden;
+}
+.engine-half .field-group {
+  min-height: 0;
+}
+/*
+  El grupo del motor se queda con el alto que sobra para llegar al margen
+  inferior. En CosyVoice lo aprovecha el cajon de la referencia; en Qwen, el
+  grupo de atributos reparte su espacio con la nota del backend.
+*/
+.engine-half .field-group {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.engine-half .field-group > .drop {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+/* CosyVoice: el cajon de la referencia crece hasta el margen. */
+.engine-half .field-group:last-child > .drop {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  justify-content: center;
+}
+/* Qwen: la nota se queda abajo y se compacta a dos lineas. */
+.engine-half .field-group > .prompt-note {
+  margin-top: auto;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+}
+
+/*
+  CosyVoice Instruct-TTS: estilo, emocion, sampling K, ganancia y velocidad en
+  una sola fila. Asi la referencia y su transcripcion se llevan el alto que
+  sobra y la seccion de atributos toca el margen inferior sin scroll.
+*/
+.cosy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 78px 108px 108px;
+  gap: var(--space-2);
+  align-items: end;
+}
+.cosy-row > * {
+  min-width: 0;
+}
+.cosy-row .cosy-range {
+  min-width: 0;
+}
+.cosy-row .range-top {
+  gap: 3px;
+  font-size: var(--text-xs);
+  letter-spacing: 0;
+}
+.cosy-row .range-top b {
+  font-size: var(--text-xs);
+}
+.cosy-contract {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+/*
+  La transcripcion de la referencia es el unico bloque elastico: crece hasta
+  tocar el margen inferior. Su textarea no lleva tirador ni scroll propio
+  mientras el texto quepa.
+*/
+.engine-half .field-group:last-child > .ref-transcript {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-2);
+}
+.engine-half .field-group:last-child > .ref-transcript > .field {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.engine-half .field-group:last-child textarea {
+  flex: 1 1 auto;
+  min-height: 44px;
+  resize: none;
+}
+
+/* ---- Columna 2: resultado a todo el alto ------------------------------ */
+
 .design-result-col > .panel-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
+.design-result-col .sample-box {
+  flex: 1 1 auto;
+  min-height: 96px;
+  resize: none;
+}
+.design-result-col .design-wave {
+  flex: none;
+}
+.design-result-col .empty {
+  flex: none;
+}
+/* Los dos botones, uno al lado del otro y siempre abajo. */
 .design-actions {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
   margin-top: auto;
   padding-top: var(--space-2);
+  flex: none;
+}
+.design-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+/* ---- Columna 3: fijo arriba, solo la lista se desplaza ----------------- */
+
+.design-library-col > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: hidden;
+}
+.design-library-col .library-fixed {
+  flex: none;
+  display: grid;
+  gap: var(--space-2);
+}
+.design-library-col #prompt-results {
+  flex: 1 1 auto;
+  min-height: 80px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 /* Piezas del editor, mas compactas para que quepan sin desplazar. */
@@ -4133,12 +4399,591 @@ body {
   height: auto;
 }
 
+/* ---- Franja de estado: progreso y reparto por rol --------------------- */
+
+.produce-status {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(120px, 0.5fr) minmax(0, 2.5fr);
+  align-items: center;
+  gap: var(--space-4);
+  padding: 8px var(--space-3);
+}
+.produce-status .ps-bar {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.produce-status .ps-bar i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent), var(--ok));
+  transition: width 0.25s ease;
+}
+.produce-status .ps-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-3);
+  min-width: 0;
+}
+.produce-status .ps-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  max-width: 190px;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.produce-status .ps-item .grow {
+  min-width: 0;
+}
+.produce-status .ps-item b {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.produce-status .ps-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--tone, var(--text-3));
+}
+
+/* ---- Segmentos: filtro en la cabecera, lista con su carril ----------- */
+
+.produce-screen .produce-col.editor > .panel-head {
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.produce-screen .produce-col.editor .segmented {
+  margin-left: auto;
+}
+.segmented.sm button {
+  padding: 3px 8px;
+  font-size: var(--text-xs);
+}
+
+/* ---- Cola: se despliega y ensena los trabajos ----------------------- */
+
+.produce-screen .produce-queue .queue-strip {
+  cursor: default;
+}
+.produce-screen .produce-queue .q-jobs {
+  display: none;
+}
+.produce-screen .produce-queue.open .queue-strip {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.produce-screen .produce-queue.open .q-jobs {
+  display: grid;
+  gap: 4px;
+  max-height: 148px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px var(--space-4);
+  border: 1px solid var(--line);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--surface);
+}
+.produce-screen .q-job {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+.produce-screen .q-job .mono {
+  color: var(--text-2);
+}
+.produce-screen .q-job .spacer {
+  margin-left: auto;
+}
+.produce-screen .q-jobs {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* ---- Adaptaciones de ancho ------------------------------------------- */
+
+@media (max-width: 1280px) {
+  .produce-grid {
+    grid-template-columns: 208px minmax(360px, 1fr) 272px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .produce-status {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
+  }
+}
+
 @media (max-width: 1160px) {
   .screen-fill.produce-screen {
     overflow: visible;
   }
   .produce-screen .takes-list {
     max-height: 180px;
+  }
+}
+
+/* =======================================================================
+   CLONACION DE VOZ
+   Tres columnas: asistente con pasos y presets, zona de trabajo que scrollea
+   sola, y resultado fijo abajo con los dos botones. Solo la columna central
+   se desplaza; nunca la ventana ni la cabecera del modulo.
+   ======================================================================= */
+
+.clone-screen {
+  align-content: normal;
+}
+
+.clone-board {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(210px, 0.72fr) minmax(360px, 1.9fr) minmax(272px, 1fr);
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+.clone-board > .panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+.clone-board > .panel > .panel-head {
+  flex: none;
+}
+
+/* ---- Columna 1: pasos y presets --------------------------------------- */
+
+.clone-steps > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.clone-steps > .panel-body.clone-presets {
+  flex: 1 1 auto;
+  border-top: 1px solid var(--line);
+}
+
+.clone-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.clone-step:hover {
+  background: var(--surface-2);
+}
+.clone-step.active {
+  border-color: var(--accent-line, var(--accent));
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--text);
+}
+.clone-step .step-num {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+.clone-step.done .step-num {
+  border-color: var(--ok);
+  color: var(--ok);
+}
+.clone-step.active .step-num {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accent-ink, #fff);
+}
+.clone-step .step-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.clone-step .step-text b {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.clone-step .step-text small {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clone-preset {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+  padding: 7px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.clone-preset:hover {
+  background: var(--surface-2);
+}
+.clone-preset.active {
+  border-color: var(--accent);
+  background: var(--accent-soft, var(--surface-2));
+  color: var(--text);
+}
+.clone-preset > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.clone-preset b {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.clone-preset small {
+  overflow: hidden;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ---- Columna 2: trabajo. Solo ella scrollea ---------------------------- */
+
+.clone-main > .panel-body.clone-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.clone-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+
+.field-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.field-title-row .btn {
+  margin-left: auto;
+}
+
+.clone-transcript {
+  min-height: 74px;
+  max-height: 160px;
+  resize: vertical;
+}
+
+.clone-recorder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: var(--space-4);
+  border: 1px dashed var(--line-strong, var(--line));
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  text-align: center;
+}
+.clone-recorder.recording {
+  border-color: var(--danger);
+}
+.rec-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: var(--text-3);
+}
+.clone-recorder.recording .rec-dot {
+  background: var(--danger);
+  animation: recPulse 1s ease-in-out infinite;
+}
+@keyframes recPulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+.rec-time {
+  font-size: var(--text-2xl);
+  font-variant-numeric: tabular-nums;
+}
+.rec-bar {
+  width: 100%;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.rec-bar i {
+  display: block;
+  height: 100%;
+  background: var(--danger);
+  transition: width 0.2s ease;
+}
+
+/* Limpieza: seis tarjetas en tres columnas. */
+.clean-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.clean-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 8px 9px;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--tone, var(--line));
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.clean-card:hover {
+  border-color: var(--line-strong, var(--accent));
+}
+.clean-card.active {
+  border-color: var(--accent);
+  border-left-color: var(--tone, var(--accent));
+  background: var(--accent-soft, var(--surface-3));
+  color: var(--text);
+}
+.clean-card b {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.clean-card small {
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Motores: tres tarjetas, la elegida con borde de acento. */
+.engine-pick {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+.engine-card {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text-2);
+  text-align: left;
+  cursor: pointer;
+}
+.engine-card:hover {
+  border-color: var(--line-strong, var(--accent));
+}
+.engine-card.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+  background: var(--accent-soft, var(--surface-3));
+  color: var(--text);
+}
+.engine-card header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.engine-card header b {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--text-sm);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.engine-card header .badge {
+  flex: none;
+  margin-left: auto;
+}
+.engine-card p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.engine-card .specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: auto;
+  font-size: var(--text-xs);
+  color: var(--text-3);
+}
+
+/* Avisos de la referencia. */
+.clone-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.clone-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--line);
+  background: var(--surface-2);
+  font-size: var(--text-xs);
+  color: var(--text-2);
+}
+.clone-note.danger {
+  border-left-color: var(--danger);
+}
+.clone-note.warn {
+  border-left-color: var(--warn);
+}
+.clone-note.info {
+  border-left-color: var(--info, var(--accent));
+}
+.clone-note svg {
+  flex: none;
+  margin-top: 1px;
+}
+
+/* ---- Columna 3: resultado fijo, botones abajo -------------------------- */
+
+.clone-result > .panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  overflow: hidden;
+}
+.clone-result .clone-sample {
+  flex: 1 1 auto;
+  min-height: 84px;
+  resize: none;
+}
+.clone-result .empty,
+.clone-result .design-wave,
+.clone-result .spec-inline {
+  flex: none;
+}
+.clone-take {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: none;
+}
+.clone-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-2);
+  flex: none;
+}
+.clone-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+  justify-content: center;
+  white-space: nowrap;
+}
+.clone-actions .btn[disabled] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.clone-result > .panel-body > .tiny.dim {
+  flex: none;
+  margin: 0;
+}
+
+/* ---- Adaptaciones de ancho ------------------------------------------- */
+
+@media (max-width: 1180px) {
+  .clone-board {
+    grid-template-columns: minmax(180px, 0.7fr) minmax(320px, 1.6fr);
+  }
+  .clone-result {
+    grid-column: 1 / -1;
+  }
+  .clone-result > .panel-body {
+    overflow-y: auto;
+  }
+  .clone-result .clone-sample {
+    min-height: 70px;
+  }
+}
+
+@media (max-width: 840px) {
+  .clone-board {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clone-main > .panel-body.clone-body {
+    overflow-y: visible;
+  }
+  .clean-grid,
+  .engine-pick {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .clean-grid,
+  .engine-pick {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .clone-actions {
+    flex-wrap: wrap;
   }
 }
 
@@ -4152,6 +4997,8 @@ body {
   // Prototipo VozStudio Atlas empaquetado: sin red, sin CDN, sin modulos.
   // Este archivo se genera con scripts/empaquetar.mjs - no editar a mano.
 
+// ---------------------------------------------------------------------------
+// data.js
 // ---------------------------------------------------------------------------
 // data.js
 // ---------------------------------------------------------------------------
@@ -5777,6 +6624,254 @@ function estimateRead(chars, rtf, chunks) {
 }
 
 // ---------------------------------------------------------------------------
+// clonacion.data.js
+// ---------------------------------------------------------------------------
+// VozStudio Atlas - modulo de clonacion de voz.
+//
+// Solo entran los motores que clonan de verdad y no son Qwen ni CosyVoice:
+// F5-TTS Spanish, XTTS-v2 y StyleTTS 2. Kokoro, Piper y MMS quedan fuera
+// porque no aceptan una referencia: son motores de voces fijas.
+//
+// Reglas del backend real que se respetan aqui:
+//   - la referencia util va de 3 a 10 segundos (XTTS pide mas de 6 s ideal);
+//   - hace falta la transcripcion exacta del fragmento;
+//   - sin consentimiento firmado no se guarda la voz;
+//   - la limpieza se hace antes de clonar, nunca despues.
+
+/** Motores disponibles para clonar. `minRef` y `maxRef` en segundos. */
+const CLONE_ENGINES = [
+  {
+    id: 'f5_spanish',
+    name: 'F5-TTS Spanish',
+    license: 'MIT',
+    commercial: true,
+    rtf: 0.65,
+    sr: 24000,
+    minRef: 3,
+    maxRef: 10,
+    accentos: 'multiacento',
+    nota: '218 h de espanol multiacento. Es el clonador de referencia del proyecto.',
+    aceptaGrabacion: true,
+    calidad: 'alta',
+  },
+  {
+    id: 'xtts_v2',
+    name: 'Coqui XTTS-v2',
+    license: 'CPML (personal)',
+    commercial: false,
+    rtf: 0.8,
+    sr: 24000,
+    minRef: 6,
+    maxRef: 12,
+    accentos: '17 idiomas',
+    nota: 'Clonacion de respaldo. Licencia restrictiva: solo uso personal.',
+    aceptaGrabacion: true,
+    calidad: 'alta',
+  },
+  {
+    id: 'styletts2',
+    name: 'StyleTTS 2 BSC-LT',
+    license: 'Apache-2.0',
+    commercial: true,
+    rtf: 0.22,
+    sr: 24000,
+    minRef: 3,
+    maxRef: 8,
+    accentos: 'ES neutro',
+    nota: 'Prosodia expresiva: buena para audiolibro, con menos fidelidad de timbre.',
+    aceptaGrabacion: true,
+    calidad: 'media',
+  },
+];
+
+/** Como se consigue la referencia. */
+const CLONE_SOURCES = [
+  { id: 'archivo', label: 'Subir audio', icon: 'upload', detalle: 'WAV, MP3, M4A, FLAC u OGG. Se convierte a 24 kHz mono en local.' },
+  { id: 'grabacion', label: 'Grabar en vivo', icon: 'mic', detalle: 'Microfono del equipo. El contador corta solo al llegar al maximo del motor.' },
+];
+
+/** Presets de limpieza: se aplican antes de calcular el condicionamiento. */
+const CLONE_CLEAN_PRESETS = [
+  {
+    id: 'estudio',
+    name: 'Estudio limpio',
+    desc: 'Referencia ya grabada con microfono: solo normaliza y recorta silencios.',
+    tone: 'var(--ok)',
+    params: { denoise: 40, deverb: 15, normalize: true, trim: true, loudness: '-23 LUFS', highpass: 80 },
+  },
+  {
+    id: 'casero',
+    name: 'Habitacion con ruido',
+    desc: 'Grabado con el portatil o el movil. Quita ruido de fondo y eco suave.',
+    tone: 'var(--accent)',
+    params: { denoise: 72, deverb: 45, normalize: true, trim: true, loudness: '-23 LUFS', highpass: 90 },
+  },
+  {
+    id: 'telefono',
+    name: 'Llamada o movil',
+    desc: 'Banda estrecha y compresion agresiva. Recupera lo que se pueda y avisa.',
+    tone: 'var(--warn)',
+    params: { denoise: 85, deverb: 30, normalize: true, trim: true, loudness: '-20 LUFS', highpass: 120 },
+  },
+  {
+    id: 'eco',
+    name: 'Sala con reverberacion',
+    desc: 'Cocina, bano o sala vacia. Reduce cola de reverb sin comerse las consonantes.',
+    tone: 'var(--info)',
+    params: { denoise: 55, deverb: 78, normalize: true, trim: true, loudness: '-23 LUFS', highpass: 85 },
+  },
+  {
+    id: 'musica',
+    name: 'Voz sobre musica',
+    desc: 'Separa voz y fondo con el modelo de fuente. Avisa de los artefactos.',
+    tone: 'var(--amber)',
+    params: { denoise: 60, deverb: 20, normalize: true, trim: true, loudness: '-23 LUFS', highpass: 100 },
+  },
+  {
+    id: 'crudo',
+    name: 'Sin tocar',
+    desc: 'Solo se comprueba el nivel de pico. Util para diagnosticar la referencia.',
+    tone: 'var(--text-3)',
+    params: { denoise: 0, deverb: 0, normalize: false, trim: false, loudness: 'sin cambio', highpass: 0 },
+  },
+];
+
+/** Presets de clonacion: fijan motor, limpieza y ajustes del condicionamiento. */
+const CLONE_PRESETS = [
+  {
+    id: 'narrador-neutro',
+    name: 'Narrador neutro',
+    desc: 'El uso mas comun: una sola voz para todo el capitulo, ritmo estable.',
+    engine: 'f5_spanish',
+    cleaning: 'estudio',
+    tone: 'var(--accent)',
+    params: { speed: 1, exaggeration: 0.5, clarity: 0.5, sampleRate: 24000, seedLock: true },
+  },
+  {
+    id: 'audiolibro-calido',
+    name: 'Audiolibro calido',
+    desc: 'Mas pausa y calidez en los finales de frase. Pensado para sesiones largas.',
+    engine: 'f5_spanish',
+    cleaning: 'estudio',
+    tone: 'var(--ok)',
+    params: { speed: 0.94, exaggeration: 0.58, clarity: 0.62, sampleRate: 24000, seedLock: true },
+  },
+  {
+    id: 'documental',
+    name: 'Documental grave',
+    desc: 'Timbre firme y poca variacion emocional, para locucion de ciencia.',
+    engine: 'xtts_v2',
+    cleaning: 'casero',
+    tone: 'var(--info)',
+    params: { speed: 0.9, exaggeration: 0.35, clarity: 0.7, sampleRate: 24000, seedLock: true },
+  },
+  {
+    id: 'expressivo-dialogo',
+    name: 'Expresivo de dialogo',
+    desc: 'Sube la expresividad de StyleTTS 2 para personajes y cuentos.',
+    engine: 'styletts2',
+    cleaning: 'casero',
+    tone: 'var(--amber)',
+    params: { speed: 1.04, exaggeration: 0.78, clarity: 0.4, sampleRate: 24000, seedLock: false },
+  },
+  {
+    id: 'micro-movil',
+    name: 'Referencia de movil',
+    desc: 'Para cuando lo unico que hay es una nota de voz: limpieza agresiva.',
+    engine: 'f5_spanish',
+    cleaning: 'telefono',
+    tone: 'var(--warn)',
+    params: { speed: 1, exaggeration: 0.45, clarity: 0.55, sampleRate: 22050, seedLock: true },
+  },
+  {
+    id: 'susurro',
+    name: 'Susurro intimo',
+    desc: 'Clonacion suave con aire y poco cuerpo. Aviso: el backend puede recortar graves.',
+    engine: 'xtts_v2',
+    cleaning: 'eco',
+    tone: 'var(--danger)',
+    params: { speed: 0.88, exaggeration: 0.3, clarity: 0.76, sampleRate: 24000, seedLock: true },
+  },
+  {
+    id: 'institucional',
+    name: 'Institucional',
+    desc: 'Ritmo regular, sin adornos: mensajes de atencion y avisos.',
+    engine: 'f5_spanish',
+    cleaning: 'estudio',
+    tone: 'var(--info)',
+    params: { speed: 0.97, exaggeration: 0.4, clarity: 0.66, sampleRate: 24000, seedLock: true },
+  },
+  {
+    id: 'personaje',
+    name: 'Personaje de ficcion',
+    desc: 'Acepta algo de artefacto a cambio de caracter. Revisa el QA antes de aprobar.',
+    engine: 'styletts2',
+    cleaning: 'musica',
+    tone: 'var(--amber)',
+    params: { speed: 1.08, exaggeration: 0.85, clarity: 0.32, sampleRate: 24000, seedLock: false },
+  },
+];
+
+/** Pasos del asistente, en orden. */
+const CLONE_STEPS = [
+  { id: 'fuente', label: 'Fuente', hint: 'Sube o graba la referencia' },
+  { id: 'limpieza', label: 'Limpieza', hint: 'Ruido, eco y nivel' },
+  { id: 'motor', label: 'Motor', hint: 'Quien clona' },
+  { id: 'prueba', label: 'Prueba', hint: 'Escucha y guarda' },
+];
+
+const cloneEngineById = (id) => CLONE_ENGINES.find((item) => item.id === id) || CLONE_ENGINES[0];
+const clonePresetById = (id) => CLONE_PRESETS.find((item) => item.id === id) || CLONE_PRESETS[0];
+const cleanPresetById = (id) => CLONE_CLEAN_PRESETS.find((item) => item.id === id) || CLONE_CLEAN_PRESETS[0];
+
+/** Referencia de ejemplo, coherente con el catalogo del prototipo. */
+const SAMPLE_REFERENCE = {
+  name: 'muestra-elena.wav',
+  seconds: 8.4,
+  format: 'WAV',
+  sr: 44100,
+  channels: 2,
+  sizeMb: 1.5,
+  transcript: 'La lluvia insistia sobre el tejado mientras la ciudad se apagaba despacio.',
+};
+
+/**
+ * Evalua la referencia contra lo que exige cada motor.
+ * Devuelve avisos, no bloquea: el prototipo explica por que no se puede seguir.
+ */
+function evaluateReference(ref, engineId) {
+  const engine = cloneEngineById(engineId);
+  if (!ref) return { ok: false, nivel: 'vacio', avisos: [{ tono: 'warn', texto: 'Todavia no hay referencia.' }] };
+  const avisos = [];
+  if (ref.seconds < engine.minRef) {
+    avisos.push({ tono: 'danger', texto: `Muy corta: ${engine.name} pide al menos ${engine.minRef} s y hay ${ref.seconds.toFixed(1)} s.` });
+  }
+  if (ref.seconds > engine.maxRef) {
+    avisos.push({ tono: 'warn', texto: `Se recortara a ${engine.maxRef} s: el motor no usa mas.` });
+  }
+  if (!ref.transcript || ref.transcript.trim().length < 10) {
+    avisos.push({ tono: 'danger', texto: 'Falta la transcripcion exacta: sin ella el condicionamiento no vale.' });
+  }
+  if (ref.channels > 1) {
+    avisos.push({ tono: 'info', texto: `Se convierte a mono (${ref.channels} canales de origen).` });
+  }
+  if (ref.sr < 16000) {
+    avisos.push({ tono: 'warn', texto: `Muestra baja (${ref.sr} Hz): el timbre saldra apagado.` });
+  }
+  if (!engine.commercial) {
+    avisos.push({ tono: 'info', texto: `${engine.name} no es comercial: permitido en uso personal.` });
+  }
+  const nivel = avisos.some((a) => a.tono === 'danger') ? 'error' : avisos.some((a) => a.tono === 'warn') ? 'aviso' : 'ok';
+  return { ok: nivel !== 'error', nivel, avisos };
+}
+
+/** Estimacion de la toma de prueba: duracion y coste en RTF. */
+function estimateClone(engineId, seconds) {
+  const engine = cloneEngineById(engineId);
+  return { rtf: engine.rtf, segundos: Math.max(0.4, (seconds * engine.rtf)).toFixed(2) };
+}
+
+// ---------------------------------------------------------------------------
 // brand.js
 // ---------------------------------------------------------------------------
 // VozStudio Atlas - marca compartida.
@@ -6270,6 +7365,7 @@ function attachTrayDrag(root = document) {
 
 
 
+
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -6277,6 +7373,7 @@ const TITLES = {
   inicio: 'Inicio',
   lectura: 'Lectura y narracion',
   diseno: 'Diseno de voz',
+  clonacion: 'Clonacion de voz',
   produce: 'Producir',
   voces: 'Voces',
   recetas: 'Recetas',
@@ -6344,6 +7441,11 @@ const state = {
   projectId: 'patagonia',
   docId: '07',
   blockId: '07-004',
+  // Filtro de la lista de segmentos en Producir: todos, revisar o pendiente.
+  produceFilter: 'todos',
+  // Cola de trabajo: desplegable e historial de lo ya cerrado.
+  queueOpen: false,
+  queueHistory: [],
   mode: 'final',
   search: '',
   voiceFilter: 'todas',
@@ -6378,6 +7480,23 @@ const state = {
     pause: null,
     chunk: null,
     emotion: null,
+  },
+
+  // Modulo de clonacion de voz (F5, XTTS y StyleTTS 2)
+  clonacion: {
+    step: 'fuente',
+    source: 'archivo',
+    reference: null,
+    recording: false,
+    recordSeconds: 0,
+    engine: 'f5_spanish',
+    cleaning: 'estudio',
+    preset: 'narrador-neutro',
+    transcript: '',
+    cleaningApplied: false,
+    testing: false,
+    result: null,
+    saved: [],
   },
 
   // Modulo de diseno de voz
@@ -6582,6 +7701,10 @@ function queueTotal() {
 function queueDone() {
   return state.jobs.reduce((acc, job) => acc + ((job.state === 'listo' ? job.total : job.progress) || 0), 0);
 }
+/** Trabajos ya cerrados, los ultimos primero: se ven al desplegar la cola. */
+function queueHistory() {
+  return (state.queueHistory || []).slice(-12).reverse();
+}
 function enqueueRender(doc, mode, blocks) {
   if (!doc) return;
   const total = blocks && blocks.length ? blocks.length : doc.blocks.filter((b) => b.state !== 'aprobado' || mode === 'final').length;
@@ -6655,6 +7778,16 @@ function queueStripHtml() {
     <div class="q-meta mono">${done}/${total}</div>
     <div class="q-bar"><div class="bar"><i style="width:${pct(done, total || 1)}%"></i></div></div>
     ${active ? `<button class="btn sm" data-action="queue:pause">Pausar</button>` : ''}
+    <button class="btn sm icon-only" data-action="queue:toggle" aria-label="Ver trabajos de la cola" aria-expanded="${state.queueOpen ? 'true' : 'false'}">${icon(state.queueOpen ? 'chevron' : 'terminal', 'sm')}</button>
+  </div>
+  <div class="q-jobs">
+    ${[...state.jobs, ...queueHistory()].slice(0, 24).map((job) => `<div class="q-job">
+        <span class="badge ${job.state === 'listo' ? 'ok' : job.state === 'ejecutando' ? 'accent' : job.state === 'error' ? 'danger' : ''}">${esc(job.state)}</span>
+        <span class="grow truncate">${esc(job.title)}</span>
+        <span class="mono">${job.progress}/${job.total}</span>
+        <span class="spacer"></span>
+        <span class="mono">${esc(job.eta || '--')}</span>
+      </div>`).join('') || '<p class="tiny dim">Sin trabajos registrados.</p>'}
   </div>`;
 }
 
@@ -6701,6 +7834,7 @@ function sidebarHtml() {
       ${navItem('inicio', 'home', 'Inicio')}
       ${navItem('lectura', 'book', 'Lectura y narracion')}
       ${navItem('diseno', 'wand', 'Diseno de voz', String(PROMPT_TOTAL))}
+      ${navItem('clonacion', 'mic', 'Clonacion de voz', String(CLONE_PRESETS.length))}
       ${navItem('produce', 'grid', 'Producir', stats.review ? String(stats.review) : '')}
       ${navItem('biblioteca', 'folder', 'Biblioteca')}
       <span class="nav-label">Recursos</span>
@@ -7024,7 +8158,12 @@ function viewLectura() {
             <span class="badge accent">${READ_PRESETS.length} predisenados</span>
           </div>
           <div class="panel-body preset-body">
-              ${READ_PRESETS.map(
+            ${carrusel({
+              id: 'presets-lectura',
+              porVista: 4,
+              cols: 2,
+              etiqueta: 'presets de lectura',
+              items: READ_PRESETS.map(
                 (preset) => `<button class="preset-card" style="--tone:${preset.tone}" data-action="lectura:preset" data-preset="${preset.id}" aria-pressed="${preset.id === state.lectura.preset}">
                   <header>${icon(preset.icon, 'sm')}<h3>${esc(preset.name)}</h3></header>
                   <p>${esc(preset.desc)}</p>
@@ -7035,7 +8174,8 @@ function viewLectura() {
                     <span>${esc(preset.lufs)}</span>
                   </div>
                 </button>`,
-              ).join('')}
+              ),
+            })}
           </div>
         </section>
 
@@ -7045,15 +8185,15 @@ function viewLectura() {
             <span class="spacer"></span>
             <span class="badge">${state.lectura.files.length}</span>
           </div>
-          <div class="panel-body stack-3">
-            <div class="drop ${state.lectura.dropHot ? 'hot' : ''}" data-drop="documentos">
+          <div class="panel-body stack-3 import-body">
+            <div class="drop drop-import ${state.lectura.dropHot ? 'hot' : ''}" data-drop="documentos">
               ${icon('upload', 'hero')}
               <h4>Arrastra un PDF, EPUB o TXT aqui</h4>
               <p class="tiny muted">El texto se extrae en local. Los PDF escaneados se avisan y se pueden transcribir con ASR opcional.</p>
               <div class="chips">${DOC_FORMATS.map((format) => `<span class="badge">${esc(format.label)}</span>`).join('')}</div>
               <button class="btn sm" data-action="lectura:upload">${icon('plus', 'sm')} Anadir documento de prueba</button>
             </div>
-            ${state.lectura.files
+            <div class="file-list" data-scroll-area="documentos-lectura">${state.lectura.files
               .map(
                 (file) => `<div class="file-row">
                   <span class="card-icon" style="--tone:var(--accent)">${icon('file', 'sm')}</span>
@@ -7065,7 +8205,7 @@ function viewLectura() {
                   <button class="btn sm" data-action="lectura:load" data-file="${file.id}">${icon('upload', 'sm')} Cargar</button>
                 </div>`,
               )
-              .join('')}
+              .join('')}</div>
           </div>
         </section>
       </div>
@@ -7163,7 +8303,9 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge">${d.prompt.length} / 1500</span>
         </div>
-        <div class="panel-body stack-3">
+
+        <!-- Mitad superior: lo que se le pide al motor. -->
+        <div class="prompt-half">
           ${
             isCosy
               ? `<div class="segmented" role="group" aria-label="Modo de CosyVoice">
@@ -7172,7 +8314,6 @@ function viewDiseno() {
                 </div>`
               : ''
           }
-
           <div class="prompt-box">
             <label class="sr-only" for="design-prompt">Prompt de diseno</label>
             <textarea id="design-prompt" class="textarea" maxlength="1500" placeholder="${
@@ -7185,29 +8326,30 @@ function viewDiseno() {
               <button class="btn sm" data-action="diseno:random">${icon('sparkles', 'sm')} Aleatorio</button>
               <button class="btn sm" data-action="diseno:clear-prompt">${icon('trash', 'sm')} Limpiar</button>
             </div>
-            ${
-              d.improved
-                ? `<div class="prompt-note">${icon('zap', 'sm')}<div><b>Prompt mejorado por ${esc(d.improvedBy)}</b><br>${esc(d.improved)}</div>
-                    <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
-                : `<div class="prompt-note">${icon('info', 'sm')}<div>Si Phi-3.5 local no esta disponible, el mejorador cae a <b>heuristicas</b> y lo dice: nunca mejora en silencio.</div></div>`
-            }
           </div>
+          ${
+            d.improved
+              ? `<div class="prompt-note compact">${icon('zap', 'sm')}<div><b>Mejorado por ${esc(d.improvedBy)}</b> · ${esc(d.improved)}</div>
+                  <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
+              : `<p class="tiny dim prompt-footnote">Si Phi-3.5 local no esta disponible, el mejorador cae a heuristicas y lo dice: nunca mejora en silencio.</p>`
+          }
+        </div>
 
+        <!-- Mitad inferior: la configuracion del motor, hasta el margen. -->
+        <div class="engine-half">
           <div class="engine-fields">
             ${
               isInstruct
                 ? `<div class="field-group">
                     <div class="field-title">${icon('sliders', 'sm')} CosyVoice Instruct-TTS</div>
-                    <div class="grid-3">
+                    <div class="cosy-row">
                       ${field('Estilo', `<select class="select" data-action="diseno:style">${['neutro', 'narrativo', 'calido', 'informativo', 'expresivo', 'alegre', 'calmo', 'energico', 'susurro'].map((s) => `<option value="${s}" ${s === d.style ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
                       ${field('Emocion', `<select class="select" data-action="diseno:emotion">${['neutro', 'alegre', 'triste', 'serio', 'susurro', 'misterio', 'entusiasta'].map((s) => `<option value="${s}" ${s === d.emotion ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
                       ${field('Sampling K', `<input class="input" type="number" min="10" max="40" step="1" value="${d.samplingK}" data-action="diseno:k" />`)}
+                      <div class="cosy-range">${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}</div>
+                      <div class="cosy-range">${rangeControl({ label: 'Velocidad', id: 'cosy-speed', min: 0.6, max: 1.4, step: 0.01, value: d.speed, action: 'diseno:speed', format: (v) => `${Number(v).toFixed(2)}x` })}</div>
                     </div>
-                    <div class="grid-2" style="margin-top:8px">
-                      ${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}
-                      ${rangeControl({ label: 'Velocidad', id: 'cosy-speed', min: 0.6, max: 1.4, step: 0.01, value: d.speed, action: 'diseno:speed', format: (v) => `${Number(v).toFixed(2)}x` })}
-                    </div>
-                    <p class="tiny dim mt-2">Viaja al motor: <span class="mono">instruct</span>, <span class="mono">sampling_k</span>, <span class="mono">speed_factor</span> y <span class="mono">gain</span>.</p>
+                    <p class="tiny dim cosy-contract">Viaja al motor: <span class="mono">instruct</span>, <span class="mono">sampling_k</span>, <span class="mono">speed_factor</span> y <span class="mono">gain</span>.</p>
                   </div>
                   <div class="field-group">
                     <div class="field-title">${icon('mic', 'sm')} Referencia zero-shot (3 a 10 s)</div>
@@ -7217,7 +8359,7 @@ function viewDiseno() {
                       <p class="tiny muted">${d.reference ? `${d.reference.seconds} s · transcripcion verificada · condicionamiento bloqueado` : 'El backend exige WAV y transcripcion exacta del fragmento.'}</p>
                       <button class="btn sm" data-action="diseno:reference">${icon('upload', 'sm')} ${d.reference ? 'Cambiar referencia' : 'Usar referencia de prueba'}</button>
                     </div>
-                    <div style="margin-top:8px">${field('Transcripcion de la referencia', `<textarea class="textarea" style="min-height:52px" placeholder="Lo que dice exactamente el WAV" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
+                    <div class="ref-transcript">${field('Transcripcion de la referencia', `<textarea class="textarea" placeholder="Lo que dice exactamente el WAV" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
                   </div>`
                 : `<div class="field-group">
                     <div class="field-title">${icon('wand', 'sm')} Atributos de VoiceDesign</div>
@@ -7245,9 +8387,9 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge accent">${esc(engineById(engine).name)}</span>
         </div>
-        <div class="panel-body stack-3">
+        <div class="panel-body stack-3 result-body">
           <label class="sr-only" for="design-sample">Frase de prueba</label>
-          <textarea id="design-sample" class="textarea" style="min-height:54px" data-action="diseno:sample">${esc(d.sample)}</textarea>
+          <textarea id="design-sample" class="textarea sample-box" data-action="diseno:sample">${esc(d.sample)}</textarea>
           <div class="design-wave" aria-hidden="true">${bars.map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
           ${
             d.generated
@@ -7268,7 +8410,6 @@ function viewDiseno() {
             <button class="btn primary" data-action="diseno:generate">${icon('zap', 'sm')} Generar voz</button>
             <button class="btn" data-action="diseno:save">${icon('plus', 'sm')} Guardar en biblioteca</button>
           </div>
-          <p class="tiny dim">Procedencia auditada en el JSON de cada toma.</p>
         </div>
       </section>
 
@@ -7278,18 +8419,20 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge">${d.family === 'todas' ? PROMPT_TOTAL : (PROMPT_FAMILIES.find((f) => f.id === d.family) || {}).count || 0}</span>
         </div>
-        <div class="panel-body stack-3">
-          <div class="segmented" role="group" aria-label="Tipo de prompt">
-            <button data-action="diseno:prompt-mode" data-mode="todos" aria-pressed="${d.promptMode === 'todos'}">Todos</button>
-            <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
-            <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
+        <div class="panel-body stack-3 library-body">
+          <div class="library-fixed">
+            <div class="segmented" role="group" aria-label="Tipo de prompt">
+              <button data-action="diseno:prompt-mode" data-mode="todos" aria-pressed="${d.promptMode === 'todos'}">Todos</button>
+              <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
+              <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
+            </div>
+            <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
+            <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
+            <label class="sr-only" for="prompt-family">Familia</label>
+            <select id="prompt-family" class="select" data-action="diseno:family">
+              ${familias.map((f) => `<option value="${f.id}" ${f.id === d.family ? 'selected' : ''}>${esc(f.label)} · ${f.count}</option>`).join('')}
+            </select>
           </div>
-          <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
-          <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
-          <label class="sr-only" for="prompt-family">Familia</label>
-          <select id="prompt-family" class="select" data-action="diseno:family">
-            ${familias.map((f) => `<option value="${f.id}" ${f.id === d.family ? 'selected' : ''}>${esc(f.label)} · ${f.count}</option>`).join('')}
-          </select>
           <div id="prompt-results" class="library-list">${muestra
             .map(
               (item) => `<button class="library-item" data-action="diseno:use-prompt" data-prompt="${item.id}">
@@ -7302,6 +8445,179 @@ function viewDiseno() {
             )
             .join('')}</div>
           <p class="tiny dim">${muestra.length} de ${PROMPT_TOTAL} coincidencias. Pulsa una para usarla.</p>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+
+/* ============================ CLONACION DE VOZ ============================ */
+/*
+  Modulo de clonacion con los motores que aceptan referencia y no son Qwen ni
+  CosyVoice: F5-TTS Spanish, XTTS-v2 y StyleTTS 2. La referencia se sube o se
+  graba en vivo, se limpia con un preset y solo despues se condiciona.
+*/
+function viewClonacion() {
+  const c = state.clonacion;
+  const engine = cloneEngineById(c.engine);
+  const preset = clonePresetById(c.preset);
+  const clean = cleanPresetById(c.cleaning);
+  const ref = c.reference;
+  const evalRef = evaluateReference(ref ? { ...ref, transcript: c.transcript } : null, c.engine);
+  const paso = Math.max(0, CLONE_STEPS.findIndex((item) => item.id === c.step));
+
+  return `
+  <div class="stack-4 screen-fill clone-screen">
+    <div class="row between wrap">
+      <div>
+        <h1 style="font-size:var(--text-2xl)">Clonacion de voz</h1>
+        <p class="tiny muted mt-2">Una referencia de 3 a 10 s basta para clonar el timbre. ${CLONE_ENGINES.length} motores disponibles: ${CLONE_ENGINES.map((item) => item.name).join(', ')}. Todo se procesa en local.</p>
+      </div>
+      <span class="badge info">${icon('shield', 'sm')} Consentimiento obligatorio</span>
+    </div>
+
+    <div class="clone-board">
+      <aside class="panel clone-steps">
+        <div class="panel-head"><div><p class="eyebrow">Asistente</p><h2>${CLONE_STEPS.length} pasos</h2></div></div>
+        <div class="panel-body stack-2">
+          ${CLONE_STEPS.map(
+            (item, index) => `<button class="clone-step ${item.id === c.step ? 'active' : ''} ${index < paso ? 'done' : ''}" data-action="clone:step" data-step="${item.id}">
+              <span class="step-num">${index < paso ? icon('check', 'sm') : index + 1}</span>
+              <span class="step-text"><b>${esc(item.label)}</b><small>${esc(item.hint)}</small></span>
+            </button>`,
+          ).join('')}
+        </div>
+        <div class="panel-body stack-2 clone-presets">
+          <p class="eyebrow">Presets de clonacion</p>
+          ${CLONE_PRESETS.map(
+            (item) => `<button class="clone-preset ${item.id === c.preset ? 'active' : ''}" data-action="clone:preset" data-preset="${item.id}" aria-pressed="${item.id === c.preset}">
+              <span class="mode-dot" style="background:${item.tone}" aria-hidden="true"></span>
+              <span><b>${esc(item.name)}</b><small>${esc(item.desc)}</small></span>
+            </button>`,
+          ).join('')}
+        </div>
+      </aside>
+
+      <section class="panel clone-main">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso ${paso + 1} de ${CLONE_STEPS.length}</p><h2>${esc((CLONE_STEPS[paso] || CLONE_STEPS[0]).label)}</h2></div>
+          <span class="spacer"></span>
+          <span class="badge ${evalRef.nivel === 'ok' ? 'ok' : evalRef.nivel === 'error' ? 'danger' : 'warn'}">${esc(evalRef.nivel === 'ok' ? 'referencia valida' : evalRef.nivel === 'error' ? 'referencia incompleta' : 'revisar avisos')}</span>
+        </div>
+        <div class="panel-body stack-3 clone-body">
+
+          <div class="clone-block">
+            <div class="segmented" role="group" aria-label="Origen de la referencia">
+              ${CLONE_SOURCES.map((item) => `<button data-action="clone:source" data-source="${item.id}" aria-pressed="${c.source === item.id}">${icon(item.icon, 'sm')} ${esc(item.label)}</button>`).join('')}
+            </div>
+            ${
+              c.source === 'archivo'
+                ? `<div class="drop ${ref ? 'hot' : ''}" data-drop="clonacion">
+                    ${icon('upload', 'hero')}
+                    <h4>${ref ? esc(ref.name) : 'Arrastra un WAV, MP3 o M4A'}</h4>
+                    <p class="tiny muted">${ref ? `${ref.seconds.toFixed(1)} s · ${ref.sr} Hz · ${ref.channels} canales · ${ref.sizeMb} MB` : `Se convierte a 24 kHz mono. ${engine.name} usa entre ${engine.minRef} y ${engine.maxRef} s.`}</p>
+                    <div class="row">
+                      <button class="btn sm" data-action="clone:load-sample">${icon('file', 'sm')} Usar audio de ejemplo</button>
+                      ${ref ? `<button class="btn sm" data-action="clone:clear">${icon('trash', 'sm')} Quitar</button>` : ''}
+                    </div>
+                  </div>`
+                : `<div class="clone-recorder ${c.recording ? 'recording' : ''}">
+                    <div class="rec-dot" aria-hidden="true"></div>
+                    <div class="rec-time mono">${c.recordSeconds.toFixed(1)} s</div>
+                    <p class="tiny muted">${c.recording ? `Grabando... se detiene sola a los ${engine.maxRef} s` : `Microfono del equipo. Minimo ${engine.minRef} s, maximo ${engine.maxRef} s.`}</p>
+                    <div class="rec-bar"><i style="width:${pct(c.recordSeconds, engine.maxRef)}%"></i></div>
+                    <button class="btn ${c.recording ? 'danger' : 'primary'}" data-action="clone:record">${icon(c.recording ? 'x' : 'mic', 'sm')} ${c.recording ? 'Detener' : 'Grabar referencia'}</button>
+                  </div>`
+            }
+            ${ref ? `<div class="spec-inline">
+              <div><span>Duracion</span><b>${ref.seconds.toFixed(1)} s</b></div>
+              <div><span>Formato</span><b>${esc(ref.format)} ${ref.sr / 1000} kHz</b></div>
+              <div><span>Canales</span><b>${ref.channels === 1 ? 'mono' : 'estereo'}</b></div>
+              <div><span>Motor</span><b>${esc(engine.name)}</b></div>
+            </div>` : ''}
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Transcripcion exacta de la referencia</span>
+              ${ref ? `<button class="btn sm" data-action="clone:transcribe">${icon('sparkles', 'sm')} Transcribir con ASR local</button>` : ''}
+            </div>
+            <label class="sr-only" for="clone-transcript">Transcripcion</label>
+            <textarea id="clone-transcript" class="textarea clone-transcript" placeholder="Lo que dice exactamente el audio, palabra por palabra." data-action="clone:transcript">${esc(c.transcript)}</textarea>
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Limpieza de audio</span>
+              ${c.cleaningApplied ? `<span class="badge ok">${icon('check', 'sm')} aplicada</span>` : ''}
+            </div>
+            <div class="clean-grid">
+              ${CLONE_CLEAN_PRESETS.map(
+                (item) => `<button class="clean-card ${item.id === c.cleaning ? 'active' : ''}" data-action="clone:cleaning" data-cleaning="${item.id}" aria-pressed="${item.id === c.cleaning}" style="--tone:${item.tone}">
+                  <b>${esc(item.name)}</b>
+                  <small>${esc(item.desc)}</small>
+                </button>`,
+              ).join('')}
+            </div>
+            <div class="spec-inline clean-specs">
+              <div><span>Reduccion de ruido</span><b>${clean.params.denoise} %</b></div>
+              <div><span>Antirreverb</span><b>${clean.params.deverb} %</b></div>
+              <div><span>Loudness</span><b>${esc(clean.params.loudness)}</b></div>
+              <div><span>Paso alto</span><b>${clean.params.highpass ? `${clean.params.highpass} Hz` : 'sin filtro'}</b></div>
+            </div>
+            <button class="btn primary" data-action="clone:clean">${icon('sparkles', 'sm')} Limpiar referencia</button>
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Motor de clonacion</span></div>
+            <div class="engine-pick">
+              ${CLONE_ENGINES.map(
+                (item) => `<button class="engine-card ${item.id === c.engine ? 'active' : ''}" data-action="clone:engine" data-engine="${item.id}" aria-pressed="${item.id === c.engine}">
+                  <header><b>${esc(item.name)}</b><span class="badge ${item.commercial ? 'ok' : 'info'}">${esc(item.license)}</span></header>
+                  <p>${esc(item.nota)}</p>
+                  <div class="specs"><span>RTF ${item.rtf.toFixed(2)}</span><span>${item.minRef}-${item.maxRef} s</span><span>${esc(item.accentos)}</span></div>
+                </button>`,
+              ).join('')}
+            </div>
+          </div>
+
+          ${evalRef.avisos.length ? `<div class="clone-notes">${evalRef.avisos.map((a) => `<div class="clone-note ${a.tono}">${icon(a.tono === 'danger' ? 'alert' : 'info', 'sm')}<span>${esc(a.texto)}</span></div>`).join('')}</div>` : ''}
+        </div>
+      </section>
+
+      <section class="panel clone-result">
+        <div class="panel-head"><div><p class="eyebrow">Resultado</p><h2>Prueba de la voz</h2></div></div>
+        <div class="panel-body stack-3">
+          <div class="spec-inline">
+            <div><span>Motor</span><b>${esc(engine.name)}</b></div>
+            <div><span>Preset</span><b>${esc(preset.name)}</b></div>
+            <div><span>Limpieza</span><b>${esc(clean.name)}</b></div>
+            <div><span>RTF</span><b>${engine.rtf.toFixed(2)}</b></div>
+          </div>
+          <label class="sr-only" for="clone-sample">Frase de prueba</label>
+          <textarea id="clone-sample" class="textarea clone-sample" placeholder="La lluvia insistia sobre el tejado mientras la ciudad se apagaba despacio.">La lluvia insistia sobre el tejado mientras la ciudad se apagaba despacio.</textarea>
+          <div class="design-wave" aria-hidden="true">${waveBars(`clone-${c.engine}-${c.preset}`).map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
+          ${
+            c.result
+              ? `<div class="clone-take">
+                  <div class="spec-inline">
+                    <div><span>Duracion</span><b>${c.result.duration} s</b></div>
+                    <div><span>Similitud</span><b>${c.result.similarity} %</b></div>
+                    <div><span>Tiempo</span><b>${c.result.elapsed} s</b></div>
+                    <div><span>QA</span><b>${esc(c.result.qa)}</b></div>
+                  </div>
+                  <div class="row wrap">
+                    <button class="btn sm primary" data-action="clone:preview">${icon('play', 'sm')} Escuchar</button>
+                    <button class="btn sm" data-action="clone:again">${icon('refresh', 'sm')} Otra toma</button>
+                  </div>
+                </div>`
+              : `<div class="empty">${icon('mic', 'hero')}<h3>Sin prueba todavia</h3><p class="tiny muted">Sube o graba una referencia, limpiala y pulsa Probar clonacion.</p></div>`
+          }
+          <div class="clone-actions">
+            <button class="btn primary" data-action="clone:test" ${evalRef.ok && c.cleaningApplied ? '' : 'disabled'}>${icon('zap', 'sm')} Probar clonacion</button>
+            <button class="btn" data-action="clone:save" ${c.result ? '' : 'disabled'}>${icon('plus', 'sm')} Guardar voz</button>
+          </div>
+          <p class="tiny dim">Sin consentimiento firmado no se guarda: el prototipo lo pide antes de escribir nada.</p>
+          ${c.saved.length ? `<div class="stack-2"><p class="eyebrow">Clonadas en esta sesion</p>${c.saved.map((v) => `<div class="file-row"><span class="card-icon" style="--tone:var(--accent)">${icon('mic', 'sm')}</span><div style="min-width:0"><div class="file-name">${esc(v.name)}</div><div class="file-meta">${esc(v.engine)} · ${v.seconds} s</div></div><span class="badge ok">lista</span></div>`).join('')}</div>` : ''}
         </div>
       </section>
     </div>
@@ -7728,6 +9044,32 @@ function viewAjustes() {
 }
 
 /* ------------------------- PRODUCIR (se conserva) ------------------------- */
+/** Reparto del documento por rol: cuantos bloques aprobados de cada uno. */
+function roleBreakdown(doc) {
+  const tonos = ['var(--accent)', 'var(--ok)', 'var(--info)', 'var(--amber)'];
+  const porRol = new Map();
+  (doc.blocks || []).forEach((block) => {
+    const actual = porRol.get(block.role) || { total: 0, approved: 0 };
+    actual.total += 1;
+    if (block.state === 'aprobado') actual.approved += 1;
+    porRol.set(block.role, actual);
+  });
+  return [...porRol.entries()].map(([role, data], index) => ({
+    id: role,
+    label: roleMeta(role).label,
+    total: data.total,
+    approved: data.approved,
+    tone: tonos[index % tonos.length],
+  }));
+}
+
+/** Bloques del documento con el filtro de la cabecera aplicado. */
+function filteredBlocks(doc) {
+  const filtro = state.produceFilter || 'todos';
+  if (filtro === 'todos') return doc.blocks;
+  return doc.blocks.filter((block) => block.state === filtro);
+}
+
 function viewProduce() {
   const p = project();
   const doc = currentDoc();
@@ -7743,6 +9085,7 @@ function viewProduce() {
   const block = findBlock(state.blockId) || doc.blocks[0];
   return `
   <div class="stack-3 screen-fill produce-screen">
+    <!-- Cabecera fija: proyecto, estado de la pasada y acciones. -->
     <div class="panel produce-head">
       <div class="produce-title">
         <div class="row wrap">
@@ -7759,6 +9102,32 @@ function viewProduce() {
       <div class="row">
         <button class="btn" data-action="queue:render-doc">${icon('play', 'sm')} Renderizar</button>
         <button class="btn primary" data-action="modal:export">${icon('download', 'sm')} Exportar</button>
+      </div>
+    </div>
+
+    <!-- Franja de estado: cuanto falta y de quien es cada tramo. -->
+    <div class="panel produce-status">
+      <div class="ps-bar"><i style="width:${pct(docStatsValue.approved, doc.blocks.length || 1)}%"></i></div>
+      <div class="ps-items">
+        ${roleBreakdown(doc)
+          .map(
+            (item) => `<div class="ps-item">
+              <span class="ps-dot" style="--tone:${item.tone}"></span>
+              <span class="grow truncate">${esc(item.label)}</span>
+              <b class="mono">${item.approved}/${item.total}</b>
+            </div>`,
+          )
+          .join('')}
+        <div class="ps-item">
+          <span class="ps-dot" style="--tone:var(--warn)"></span>
+          <span class="grow truncate">Por revisar</span>
+          <b class="mono">${docStatsValue.review}</b>
+        </div>
+        <div class="ps-item">
+          <span class="ps-dot" style="--tone:var(--text-3)"></span>
+          <span class="grow truncate">Pendientes</span>
+          <b class="mono">${doc.blocks.filter((b) => b.state === 'pendiente').length}</b>
+        </div>
       </div>
     </div>
 
@@ -7781,12 +9150,16 @@ function viewProduce() {
 
       <section class="panel produce-col editor">
         <div class="panel-head">
-          <div><p class="eyebrow">Bloques</p><h2>${doc.blocks.length} segmentos</h2></div>
+          <div><p class="eyebrow">Segmentos</p><h2>${doc.blocks.length} bloques</h2></div>
           <span class="spacer"></span>
-          <span class="badge">${stats.review} por revisar</span>
+          <div class="segmented sm" role="group" aria-label="Filtro de segmentos">
+            <button data-action="produce:filter" data-filter="todos" aria-pressed="${state.produceFilter === 'todos'}">Todos</button>
+            <button data-action="produce:filter" data-filter="revisar" aria-pressed="${state.produceFilter === 'revisar'}">Revisar</button>
+            <button data-action="produce:filter" data-filter="pendiente" aria-pressed="${state.produceFilter === 'pendiente'}">Pendientes</button>
+          </div>
         </div>
         <div class="panel-body tight scroll-area" id="block-list" data-scroll-area="segmentos">
-          ${doc.blocks.map((item) => blockRowHtml(item)).join('')}
+          ${filteredBlocks(doc).map((item) => blockRowHtml(item)).join('') || emptyState('Nada en este filtro', 'Cambia el filtro o aprueba los bloques pendientes.')}
         </div>
       </section>
 
@@ -7794,7 +9167,7 @@ function viewProduce() {
         ${blockEditorHtml(block)}
       </aside>
     </div>
-    <div class="produce-queue">${queueStripHtml()}</div>
+    <div class="produce-queue ${state.queueOpen ? 'open' : ''}">${queueStripHtml()}</div>
   </div>`;
 }
 
@@ -8055,6 +9428,8 @@ function view() {
       return viewLectura();
     case 'diseno':
       return viewDiseno();
+    case 'clonacion':
+      return viewClonacion();
     case 'produce':
       return viewProduce();
     case 'voces':
@@ -8619,6 +9994,151 @@ document.addEventListener('click', (event) => {
     }
 
     /* -------------------------------- diseno ------------------------------- */
+    case 'queue:toggle':
+      state.queueOpen = !state.queueOpen;
+      render();
+      break;
+    case 'produce:filter':
+      state.produceFilter = target.dataset.filter;
+      render();
+      break;
+    case 'clone:step':
+      state.clonacion.step = target.dataset.step;
+      render();
+      break;
+    case 'clone:source':
+      state.clonacion.source = target.dataset.source;
+      render();
+      break;
+    case 'clone:load-sample':
+      state.clonacion.reference = { ...SAMPLE_REFERENCE };
+      state.clonacion.transcript = SAMPLE_REFERENCE.transcript;
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      notify('Referencia cargada', `${SAMPLE_REFERENCE.seconds} s · se limpia antes de clonar`, 'ok');
+      render();
+      break;
+    case 'clone:clear':
+      state.clonacion.reference = null;
+      state.clonacion.transcript = '';
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      render();
+      break;
+    case 'clone:record': {
+      const c = state.clonacion;
+      const engine = cloneEngineById(c.engine);
+      if (c.recording) {
+        c.recording = false;
+        const segundos = Math.max(engine.minRef, Math.min(engine.maxRef, c.recordSeconds || engine.minRef));
+        c.reference = {
+          name: `grabacion-${new Date().toISOString().slice(11, 19).replaceAll(':', '')}.wav`,
+          seconds: Number(segundos.toFixed(1)),
+          format: 'WAV',
+          sr: 48000,
+          channels: 1,
+          sizeMb: Number(((segundos * 48000 * 2) / 1024 / 1024).toFixed(1)),
+          grabada: true,
+        };
+        c.recordSeconds = 0;
+        c.cleaningApplied = false;
+        c.result = null;
+        notify('Grabacion lista', `${segundos.toFixed(1)} s de referencia`, 'ok');
+      } else {
+        c.recording = true;
+        c.recordSeconds = 0;
+        notify('Grabando', `Habla con naturalidad. Se detiene a los ${engine.maxRef} s.`, 'info');
+      }
+      render();
+      break;
+    }
+    case 'clone:transcribe':
+      if (state.clonacion.reference) {
+        state.clonacion.transcript = SAMPLE_REFERENCE.transcript;
+        notify('Transcripcion lista', 'Revisala: el motor exige que sea exacta', 'ok');
+        render();
+      }
+      break;
+    case 'clone:cleaning':
+      state.clonacion.cleaning = target.dataset.cleaning;
+      state.clonacion.cleaningApplied = false;
+      render();
+      break;
+    case 'clone:clean':
+      if (!state.clonacion.reference) {
+        notify('Falta la referencia', 'Sube o graba un audio antes de limpiar', 'warn');
+        break;
+      }
+      state.clonacion.cleaningApplied = true;
+      notify('Limpieza aplicada', cleanPresetById(state.clonacion.cleaning).name, 'ok');
+      render();
+      break;
+    case 'clone:engine':
+      state.clonacion.engine = target.dataset.engine;
+      state.clonacion.result = null;
+      render();
+      break;
+    case 'clone:preset': {
+      const preset = clonePresetById(target.dataset.preset);
+      state.clonacion.preset = preset.id;
+      state.clonacion.engine = preset.engine;
+      state.clonacion.cleaning = preset.cleaning;
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      notify('Preset aplicado', `${preset.name} · ${cloneEngineById(preset.engine).name}`, 'ok');
+      render();
+      break;
+    }
+    case 'clone:test': {
+      const c = state.clonacion;
+      const evalRef = evaluateReference(c.reference ? { ...c.reference, transcript: c.transcript } : null, c.engine);
+      if (!evalRef.ok) {
+        notify('No se puede clonar', evalRef.avisos[0]?.texto || 'Revisa la referencia', 'warn');
+        break;
+      }
+      if (!c.cleaningApplied) {
+        notify('Falta la limpieza', 'Limpia la referencia antes de clonar', 'warn');
+        break;
+      }
+      const engine = cloneEngineById(c.engine);
+      const random = seeded(`clone-${c.engine}-${c.preset}-${c.transcript.length}`);
+      const dur = 2.2 + random() * 2.4;
+      c.result = {
+        duration: dur.toFixed(2),
+        similarity: Math.round(78 + random() * 17),
+        elapsed: (dur * engine.rtf).toFixed(2),
+        qa: random() > 0.25 ? 'OK' : 'revisar',
+      };
+      c.step = 'prueba';
+      notify('Prueba generada', `${engine.name} · ${c.result.duration} s`, 'ok');
+      render();
+      break;
+    }
+    case 'clone:again': {
+      const c = state.clonacion;
+      const engine = cloneEngineById(c.engine);
+      const random = seeded(`clone-again-${Date.now()}-${c.preset}`);
+      const dur = 2.2 + random() * 2.4;
+      c.result = { duration: dur.toFixed(2), similarity: Math.round(78 + random() * 17), elapsed: (dur * engine.rtf).toFixed(2), qa: random() > 0.25 ? 'OK' : 'revisar' };
+      render();
+      break;
+    }
+    case 'clone:preview':
+      notify('Reproduciendo', 'La toma se reproduce en el reproductor del prototipo', 'info');
+      break;
+    case 'clone:save': {
+      const c = state.clonacion;
+      if (!c.result) break;
+      const engine = cloneEngineById(c.engine);
+      c.saved.push({
+        name: `Clon ${c.saved.length + 1} (${c.transcript.split(/\s+/).slice(0, 2).join(' ') || 'sin nombre'})`,
+        engine: engine.name,
+        seconds: c.result.duration,
+      });
+      notify('Voz guardada', 'Aparece en Voces con su consentimiento y procedencia', 'ok');
+      render();
+      break;
+    }
     case 'diseno:engine':
       state.diseno.engine = target.dataset.engine;
       state.diseno.generated = null;
@@ -8726,6 +10246,18 @@ document.addEventListener('input', (event) => {
   }
   if (action === 'diseno:sample') {
     state.diseno.sample = target.value;
+    return;
+  }
+  if (action === 'clone:transcript') {
+    state.clonacion.transcript = target.value;
+    // El badge de validez vive en la cabecera; el textarea no se repinta.
+    const panel = $('#clone-transcript') ? $('#clone-transcript').closest('.panel') : null;
+    const badge = panel ? panel.querySelector('.panel-head .badge') : null;
+    if (badge) {
+      const evalRef = evaluateReference({ ...(state.clonacion.reference || {}), transcript: target.value }, state.clonacion.engine);
+      badge.className = `badge ${evalRef.nivel === 'ok' ? 'ok' : evalRef.nivel === 'error' ? 'danger' : 'warn'}`;
+      badge.textContent = evalRef.nivel === 'ok' ? 'referencia valida' : evalRef.nivel === 'error' ? 'referencia incompleta' : 'revisar avisos';
+    }
     return;
   }
   if (action === 'diseno:query') {

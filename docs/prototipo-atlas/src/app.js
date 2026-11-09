@@ -29,6 +29,19 @@ import {
   sampleText,
   estimateRead,
 } from './lectura.data.js';
+import {
+  CLONE_ENGINES,
+  CLONE_SOURCES,
+  CLONE_CLEAN_PRESETS,
+  CLONE_PRESETS,
+  CLONE_STEPS,
+  SAMPLE_REFERENCE,
+  cloneEngineById,
+  clonePresetById,
+  cleanPresetById,
+  evaluateReference,
+  estimateClone,
+} from './clonacion.data.js';
 import { BRAND, APP_ICON_URI, appMark } from './brand.js';
 import {
   esc,
@@ -63,6 +76,7 @@ const TITLES = {
   inicio: 'Inicio',
   lectura: 'Lectura y narracion',
   diseno: 'Diseno de voz',
+  clonacion: 'Clonacion de voz',
   produce: 'Producir',
   voces: 'Voces',
   recetas: 'Recetas',
@@ -130,6 +144,11 @@ const state = {
   projectId: 'patagonia',
   docId: '07',
   blockId: '07-004',
+  // Filtro de la lista de segmentos en Producir: todos, revisar o pendiente.
+  produceFilter: 'todos',
+  // Cola de trabajo: desplegable e historial de lo ya cerrado.
+  queueOpen: false,
+  queueHistory: [],
   mode: 'final',
   search: '',
   voiceFilter: 'todas',
@@ -164,6 +183,23 @@ const state = {
     pause: null,
     chunk: null,
     emotion: null,
+  },
+
+  // Modulo de clonacion de voz (F5, XTTS y StyleTTS 2)
+  clonacion: {
+    step: 'fuente',
+    source: 'archivo',
+    reference: null,
+    recording: false,
+    recordSeconds: 0,
+    engine: 'f5_spanish',
+    cleaning: 'estudio',
+    preset: 'narrador-neutro',
+    transcript: '',
+    cleaningApplied: false,
+    testing: false,
+    result: null,
+    saved: [],
   },
 
   // Modulo de diseno de voz
@@ -368,6 +404,10 @@ function queueTotal() {
 function queueDone() {
   return state.jobs.reduce((acc, job) => acc + ((job.state === 'listo' ? job.total : job.progress) || 0), 0);
 }
+/** Trabajos ya cerrados, los ultimos primero: se ven al desplegar la cola. */
+function queueHistory() {
+  return (state.queueHistory || []).slice(-12).reverse();
+}
 function enqueueRender(doc, mode, blocks) {
   if (!doc) return;
   const total = blocks && blocks.length ? blocks.length : doc.blocks.filter((b) => b.state !== 'aprobado' || mode === 'final').length;
@@ -441,6 +481,16 @@ function queueStripHtml() {
     <div class="q-meta mono">${done}/${total}</div>
     <div class="q-bar"><div class="bar"><i style="width:${pct(done, total || 1)}%"></i></div></div>
     ${active ? `<button class="btn sm" data-action="queue:pause">Pausar</button>` : ''}
+    <button class="btn sm icon-only" data-action="queue:toggle" aria-label="Ver trabajos de la cola" aria-expanded="${state.queueOpen ? 'true' : 'false'}">${icon(state.queueOpen ? 'chevron' : 'terminal', 'sm')}</button>
+  </div>
+  <div class="q-jobs">
+    ${[...state.jobs, ...queueHistory()].slice(0, 24).map((job) => `<div class="q-job">
+        <span class="badge ${job.state === 'listo' ? 'ok' : job.state === 'ejecutando' ? 'accent' : job.state === 'error' ? 'danger' : ''}">${esc(job.state)}</span>
+        <span class="grow truncate">${esc(job.title)}</span>
+        <span class="mono">${job.progress}/${job.total}</span>
+        <span class="spacer"></span>
+        <span class="mono">${esc(job.eta || '--')}</span>
+      </div>`).join('') || '<p class="tiny dim">Sin trabajos registrados.</p>'}
   </div>`;
 }
 
@@ -487,6 +537,7 @@ function sidebarHtml() {
       ${navItem('inicio', 'home', 'Inicio')}
       ${navItem('lectura', 'book', 'Lectura y narracion')}
       ${navItem('diseno', 'wand', 'Diseno de voz', String(PROMPT_TOTAL))}
+      ${navItem('clonacion', 'mic', 'Clonacion de voz', String(CLONE_PRESETS.length))}
       ${navItem('produce', 'grid', 'Producir', stats.review ? String(stats.review) : '')}
       ${navItem('biblioteca', 'folder', 'Biblioteca')}
       <span class="nav-label">Recursos</span>
@@ -810,7 +861,12 @@ function viewLectura() {
             <span class="badge accent">${READ_PRESETS.length} predisenados</span>
           </div>
           <div class="panel-body preset-body">
-              ${READ_PRESETS.map(
+            ${carrusel({
+              id: 'presets-lectura',
+              porVista: 4,
+              cols: 2,
+              etiqueta: 'presets de lectura',
+              items: READ_PRESETS.map(
                 (preset) => `<button class="preset-card" style="--tone:${preset.tone}" data-action="lectura:preset" data-preset="${preset.id}" aria-pressed="${preset.id === state.lectura.preset}">
                   <header>${icon(preset.icon, 'sm')}<h3>${esc(preset.name)}</h3></header>
                   <p>${esc(preset.desc)}</p>
@@ -821,7 +877,8 @@ function viewLectura() {
                     <span>${esc(preset.lufs)}</span>
                   </div>
                 </button>`,
-              ).join('')}
+              ),
+            })}
           </div>
         </section>
 
@@ -831,15 +888,15 @@ function viewLectura() {
             <span class="spacer"></span>
             <span class="badge">${state.lectura.files.length}</span>
           </div>
-          <div class="panel-body stack-3">
-            <div class="drop ${state.lectura.dropHot ? 'hot' : ''}" data-drop="documentos">
+          <div class="panel-body stack-3 import-body">
+            <div class="drop drop-import ${state.lectura.dropHot ? 'hot' : ''}" data-drop="documentos">
               ${icon('upload', 'hero')}
               <h4>Arrastra un PDF, EPUB o TXT aqui</h4>
               <p class="tiny muted">El texto se extrae en local. Los PDF escaneados se avisan y se pueden transcribir con ASR opcional.</p>
               <div class="chips">${DOC_FORMATS.map((format) => `<span class="badge">${esc(format.label)}</span>`).join('')}</div>
               <button class="btn sm" data-action="lectura:upload">${icon('plus', 'sm')} Anadir documento de prueba</button>
             </div>
-            ${state.lectura.files
+            <div class="file-list" data-scroll-area="documentos-lectura">${state.lectura.files
               .map(
                 (file) => `<div class="file-row">
                   <span class="card-icon" style="--tone:var(--accent)">${icon('file', 'sm')}</span>
@@ -851,7 +908,7 @@ function viewLectura() {
                   <button class="btn sm" data-action="lectura:load" data-file="${file.id}">${icon('upload', 'sm')} Cargar</button>
                 </div>`,
               )
-              .join('')}
+              .join('')}</div>
           </div>
         </section>
       </div>
@@ -949,7 +1006,9 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge">${d.prompt.length} / 1500</span>
         </div>
-        <div class="panel-body stack-3">
+
+        <!-- Mitad superior: lo que se le pide al motor. -->
+        <div class="prompt-half">
           ${
             isCosy
               ? `<div class="segmented" role="group" aria-label="Modo de CosyVoice">
@@ -958,7 +1017,6 @@ function viewDiseno() {
                 </div>`
               : ''
           }
-
           <div class="prompt-box">
             <label class="sr-only" for="design-prompt">Prompt de diseno</label>
             <textarea id="design-prompt" class="textarea" maxlength="1500" placeholder="${
@@ -971,29 +1029,30 @@ function viewDiseno() {
               <button class="btn sm" data-action="diseno:random">${icon('sparkles', 'sm')} Aleatorio</button>
               <button class="btn sm" data-action="diseno:clear-prompt">${icon('trash', 'sm')} Limpiar</button>
             </div>
-            ${
-              d.improved
-                ? `<div class="prompt-note">${icon('zap', 'sm')}<div><b>Prompt mejorado por ${esc(d.improvedBy)}</b><br>${esc(d.improved)}</div>
-                    <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
-                : `<div class="prompt-note">${icon('info', 'sm')}<div>Si Phi-3.5 local no esta disponible, el mejorador cae a <b>heuristicas</b> y lo dice: nunca mejora en silencio.</div></div>`
-            }
           </div>
+          ${
+            d.improved
+              ? `<div class="prompt-note compact">${icon('zap', 'sm')}<div><b>Mejorado por ${esc(d.improvedBy)}</b> · ${esc(d.improved)}</div>
+                  <button class="btn sm" data-action="diseno:apply-improved">Usar</button></div>`
+              : `<p class="tiny dim prompt-footnote">Si Phi-3.5 local no esta disponible, el mejorador cae a heuristicas y lo dice: nunca mejora en silencio.</p>`
+          }
+        </div>
 
+        <!-- Mitad inferior: la configuracion del motor, hasta el margen. -->
+        <div class="engine-half">
           <div class="engine-fields">
             ${
               isInstruct
                 ? `<div class="field-group">
                     <div class="field-title">${icon('sliders', 'sm')} CosyVoice Instruct-TTS</div>
-                    <div class="grid-3">
+                    <div class="cosy-row">
                       ${field('Estilo', `<select class="select" data-action="diseno:style">${['neutro', 'narrativo', 'calido', 'informativo', 'expresivo', 'alegre', 'calmo', 'energico', 'susurro'].map((s) => `<option value="${s}" ${s === d.style ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
                       ${field('Emocion', `<select class="select" data-action="diseno:emotion">${['neutro', 'alegre', 'triste', 'serio', 'susurro', 'misterio', 'entusiasta'].map((s) => `<option value="${s}" ${s === d.emotion ? 'selected' : ''}>${s}</option>`).join('')}</select>`)}
                       ${field('Sampling K', `<input class="input" type="number" min="10" max="40" step="1" value="${d.samplingK}" data-action="diseno:k" />`)}
+                      <div class="cosy-range">${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}</div>
+                      <div class="cosy-range">${rangeControl({ label: 'Velocidad', id: 'cosy-speed', min: 0.6, max: 1.4, step: 0.01, value: d.speed, action: 'diseno:speed', format: (v) => `${Number(v).toFixed(2)}x` })}</div>
                     </div>
-                    <div class="grid-2" style="margin-top:8px">
-                      ${rangeControl({ label: 'Ganancia', id: 'cosy-gain', min: 0.7, max: 1.1, step: 0.01, value: d.gain, action: 'diseno:gain', format: (v) => `${Number(v).toFixed(2)}x` })}
-                      ${rangeControl({ label: 'Velocidad', id: 'cosy-speed', min: 0.6, max: 1.4, step: 0.01, value: d.speed, action: 'diseno:speed', format: (v) => `${Number(v).toFixed(2)}x` })}
-                    </div>
-                    <p class="tiny dim mt-2">Viaja al motor: <span class="mono">instruct</span>, <span class="mono">sampling_k</span>, <span class="mono">speed_factor</span> y <span class="mono">gain</span>.</p>
+                    <p class="tiny dim cosy-contract">Viaja al motor: <span class="mono">instruct</span>, <span class="mono">sampling_k</span>, <span class="mono">speed_factor</span> y <span class="mono">gain</span>.</p>
                   </div>
                   <div class="field-group">
                     <div class="field-title">${icon('mic', 'sm')} Referencia zero-shot (3 a 10 s)</div>
@@ -1003,7 +1062,7 @@ function viewDiseno() {
                       <p class="tiny muted">${d.reference ? `${d.reference.seconds} s · transcripcion verificada · condicionamiento bloqueado` : 'El backend exige WAV y transcripcion exacta del fragmento.'}</p>
                       <button class="btn sm" data-action="diseno:reference">${icon('upload', 'sm')} ${d.reference ? 'Cambiar referencia' : 'Usar referencia de prueba'}</button>
                     </div>
-                    <div style="margin-top:8px">${field('Transcripcion de la referencia', `<textarea class="textarea" style="min-height:52px" placeholder="Lo que dice exactamente el WAV" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
+                    <div class="ref-transcript">${field('Transcripcion de la referencia', `<textarea class="textarea" placeholder="Lo que dice exactamente el WAV" data-action="diseno:clone-text">${esc(d.clonePromptText)}</textarea>`)}</div>
                   </div>`
                 : `<div class="field-group">
                     <div class="field-title">${icon('wand', 'sm')} Atributos de VoiceDesign</div>
@@ -1031,9 +1090,9 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge accent">${esc(engineById(engine).name)}</span>
         </div>
-        <div class="panel-body stack-3">
+        <div class="panel-body stack-3 result-body">
           <label class="sr-only" for="design-sample">Frase de prueba</label>
-          <textarea id="design-sample" class="textarea" style="min-height:54px" data-action="diseno:sample">${esc(d.sample)}</textarea>
+          <textarea id="design-sample" class="textarea sample-box" data-action="diseno:sample">${esc(d.sample)}</textarea>
           <div class="design-wave" aria-hidden="true">${bars.map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
           ${
             d.generated
@@ -1054,7 +1113,6 @@ function viewDiseno() {
             <button class="btn primary" data-action="diseno:generate">${icon('zap', 'sm')} Generar voz</button>
             <button class="btn" data-action="diseno:save">${icon('plus', 'sm')} Guardar en biblioteca</button>
           </div>
-          <p class="tiny dim">Procedencia auditada en el JSON de cada toma.</p>
         </div>
       </section>
 
@@ -1064,18 +1122,20 @@ function viewDiseno() {
           <span class="spacer"></span>
           <span class="badge">${d.family === 'todas' ? PROMPT_TOTAL : (PROMPT_FAMILIES.find((f) => f.id === d.family) || {}).count || 0}</span>
         </div>
-        <div class="panel-body stack-3">
-          <div class="segmented" role="group" aria-label="Tipo de prompt">
-            <button data-action="diseno:prompt-mode" data-mode="todos" aria-pressed="${d.promptMode === 'todos'}">Todos</button>
-            <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
-            <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
+        <div class="panel-body stack-3 library-body">
+          <div class="library-fixed">
+            <div class="segmented" role="group" aria-label="Tipo de prompt">
+              <button data-action="diseno:prompt-mode" data-mode="todos" aria-pressed="${d.promptMode === 'todos'}">Todos</button>
+              <button data-action="diseno:prompt-mode" data-mode="voice_design" aria-pressed="${d.promptMode === 'voice_design'}">VoiceDesign</button>
+              <button data-action="diseno:prompt-mode" data-mode="instruct_tts" aria-pressed="${d.promptMode === 'instruct_tts'}">Instruct</button>
+            </div>
+            <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
+            <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
+            <label class="sr-only" for="prompt-family">Familia</label>
+            <select id="prompt-family" class="select" data-action="diseno:family">
+              ${familias.map((f) => `<option value="${f.id}" ${f.id === d.family ? 'selected' : ''}>${esc(f.label)} · ${f.count}</option>`).join('')}
+            </select>
           </div>
-          <label class="sr-only" for="prompt-search">Buscar en la biblioteca</label>
-          <input id="prompt-search" class="input" placeholder="Buscar timbre, acento, estilo..." value="${esc(d.query)}" data-action="diseno:query" />
-          <label class="sr-only" for="prompt-family">Familia</label>
-          <select id="prompt-family" class="select" data-action="diseno:family">
-            ${familias.map((f) => `<option value="${f.id}" ${f.id === d.family ? 'selected' : ''}>${esc(f.label)} · ${f.count}</option>`).join('')}
-          </select>
           <div id="prompt-results" class="library-list">${muestra
             .map(
               (item) => `<button class="library-item" data-action="diseno:use-prompt" data-prompt="${item.id}">
@@ -1088,6 +1148,179 @@ function viewDiseno() {
             )
             .join('')}</div>
           <p class="tiny dim">${muestra.length} de ${PROMPT_TOTAL} coincidencias. Pulsa una para usarla.</p>
+        </div>
+      </section>
+    </div>
+  </div>`;
+}
+
+
+/* ============================ CLONACION DE VOZ ============================ */
+/*
+  Modulo de clonacion con los motores que aceptan referencia y no son Qwen ni
+  CosyVoice: F5-TTS Spanish, XTTS-v2 y StyleTTS 2. La referencia se sube o se
+  graba en vivo, se limpia con un preset y solo despues se condiciona.
+*/
+function viewClonacion() {
+  const c = state.clonacion;
+  const engine = cloneEngineById(c.engine);
+  const preset = clonePresetById(c.preset);
+  const clean = cleanPresetById(c.cleaning);
+  const ref = c.reference;
+  const evalRef = evaluateReference(ref ? { ...ref, transcript: c.transcript } : null, c.engine);
+  const paso = Math.max(0, CLONE_STEPS.findIndex((item) => item.id === c.step));
+
+  return `
+  <div class="stack-4 screen-fill clone-screen">
+    <div class="row between wrap">
+      <div>
+        <h1 style="font-size:var(--text-2xl)">Clonacion de voz</h1>
+        <p class="tiny muted mt-2">Una referencia de 3 a 10 s basta para clonar el timbre. ${CLONE_ENGINES.length} motores disponibles: ${CLONE_ENGINES.map((item) => item.name).join(', ')}. Todo se procesa en local.</p>
+      </div>
+      <span class="badge info">${icon('shield', 'sm')} Consentimiento obligatorio</span>
+    </div>
+
+    <div class="clone-board">
+      <aside class="panel clone-steps">
+        <div class="panel-head"><div><p class="eyebrow">Asistente</p><h2>${CLONE_STEPS.length} pasos</h2></div></div>
+        <div class="panel-body stack-2">
+          ${CLONE_STEPS.map(
+            (item, index) => `<button class="clone-step ${item.id === c.step ? 'active' : ''} ${index < paso ? 'done' : ''}" data-action="clone:step" data-step="${item.id}">
+              <span class="step-num">${index < paso ? icon('check', 'sm') : index + 1}</span>
+              <span class="step-text"><b>${esc(item.label)}</b><small>${esc(item.hint)}</small></span>
+            </button>`,
+          ).join('')}
+        </div>
+        <div class="panel-body stack-2 clone-presets">
+          <p class="eyebrow">Presets de clonacion</p>
+          ${CLONE_PRESETS.map(
+            (item) => `<button class="clone-preset ${item.id === c.preset ? 'active' : ''}" data-action="clone:preset" data-preset="${item.id}" aria-pressed="${item.id === c.preset}">
+              <span class="mode-dot" style="background:${item.tone}" aria-hidden="true"></span>
+              <span><b>${esc(item.name)}</b><small>${esc(item.desc)}</small></span>
+            </button>`,
+          ).join('')}
+        </div>
+      </aside>
+
+      <section class="panel clone-main">
+        <div class="panel-head">
+          <div><p class="eyebrow">Paso ${paso + 1} de ${CLONE_STEPS.length}</p><h2>${esc((CLONE_STEPS[paso] || CLONE_STEPS[0]).label)}</h2></div>
+          <span class="spacer"></span>
+          <span class="badge ${evalRef.nivel === 'ok' ? 'ok' : evalRef.nivel === 'error' ? 'danger' : 'warn'}">${esc(evalRef.nivel === 'ok' ? 'referencia valida' : evalRef.nivel === 'error' ? 'referencia incompleta' : 'revisar avisos')}</span>
+        </div>
+        <div class="panel-body stack-3 clone-body">
+
+          <div class="clone-block">
+            <div class="segmented" role="group" aria-label="Origen de la referencia">
+              ${CLONE_SOURCES.map((item) => `<button data-action="clone:source" data-source="${item.id}" aria-pressed="${c.source === item.id}">${icon(item.icon, 'sm')} ${esc(item.label)}</button>`).join('')}
+            </div>
+            ${
+              c.source === 'archivo'
+                ? `<div class="drop ${ref ? 'hot' : ''}" data-drop="clonacion">
+                    ${icon('upload', 'hero')}
+                    <h4>${ref ? esc(ref.name) : 'Arrastra un WAV, MP3 o M4A'}</h4>
+                    <p class="tiny muted">${ref ? `${ref.seconds.toFixed(1)} s · ${ref.sr} Hz · ${ref.channels} canales · ${ref.sizeMb} MB` : `Se convierte a 24 kHz mono. ${engine.name} usa entre ${engine.minRef} y ${engine.maxRef} s.`}</p>
+                    <div class="row">
+                      <button class="btn sm" data-action="clone:load-sample">${icon('file', 'sm')} Usar audio de ejemplo</button>
+                      ${ref ? `<button class="btn sm" data-action="clone:clear">${icon('trash', 'sm')} Quitar</button>` : ''}
+                    </div>
+                  </div>`
+                : `<div class="clone-recorder ${c.recording ? 'recording' : ''}">
+                    <div class="rec-dot" aria-hidden="true"></div>
+                    <div class="rec-time mono">${c.recordSeconds.toFixed(1)} s</div>
+                    <p class="tiny muted">${c.recording ? `Grabando... se detiene sola a los ${engine.maxRef} s` : `Microfono del equipo. Minimo ${engine.minRef} s, maximo ${engine.maxRef} s.`}</p>
+                    <div class="rec-bar"><i style="width:${pct(c.recordSeconds, engine.maxRef)}%"></i></div>
+                    <button class="btn ${c.recording ? 'danger' : 'primary'}" data-action="clone:record">${icon(c.recording ? 'x' : 'mic', 'sm')} ${c.recording ? 'Detener' : 'Grabar referencia'}</button>
+                  </div>`
+            }
+            ${ref ? `<div class="spec-inline">
+              <div><span>Duracion</span><b>${ref.seconds.toFixed(1)} s</b></div>
+              <div><span>Formato</span><b>${esc(ref.format)} ${ref.sr / 1000} kHz</b></div>
+              <div><span>Canales</span><b>${ref.channels === 1 ? 'mono' : 'estereo'}</b></div>
+              <div><span>Motor</span><b>${esc(engine.name)}</b></div>
+            </div>` : ''}
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Transcripcion exacta de la referencia</span>
+              ${ref ? `<button class="btn sm" data-action="clone:transcribe">${icon('sparkles', 'sm')} Transcribir con ASR local</button>` : ''}
+            </div>
+            <label class="sr-only" for="clone-transcript">Transcripcion</label>
+            <textarea id="clone-transcript" class="textarea clone-transcript" placeholder="Lo que dice exactamente el audio, palabra por palabra." data-action="clone:transcript">${esc(c.transcript)}</textarea>
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Limpieza de audio</span>
+              ${c.cleaningApplied ? `<span class="badge ok">${icon('check', 'sm')} aplicada</span>` : ''}
+            </div>
+            <div class="clean-grid">
+              ${CLONE_CLEAN_PRESETS.map(
+                (item) => `<button class="clean-card ${item.id === c.cleaning ? 'active' : ''}" data-action="clone:cleaning" data-cleaning="${item.id}" aria-pressed="${item.id === c.cleaning}" style="--tone:${item.tone}">
+                  <b>${esc(item.name)}</b>
+                  <small>${esc(item.desc)}</small>
+                </button>`,
+              ).join('')}
+            </div>
+            <div class="spec-inline clean-specs">
+              <div><span>Reduccion de ruido</span><b>${clean.params.denoise} %</b></div>
+              <div><span>Antirreverb</span><b>${clean.params.deverb} %</b></div>
+              <div><span>Loudness</span><b>${esc(clean.params.loudness)}</b></div>
+              <div><span>Paso alto</span><b>${clean.params.highpass ? `${clean.params.highpass} Hz` : 'sin filtro'}</b></div>
+            </div>
+            <button class="btn primary" data-action="clone:clean">${icon('sparkles', 'sm')} Limpiar referencia</button>
+          </div>
+
+          <div class="clone-block">
+            <div class="field-title-row"><span class="eyebrow">Motor de clonacion</span></div>
+            <div class="engine-pick">
+              ${CLONE_ENGINES.map(
+                (item) => `<button class="engine-card ${item.id === c.engine ? 'active' : ''}" data-action="clone:engine" data-engine="${item.id}" aria-pressed="${item.id === c.engine}">
+                  <header><b>${esc(item.name)}</b><span class="badge ${item.commercial ? 'ok' : 'info'}">${esc(item.license)}</span></header>
+                  <p>${esc(item.nota)}</p>
+                  <div class="specs"><span>RTF ${item.rtf.toFixed(2)}</span><span>${item.minRef}-${item.maxRef} s</span><span>${esc(item.accentos)}</span></div>
+                </button>`,
+              ).join('')}
+            </div>
+          </div>
+
+          ${evalRef.avisos.length ? `<div class="clone-notes">${evalRef.avisos.map((a) => `<div class="clone-note ${a.tono}">${icon(a.tono === 'danger' ? 'alert' : 'info', 'sm')}<span>${esc(a.texto)}</span></div>`).join('')}</div>` : ''}
+        </div>
+      </section>
+
+      <section class="panel clone-result">
+        <div class="panel-head"><div><p class="eyebrow">Resultado</p><h2>Prueba de la voz</h2></div></div>
+        <div class="panel-body stack-3">
+          <div class="spec-inline">
+            <div><span>Motor</span><b>${esc(engine.name)}</b></div>
+            <div><span>Preset</span><b>${esc(preset.name)}</b></div>
+            <div><span>Limpieza</span><b>${esc(clean.name)}</b></div>
+            <div><span>RTF</span><b>${engine.rtf.toFixed(2)}</b></div>
+          </div>
+          <label class="sr-only" for="clone-sample">Frase de prueba</label>
+          <textarea id="clone-sample" class="textarea clone-sample" placeholder="La lluvia insistia sobre el tejado mientras la ciudad se apagaba despacio.">La lluvia insistia sobre el tejado mientras la ciudad se apagaba despacio.</textarea>
+          <div class="design-wave" aria-hidden="true">${waveBars(`clone-${c.engine}-${c.preset}`).map((height) => `<i style="height:${height}%"></i>`).join('')}</div>
+          ${
+            c.result
+              ? `<div class="clone-take">
+                  <div class="spec-inline">
+                    <div><span>Duracion</span><b>${c.result.duration} s</b></div>
+                    <div><span>Similitud</span><b>${c.result.similarity} %</b></div>
+                    <div><span>Tiempo</span><b>${c.result.elapsed} s</b></div>
+                    <div><span>QA</span><b>${esc(c.result.qa)}</b></div>
+                  </div>
+                  <div class="row wrap">
+                    <button class="btn sm primary" data-action="clone:preview">${icon('play', 'sm')} Escuchar</button>
+                    <button class="btn sm" data-action="clone:again">${icon('refresh', 'sm')} Otra toma</button>
+                  </div>
+                </div>`
+              : `<div class="empty">${icon('mic', 'hero')}<h3>Sin prueba todavia</h3><p class="tiny muted">Sube o graba una referencia, limpiala y pulsa Probar clonacion.</p></div>`
+          }
+          <div class="clone-actions">
+            <button class="btn primary" data-action="clone:test" ${evalRef.ok && c.cleaningApplied ? '' : 'disabled'}>${icon('zap', 'sm')} Probar clonacion</button>
+            <button class="btn" data-action="clone:save" ${c.result ? '' : 'disabled'}>${icon('plus', 'sm')} Guardar voz</button>
+          </div>
+          <p class="tiny dim">Sin consentimiento firmado no se guarda: el prototipo lo pide antes de escribir nada.</p>
+          ${c.saved.length ? `<div class="stack-2"><p class="eyebrow">Clonadas en esta sesion</p>${c.saved.map((v) => `<div class="file-row"><span class="card-icon" style="--tone:var(--accent)">${icon('mic', 'sm')}</span><div style="min-width:0"><div class="file-name">${esc(v.name)}</div><div class="file-meta">${esc(v.engine)} · ${v.seconds} s</div></div><span class="badge ok">lista</span></div>`).join('')}</div>` : ''}
         </div>
       </section>
     </div>
@@ -1514,6 +1747,32 @@ function viewAjustes() {
 }
 
 /* ------------------------- PRODUCIR (se conserva) ------------------------- */
+/** Reparto del documento por rol: cuantos bloques aprobados de cada uno. */
+function roleBreakdown(doc) {
+  const tonos = ['var(--accent)', 'var(--ok)', 'var(--info)', 'var(--amber)'];
+  const porRol = new Map();
+  (doc.blocks || []).forEach((block) => {
+    const actual = porRol.get(block.role) || { total: 0, approved: 0 };
+    actual.total += 1;
+    if (block.state === 'aprobado') actual.approved += 1;
+    porRol.set(block.role, actual);
+  });
+  return [...porRol.entries()].map(([role, data], index) => ({
+    id: role,
+    label: roleMeta(role).label,
+    total: data.total,
+    approved: data.approved,
+    tone: tonos[index % tonos.length],
+  }));
+}
+
+/** Bloques del documento con el filtro de la cabecera aplicado. */
+function filteredBlocks(doc) {
+  const filtro = state.produceFilter || 'todos';
+  if (filtro === 'todos') return doc.blocks;
+  return doc.blocks.filter((block) => block.state === filtro);
+}
+
 function viewProduce() {
   const p = project();
   const doc = currentDoc();
@@ -1529,6 +1788,7 @@ function viewProduce() {
   const block = findBlock(state.blockId) || doc.blocks[0];
   return `
   <div class="stack-3 screen-fill produce-screen">
+    <!-- Cabecera fija: proyecto, estado de la pasada y acciones. -->
     <div class="panel produce-head">
       <div class="produce-title">
         <div class="row wrap">
@@ -1545,6 +1805,32 @@ function viewProduce() {
       <div class="row">
         <button class="btn" data-action="queue:render-doc">${icon('play', 'sm')} Renderizar</button>
         <button class="btn primary" data-action="modal:export">${icon('download', 'sm')} Exportar</button>
+      </div>
+    </div>
+
+    <!-- Franja de estado: cuanto falta y de quien es cada tramo. -->
+    <div class="panel produce-status">
+      <div class="ps-bar"><i style="width:${pct(docStatsValue.approved, doc.blocks.length || 1)}%"></i></div>
+      <div class="ps-items">
+        ${roleBreakdown(doc)
+          .map(
+            (item) => `<div class="ps-item">
+              <span class="ps-dot" style="--tone:${item.tone}"></span>
+              <span class="grow truncate">${esc(item.label)}</span>
+              <b class="mono">${item.approved}/${item.total}</b>
+            </div>`,
+          )
+          .join('')}
+        <div class="ps-item">
+          <span class="ps-dot" style="--tone:var(--warn)"></span>
+          <span class="grow truncate">Por revisar</span>
+          <b class="mono">${docStatsValue.review}</b>
+        </div>
+        <div class="ps-item">
+          <span class="ps-dot" style="--tone:var(--text-3)"></span>
+          <span class="grow truncate">Pendientes</span>
+          <b class="mono">${doc.blocks.filter((b) => b.state === 'pendiente').length}</b>
+        </div>
       </div>
     </div>
 
@@ -1567,12 +1853,16 @@ function viewProduce() {
 
       <section class="panel produce-col editor">
         <div class="panel-head">
-          <div><p class="eyebrow">Bloques</p><h2>${doc.blocks.length} segmentos</h2></div>
+          <div><p class="eyebrow">Segmentos</p><h2>${doc.blocks.length} bloques</h2></div>
           <span class="spacer"></span>
-          <span class="badge">${stats.review} por revisar</span>
+          <div class="segmented sm" role="group" aria-label="Filtro de segmentos">
+            <button data-action="produce:filter" data-filter="todos" aria-pressed="${state.produceFilter === 'todos'}">Todos</button>
+            <button data-action="produce:filter" data-filter="revisar" aria-pressed="${state.produceFilter === 'revisar'}">Revisar</button>
+            <button data-action="produce:filter" data-filter="pendiente" aria-pressed="${state.produceFilter === 'pendiente'}">Pendientes</button>
+          </div>
         </div>
         <div class="panel-body tight scroll-area" id="block-list" data-scroll-area="segmentos">
-          ${doc.blocks.map((item) => blockRowHtml(item)).join('')}
+          ${filteredBlocks(doc).map((item) => blockRowHtml(item)).join('') || emptyState('Nada en este filtro', 'Cambia el filtro o aprueba los bloques pendientes.')}
         </div>
       </section>
 
@@ -1580,7 +1870,7 @@ function viewProduce() {
         ${blockEditorHtml(block)}
       </aside>
     </div>
-    <div class="produce-queue">${queueStripHtml()}</div>
+    <div class="produce-queue ${state.queueOpen ? 'open' : ''}">${queueStripHtml()}</div>
   </div>`;
 }
 
@@ -1841,6 +2131,8 @@ function view() {
       return viewLectura();
     case 'diseno':
       return viewDiseno();
+    case 'clonacion':
+      return viewClonacion();
     case 'produce':
       return viewProduce();
     case 'voces':
@@ -2405,6 +2697,151 @@ document.addEventListener('click', (event) => {
     }
 
     /* -------------------------------- diseno ------------------------------- */
+    case 'queue:toggle':
+      state.queueOpen = !state.queueOpen;
+      render();
+      break;
+    case 'produce:filter':
+      state.produceFilter = target.dataset.filter;
+      render();
+      break;
+    case 'clone:step':
+      state.clonacion.step = target.dataset.step;
+      render();
+      break;
+    case 'clone:source':
+      state.clonacion.source = target.dataset.source;
+      render();
+      break;
+    case 'clone:load-sample':
+      state.clonacion.reference = { ...SAMPLE_REFERENCE };
+      state.clonacion.transcript = SAMPLE_REFERENCE.transcript;
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      notify('Referencia cargada', `${SAMPLE_REFERENCE.seconds} s · se limpia antes de clonar`, 'ok');
+      render();
+      break;
+    case 'clone:clear':
+      state.clonacion.reference = null;
+      state.clonacion.transcript = '';
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      render();
+      break;
+    case 'clone:record': {
+      const c = state.clonacion;
+      const engine = cloneEngineById(c.engine);
+      if (c.recording) {
+        c.recording = false;
+        const segundos = Math.max(engine.minRef, Math.min(engine.maxRef, c.recordSeconds || engine.minRef));
+        c.reference = {
+          name: `grabacion-${new Date().toISOString().slice(11, 19).replaceAll(':', '')}.wav`,
+          seconds: Number(segundos.toFixed(1)),
+          format: 'WAV',
+          sr: 48000,
+          channels: 1,
+          sizeMb: Number(((segundos * 48000 * 2) / 1024 / 1024).toFixed(1)),
+          grabada: true,
+        };
+        c.recordSeconds = 0;
+        c.cleaningApplied = false;
+        c.result = null;
+        notify('Grabacion lista', `${segundos.toFixed(1)} s de referencia`, 'ok');
+      } else {
+        c.recording = true;
+        c.recordSeconds = 0;
+        notify('Grabando', `Habla con naturalidad. Se detiene a los ${engine.maxRef} s.`, 'info');
+      }
+      render();
+      break;
+    }
+    case 'clone:transcribe':
+      if (state.clonacion.reference) {
+        state.clonacion.transcript = SAMPLE_REFERENCE.transcript;
+        notify('Transcripcion lista', 'Revisala: el motor exige que sea exacta', 'ok');
+        render();
+      }
+      break;
+    case 'clone:cleaning':
+      state.clonacion.cleaning = target.dataset.cleaning;
+      state.clonacion.cleaningApplied = false;
+      render();
+      break;
+    case 'clone:clean':
+      if (!state.clonacion.reference) {
+        notify('Falta la referencia', 'Sube o graba un audio antes de limpiar', 'warn');
+        break;
+      }
+      state.clonacion.cleaningApplied = true;
+      notify('Limpieza aplicada', cleanPresetById(state.clonacion.cleaning).name, 'ok');
+      render();
+      break;
+    case 'clone:engine':
+      state.clonacion.engine = target.dataset.engine;
+      state.clonacion.result = null;
+      render();
+      break;
+    case 'clone:preset': {
+      const preset = clonePresetById(target.dataset.preset);
+      state.clonacion.preset = preset.id;
+      state.clonacion.engine = preset.engine;
+      state.clonacion.cleaning = preset.cleaning;
+      state.clonacion.cleaningApplied = false;
+      state.clonacion.result = null;
+      notify('Preset aplicado', `${preset.name} · ${cloneEngineById(preset.engine).name}`, 'ok');
+      render();
+      break;
+    }
+    case 'clone:test': {
+      const c = state.clonacion;
+      const evalRef = evaluateReference(c.reference ? { ...c.reference, transcript: c.transcript } : null, c.engine);
+      if (!evalRef.ok) {
+        notify('No se puede clonar', evalRef.avisos[0]?.texto || 'Revisa la referencia', 'warn');
+        break;
+      }
+      if (!c.cleaningApplied) {
+        notify('Falta la limpieza', 'Limpia la referencia antes de clonar', 'warn');
+        break;
+      }
+      const engine = cloneEngineById(c.engine);
+      const random = seeded(`clone-${c.engine}-${c.preset}-${c.transcript.length}`);
+      const dur = 2.2 + random() * 2.4;
+      c.result = {
+        duration: dur.toFixed(2),
+        similarity: Math.round(78 + random() * 17),
+        elapsed: (dur * engine.rtf).toFixed(2),
+        qa: random() > 0.25 ? 'OK' : 'revisar',
+      };
+      c.step = 'prueba';
+      notify('Prueba generada', `${engine.name} · ${c.result.duration} s`, 'ok');
+      render();
+      break;
+    }
+    case 'clone:again': {
+      const c = state.clonacion;
+      const engine = cloneEngineById(c.engine);
+      const random = seeded(`clone-again-${Date.now()}-${c.preset}`);
+      const dur = 2.2 + random() * 2.4;
+      c.result = { duration: dur.toFixed(2), similarity: Math.round(78 + random() * 17), elapsed: (dur * engine.rtf).toFixed(2), qa: random() > 0.25 ? 'OK' : 'revisar' };
+      render();
+      break;
+    }
+    case 'clone:preview':
+      notify('Reproduciendo', 'La toma se reproduce en el reproductor del prototipo', 'info');
+      break;
+    case 'clone:save': {
+      const c = state.clonacion;
+      if (!c.result) break;
+      const engine = cloneEngineById(c.engine);
+      c.saved.push({
+        name: `Clon ${c.saved.length + 1} (${c.transcript.split(/\s+/).slice(0, 2).join(' ') || 'sin nombre'})`,
+        engine: engine.name,
+        seconds: c.result.duration,
+      });
+      notify('Voz guardada', 'Aparece en Voces con su consentimiento y procedencia', 'ok');
+      render();
+      break;
+    }
     case 'diseno:engine':
       state.diseno.engine = target.dataset.engine;
       state.diseno.generated = null;
@@ -2512,6 +2949,18 @@ document.addEventListener('input', (event) => {
   }
   if (action === 'diseno:sample') {
     state.diseno.sample = target.value;
+    return;
+  }
+  if (action === 'clone:transcript') {
+    state.clonacion.transcript = target.value;
+    // El badge de validez vive en la cabecera; el textarea no se repinta.
+    const panel = $('#clone-transcript') ? $('#clone-transcript').closest('.panel') : null;
+    const badge = panel ? panel.querySelector('.panel-head .badge') : null;
+    if (badge) {
+      const evalRef = evaluateReference({ ...(state.clonacion.reference || {}), transcript: target.value }, state.clonacion.engine);
+      badge.className = `badge ${evalRef.nivel === 'ok' ? 'ok' : evalRef.nivel === 'error' ? 'danger' : 'warn'}`;
+      badge.textContent = evalRef.nivel === 'ok' ? 'referencia valida' : evalRef.nivel === 'error' ? 'referencia incompleta' : 'revisar avisos';
+    }
     return;
   }
   if (action === 'diseno:query') {

@@ -9,9 +9,10 @@ anterior. Todo lo necesario está en el repositorio.
 | --- | --- | --- |
 | Auditoría de la app real | `docs/MEJORAS_DETECTADAS.md` | completo |
 | Propuesta VozStudio Atlas (21 secciones) | `docs/PROPUESTA_VOZSTUDIO_ATLAS.md` | completo |
-| Prototipo navegable | `docs/prototipo-atlas/` | funcional, **12 pantallas** |
+| Prototipo navegable | `docs/prototipo-atlas/` | funcional, **13 pantallas** |
 
-El prototipo es una SPA sin build y sin dependencias. La portada `index.html` es un
+El prototipo es una SPA sin build y sin dependencias. Tiene **13 pantallas**: las 12 originales
+mas el modulo de **Clonacion de voz**. La portada `index.html` es un
 **archivo único autónomo**: el empaquetador `scripts/empaquetar.mjs` incrusta el CSS, los datos
 y todo el JavaScript, de modo que se abre con doble clic (`file://`), como adjunto o dentro de un
 visor de archivos, sin servidor. El fuente sigue modular en `src/` y `assets/estilos.css`, y
@@ -22,13 +23,14 @@ No usa red, ni CDN, ni fuentes externas: funciona dentro de un iframe sandboxead
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `src/app.js` | estado, router, 12 vistas, modales, interacciones |
+| `src/app.js` | estado, router, 13 vistas, modales, interacciones |
 | `src/ui.js` | componentes reutilizables (tarjetas, paginador, toasts, modal) |
 | `src/brand.js` | **emblema único** para sidebar, icono de escritorio y splash |
 | `src/data.js` | motores, recetas, proyectos, bloques, tomas |
 | `src/voces.data.js` | catálogo de **34 voces** de los 8 motores |
 | `src/prompts.data.js` | **1.110 prompts** de diseño de voz |
 | `src/lectura.data.js` | 12 presets de lectura y el texto de ejemplo de 12.000 caracteres |
+| `src/clonacion.data.js` | motores que clonan, 8 presets, 6 de limpieza y el evaluador de referencia |
 | `scripts/empaquetar.mjs` | incrusta CSS + datos + JS y genera la portada `index.html` |
 | `dev.html` | versión modular para desarrollo (necesita servidor HTTP) |
 | `favicon.svg` | icono de la app, generado desde el mismo emblema |
@@ -61,21 +63,23 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **436 comprobaciones en dieciseis suites**
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **601 comprobaciones en veintiuna suites**
 (189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
 HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
 sobre el modelo de caja del shell, 38 sobre la reorganización de pantallas, 14 sobre la mecánica
 de las bandejas, 53 sobre la rejilla exacta y la navegación inferior, 40 sobre el rediseño de
-Lectura, Diseño y Producir, y 10 sobre la invisibilidad de todos los carriles).
+Lectura, Diseño y Producir, 10 sobre la invisibilidad de todos los carriles, 30 sobre el tablero de
+Diseño de voz (mitad y mitad, vista previa grande, botones en fila y lista fija), 23 sobre la columna
+1 de CosyVoice, 24 sobre el rediseño de Producir y 44 sobre el módulo de clonación).
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:
 
-- Las 12 pantallas pintan sin `undefined`, `NaN` ni `[object Object]`.
+- Las 13 pantallas pintan sin `undefined`, `NaN` ni `[object Object]`.
 - El **archivo único** arranca desde `file://` sin servidor: shell pintado, 12 rutas navegables,
   clicks reales, `change` del tema a AMOLED, 34 voces y cero recursos externos (`filetest.mjs`).
 - **Columnas fijas**: la ventana no scrollea, la sidebar tiene su carril, el pie y el topbar
-  quedan siempre visibles, y en las 12 pantallas la cabecera es el primer hijo de la pila y se
+  quedan siempre visibles, y en las 13 pantallas la cabecera es el primer hijo de la pila y se
   pega arriba (`layout.mjs`, `scroll.mjs`, `box.mjs`).
 - **Bandejas y listas** (`pantallas.mjs`, `tray.mjs`): Inicio en rejilla 3x4 con desplazamiento;
   Lectura en tres columnas 30/40/30 con los pasos repartidos; en Producir solo scrollea la lista
@@ -235,6 +239,9 @@ Lectura, Diseño y Producir, y 10 sobre la invisibilidad de todos los carriles).
   en identificadores; el texto visible de `voces.data.js` y `prompts.data.js` también usa
   ASCII puro y se puede acentuar sin tocar identificadores.
 - **Enlazar el prototipo desde `README.md` y desde la propuesta** (sigue pendiente).
+- **Clonación**: el flujo es completo de mentira (referencia de ejemplo, grabación simulada y
+  prueba con semilla). Falta conectar `getUserMedia` y `MediaRecorder` reales para la grabación
+  en vivo, y el backend de limpieza (RNNoise o equivalente) que ya existe en la app real.
 - **Modo estrecho por debajo de 860 px**: hay reglas nuevas por debajo de 640, 720, 860,
   980, 1100, 1280 y 1500 px, pero no se han probado en un navegador real.
 - Sustituir la simulación de "generar audio" por un reproductor de WAV de verdad
