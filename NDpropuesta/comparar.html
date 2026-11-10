@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Presets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#050a10',
+                            panel: '#0c131d',
+                            panelInner: '#060a0f',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700',
+                            text: '#f8fafc',
+                            textMuted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main Window App Styling */
+        .app-window {
+            width: 100%;
+            height: 100%;
+            background-color: #02060b;
+            border: 1px solid #00e5ff;
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .window-header {
+            background: #02060b;
+            border-bottom: 1px solid #1a2738;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 240px;
+            background-color: #02060b;
+            border-right: 1px solid #1a2738;
+            display: flex;
+            flex-direction: column;
+            padding-top: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            color: #f8fafc;
+            background: linear-gradient(90deg, rgba(0,229,255,0.08) 0%, rgba(0,229,255,0) 100%);
+            border-left-color: #00e5ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1a2738; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3f5a; }
+    </style>
+</head>
+<body>
+
+    <!-- Main App Window -->
+    <div class="app-window">
+        
+        <!-- Window Title Bar -->
+        <header class="window-header">
+            <div class="flex items-center gap-3 text-[13px] font-semibold text-gray-300 tracking-wide">
+                <i class="ph ph-waveform text-app-cyan text-lg"></i> VOZSTUDIO OMNI-ES
+            </div>
+            <div class="flex gap-4 text-gray-500">
+                <i class="ph ph-minus cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-square cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-x cursor-pointer hover:text-white transition-colors"></i>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="flex-1 flex flex-col gap-1 mt-4">
+                    <div class="nav-item">
+                        <i class="ph ph-folder-open text-xl text-gray-400 group-hover:text-app-cyan transition-colors"></i> Proyectos
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-microphone-stage text-xl"></i> Producción
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-stack text-xl"></i> Presets
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-waveform text-xl"></i> Clonación<br>y Calidad
+                    </div>
+                    <!-- COMPARAR VARIANTES IS ACTIVE -->
+                    <div class="nav-item active">
+                        <i class="ph-bold ph-scales text-xl text-app-cyan"></i> Comparar<br>Variantes
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-cube text-xl"></i> Biblioteca<br>y Exportación
+                    </div>
+                </nav>
+
+                <div class="border-t border-app-border mt-auto pt-2 pb-4">
+                    <div class="nav-item">
+                        <i class="ph ph-gear text-xl"></i> Ajustes
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: COMPARAR VARIANTES -->
+            <main class="flex-1 bg-app-bg p-6 lg:p-8 flex flex-col overflow-hidden">
+                
+                <!-- Page Header -->
+                <div class="flex items-center justify-between mb-6 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <i class="ph-bold ph-scales text-[28px] text-app-cyan drop-shadow-[0_0_8px_rgba(0,229,255,0.5)]"></i>
+                        <h2 class="text-2xl font-bold text-white tracking-wide">COMPARAR VARIANTES</h2>
+                    </div>
+                    
+                    <!-- Dropdown -->
+                    <button class="bg-[#0c131d] border border-app-border rounded-lg px-4 py-2 flex items-center gap-3 text-[13px] text-gray-300 hover:bg-[#131d2a] transition-colors shadow-sm">
+                        <span>Escena: 01 Introducción</span>
+                        <i class="ph-bold ph-caret-down text-gray-500"></i>
+                    </button>
+                </div>
+
+                <!-- Variants List -->
+                <div class="flex flex-col gap-3.5 mb-6 shrink-0">
+                    <!-- Variant A (Selected/Best) -->
+                    <div class="bg-app-panelInner border border-app-border rounded-xl p-4 flex items-center gap-5 hover:bg-[#0a111a] transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-[#041018] border border-app-cyan flex items-center justify-center text-app-cyan font-bold text-lg shadow-[0_0_10px_rgba(0,229,255,0.2)]">A</div>
+                        
+                        <button class="w-10 h-10 rounded-full border border-app-cyan bg-[#0f172a] flex items-center justify-center shrink-0 shadow-[0_0_10px_rgba(0,229,255,0.2)] hover:bg-[#1e293b] transition-colors">
+                            <i class="ph-fill ph-play text-white text-lg ml-0.5"></i>
+                        </button>
+                        
+                        <!-- Waveform placeholder A -->
+                        <div class="waveform-a flex-1 flex items-center justify-center gap-[2px] h-10 overflow-hidden px-4"></div>
+                        
+                        <div class="flex flex-col gap-1 w-36 shrink-0">
+                            <div class="text-[12.5px] text-gray-400">RTF: <span class="text-white">0.28x</span></div>
+                            <div class="text-[12.5px] text-gray-400">Duración: <span class="text-white">00:05:22</span></div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 text-app-orange text-lg">
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <div class="relative w-[18px] h-[18px] flex items-center justify-center">
+                                <i class="ph ph-star absolute text-gray-500 text-[18px]"></i>
+                                <div class="absolute overflow-hidden w-1/2 h-full left-0 top-0 flex items-center">
+                                    <i class="ph-fill ph-star text-app-orange text-[18px] drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <button class="text-gray-500 hover:text-white transition-colors p-2 ml-2">
+                            <i class="ph-bold ph-dots-three-vertical text-xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Variant B -->
+                    <div class="bg-app-panelInner border border-app-border rounded-xl p-4 flex items-center gap-5 hover:bg-[#0a111a] transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-[#0c131d] border border-gray-600 flex items-center justify-center text-white font-bold text-lg">B</div>
+                        
+                        <button class="w-10 h-10 rounded-full border border-gray-600 bg-[#0f172a] flex items-center justify-center shrink-0 hover:bg-[#1e293b] transition-colors">
+                            <i class="ph-fill ph-play text-white text-lg ml-0.5"></i>
+                        </button>
+                        
+                        <!-- Waveform placeholder B -->
+                        <div class="waveform-b flex-1 flex items-center justify-center gap-[2px] h-10 overflow-hidden px-4"></div>
+                        
+                        <div class="flex flex-col gap-1 w-36 shrink-0">
+                            <div class="text-[12.5px] text-gray-400">RTF: <span class="text-white">0.31x</span></div>
+                            <div class="text-[12.5px] text-gray-400">Duración: <span class="text-white">00:05:23</span></div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 text-app-orange text-lg">
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph ph-star text-gray-500 text-[18px]"></i>
+                        </div>
+                        
+                        <button class="text-gray-500 hover:text-white transition-colors p-2 ml-2">
+                            <i class="ph-bold ph-dots-three-vertical text-xl"></i>
+                        </button>
+                    </div>
+
+                    <!-- Variant C -->
+                    <div class="bg-app-panelInner border border-app-border rounded-xl p-4 flex items-center gap-5 hover:bg-[#0a111a] transition-colors">
+                        <div class="w-10 h-10 rounded-lg bg-[#0c131d] border border-gray-600 flex items-center justify-center text-white font-bold text-lg">C</div>
+                        
+                        <button class="w-10 h-10 rounded-full border border-gray-600 bg-[#0f172a] flex items-center justify-center shrink-0 hover:bg-[#1e293b] transition-colors">
+                            <i class="ph-fill ph-play text-white text-lg ml-0.5"></i>
+                        </button>
+                        
+                        <!-- Waveform placeholder C -->
+                        <div class="waveform-c flex-1 flex items-center justify-center gap-[2px] h-10 overflow-hidden px-4"></div>
+                        
+                        <div class="flex flex-col gap-1 w-36 shrink-0">
+                            <div class="text-[12.5px] text-gray-400">RTF: <span class="text-white">0.29x</span></div>
+                            <div class="text-[12.5px] text-gray-400">Duración: <span class="text-white">00:05:21</span></div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 text-app-orange text-lg">
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph-fill ph-star drop-shadow-[0_0_4px_rgba(255,183,0,0.5)]"></i>
+                            <i class="ph ph-star text-gray-500 text-[18px]"></i>
+                            <i class="ph ph-star text-gray-500 text-[18px]"></i>
+                        </div>
+                        
+                        <button class="text-gray-500 hover:text-white transition-colors p-2 ml-2">
+                            <i class="ph-bold ph-dots-three-vertical text-xl"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Approved Panel -->
+                <div class="bg-[#041018] border border-app-cyan rounded-[14px] p-6 shrink-0 flex items-center shadow-[0_0_30px_rgba(0,229,255,0.1)] relative overflow-hidden mt-2">
+                    <!-- Inner glow -->
+                    <div class="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,229,255,0.15)] pointer-events-none rounded-[14px]"></div>
+                    
+                    <!-- Left: Aprobada status -->
+                    <div class="flex items-center gap-4 z-10 w-[240px] pl-2">
+                        <i class="ph-bold ph-check-circle text-[#10b981] text-[40px] drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]"></i>
+                        <span class="text-[#10b981] font-bold text-[32px] tracking-wide drop-shadow-[0_0_8px_rgba(16,185,129,0.3)]">Aprobada</span>
+                    </div>
+                    
+                    <!-- Divider -->
+                    <div class="h-20 w-[1px] bg-gray-700/60 mx-6 z-10 shrink-0"></div>
+                    
+                    <!-- Center: Details -->
+                    <div class="flex flex-col gap-1.5 z-10 w-[180px]">
+                        <div class="text-[13px] text-gray-400">Variante: <span class="text-white font-medium ml-1 text-[14px]">A</span></div>
+                        <div class="text-[13px] text-gray-400">Duración: <span class="text-white font-medium ml-1 text-[14px]">00:05:22</span></div>
+                        <div class="text-[13px] text-gray-400">RTF: <span class="text-white font-medium ml-1 text-[14px]">0.28x</span></div>
+                        <div class="text-[13px] text-gray-400">Calidad: <span class="text-white font-medium ml-1 text-[14px]">Alta</span></div>
+                    </div>
+
+                    <!-- Right: Mini Waveform -->
+                    <div class="waveform-approved flex-1 flex items-center justify-end gap-[2.5px] h-16 overflow-hidden pl-4 z-10 opacity-80"></div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const generateWaveform = (containerSelector, colorClass, baseHeights) => {
+                const containers = document.querySelectorAll(containerSelector);
+                if (containers.length === 0) return;
+                
+                // Mirror and repeat to create a longer, realistic audio pattern
+                const pattern = [...baseHeights, ...[...baseHeights].reverse()];
+                const fullPattern = [...pattern, ...pattern, ...pattern, ...pattern].slice(0, 75);
+
+                let html = '';
+                fullPattern.forEach(h => {
+                    html += `<div class="w-[2.5px] ${colorClass} rounded-full transition-all duration-300" style="height: ${h}%"></div>`;
+                });
+                
+                containers.forEach(c => c.innerHTML = html);
+            };
+
+            // distinct waveform data for variations
+            const waveA = [15, 25, 40, 60, 80, 100, 70, 50, 30, 20, 15, 30, 50, 70, 90, 80, 50, 30, 15];
+            const waveB = [20, 30, 50, 70, 90, 100, 80, 40, 20, 15, 25, 45, 65, 85, 95, 75, 45, 25, 15];
+            const waveC = [10, 20, 35, 55, 75, 95, 100, 85, 65, 45, 25, 15, 25, 40, 60, 80, 90, 60, 30, 10];
+            const waveApproved = [20, 45, 80, 100, 85, 60, 40, 25, 20, 35, 60, 95, 100, 75, 50, 30, 20];
+
+            generateWaveform('.waveform-a', 'bg-app-cyan shadow-[0_0_5px_rgba(0,229,255,0.4)] opacity-90', waveA);
+            generateWaveform('.waveform-b', 'bg-app-cyan shadow-[0_0_5px_rgba(0,229,255,0.4)] opacity-90', waveB);
+            generateWaveform('.waveform-c', 'bg-app-cyan shadow-[0_0_5px_rgba(0,229,255,0.4)] opacity-90', waveC);
+            // Approved waveform slightly thicker and brighter
+            generateWaveform('.waveform-approved', 'bg-app-cyan shadow-[0_0_8px_rgba(0,229,255,0.6)] opacity-100 w-[3px]', waveApproved);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Proyectos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#050a10',
+                            panel: '#0c131d',
+                            panelInner: '#060a0f',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700',
+                            text: '#f8fafc',
+                            textMuted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main Window App Styling */
+        .app-window {
+            width: 100%;
+            height: 100%;
+            background-color: #02060b;
+            border: 1px solid #00e5ff;
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .window-header {
+            background: #02060b;
+            border-bottom: 1px solid #1a2738;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 240px;
+            background-color: #02060b;
+            border-right: 1px solid #1a2738;
+            display: flex;
+            flex-direction: column;
+            padding-top: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            color: #f8fafc;
+            background: linear-gradient(90deg, rgba(0,229,255,0.08) 0%, rgba(0,229,255,0) 100%);
+            border-left-color: #00e5ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1a2738; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3f5a; }
+    </style>
+</head>
+<body>
+
+    <!-- Main App Window -->
+    <div class="app-window">
+        
+        <!-- Window Title Bar -->
+        <header class="window-header">
+            <div class="flex items-center gap-3 text-[13px] font-semibold text-gray-300 tracking-wide">
+                <i class="ph ph-waveform text-app-cyan text-lg"></i> VOZSTUDIO OMNI-ES
+            </div>
+            <div class="flex gap-4 text-gray-500">
+                <i class="ph ph-minus cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-square cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-x cursor-pointer hover:text-white transition-colors"></i>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="flex-1 flex flex-col gap-1 mt-4">
+                    <!-- PROYECTOS IS ACTIVE -->
+                    <div class="nav-item active">
+                        <i class="ph ph-folder-open text-xl text-app-cyan"></i> Proyectos
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-microphone-stage text-xl"></i> Producción
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-stack text-xl"></i> Presets
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-waveform text-xl"></i> Clonación<br>y Calidad
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-scales text-xl"></i> Comparar<br>Variantes
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-cube text-xl"></i> Biblioteca<br>y Exportación
+                    </div>
+                </nav>
+
+                <div class="border-t border-app-border mt-auto pt-2 pb-4">
+                    <div class="nav-item">
+                        <i class="ph ph-gear text-xl"></i> Ajustes
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: PROYECTOS -->
+            <main class="flex-1 bg-app-bg p-6 lg:p-8 flex flex-col overflow-hidden">
+                
+                <!-- Page Header -->
+                <div class="flex justify-between items-center mb-6 lg:mb-8 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-folder-open text-[28px] text-app-cyan"></i>
+                        <h2 class="text-2xl font-bold text-white tracking-wide">PROYECTOS</h2>
+                    </div>
+                    <button class="bg-app-orange hover:bg-[#e6a600] transition-colors text-black text-[14px] font-bold py-2.5 px-5 rounded-lg shadow-[0_0_20px_rgba(255,183,0,0.15)] flex items-center gap-2">
+                        <i class="ph-bold ph-plus text-lg"></i> Nuevo proyecto
+                    </button>
+                </div>
+
+                <!-- Top Row: Project Cards -->
+                <div class="flex gap-4 lg:gap-6 mb-6 lg:mb-8 h-[130px] lg:h-[150px] shrink-0">
+                    
+                    <!-- Card 1: Audiolibro (Active) -->
+                    <div class="bg-app-panelInner border border-app-cyan rounded-xl p-5 lg:p-6 flex flex-col justify-between flex-1 shadow-[0_0_15px_rgba(0,229,255,0.05)] cursor-pointer relative overflow-hidden group">
+                        <div class="flex justify-between items-start">
+                            <i class="ph ph-book-open text-app-cyan text-3xl"></i>
+                            <i class="ph ph-dots-three text-gray-500 hover:text-white text-xl transition-colors"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-white font-semibold text-[16px] lg:text-lg mb-0.5">Audiolibro</h3>
+                            <p class="text-gray-400 text-[11px] lg:text-[12px] font-medium">12 escenas • 38:14</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Curso de ventas -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col justify-between flex-1 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <i class="ph ph-graduation-cap text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <i class="ph ph-dots-three text-gray-500 hover:text-white text-xl transition-colors"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-semibold text-[16px] lg:text-lg mb-0.5">Curso de ventas</h3>
+                            <p class="text-gray-500 text-[11px] lg:text-[12px] font-medium">8 escenas • 24:06</p>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Podcast -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col justify-between flex-1 cursor-pointer group">
+                        <div class="flex justify-between items-start">
+                            <i class="ph ph-microphone text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <i class="ph ph-dots-three text-gray-500 hover:text-white text-xl transition-colors"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-semibold text-[16px] lg:text-lg mb-0.5">Podcast</h3>
+                            <p class="text-gray-500 text-[11px] lg:text-[12px] font-medium">5 escenas • 18:27</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Recent Work & Activity -->
+                <div class="flex gap-4 lg:gap-6 flex-1 min-h-0">
+                    
+                    <!-- Trabajo Reciente -->
+                    <div class="bg-app-panel border border-app-border rounded-xl flex-[1.2] flex flex-col p-5 lg:p-6 overflow-hidden">
+                        <div class="flex items-center gap-2 text-white text-[14px] font-semibold mb-5 shrink-0">
+                            <i class="ph ph-clock-counter-clockwise text-app-cyan text-[20px]"></i> Trabajo reciente
+                        </div>
+                        
+                        <div class="flex flex-col gap-3 overflow-y-auto pr-2 flex-1">
+                            <!-- Recent Item 1 -->
+                            <div class="bg-app-panelInner border border-app-border hover:border-gray-600 rounded-lg p-3 lg:p-4 flex justify-between items-center cursor-pointer transition-colors group">
+                                <div class="flex items-center gap-3 lg:gap-4">
+                                    <div class="w-8 h-8 rounded-full bg-[rgba(0,229,255,0.08)] flex items-center justify-center text-app-cyan group-hover:bg-[rgba(0,229,255,0.15)] transition-colors">
+                                        <i class="ph-fill ph-play text-[12px]"></i>
+                                    </div>
+                                    <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium group-hover:text-white transition-colors">Audiolibro – Escena 03</span>
+                                </div>
+                                <span class="text-gray-500 text-[11px]">Hoy, 11:24</span>
+                            </div>
+
+                            <!-- Recent Item 2 -->
+                            <div class="bg-app-panelInner border border-app-border hover:border-gray-600 rounded-lg p-3 lg:p-4 flex justify-between items-center cursor-pointer transition-colors group">
+                                <div class="flex items-center gap-3 lg:gap-4">
+                                    <div class="w-8 h-8 rounded-full bg-[rgba(0,229,255,0.08)] flex items-center justify-center text-app-cyan group-hover:bg-[rgba(0,229,255,0.15)] transition-colors">
+                                        <i class="ph-fill ph-play text-[12px]"></i>
+                                    </div>
+                                    <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium group-hover:text-white transition-colors">Curso de ventas – Escena 02</span>
+                                </div>
+                                <span class="text-gray-500 text-[11px]">Hoy, 10:07</span>
+                            </div>
+
+                            <!-- Recent Item 3 -->
+                            <div class="bg-app-panelInner border border-app-border hover:border-gray-600 rounded-lg p-3 lg:p-4 flex justify-between items-center cursor-pointer transition-colors group">
+                                <div class="flex items-center gap-3 lg:gap-4">
+                                    <div class="w-8 h-8 rounded-full bg-[rgba(0,229,255,0.08)] flex items-center justify-center text-app-cyan group-hover:bg-[rgba(0,229,255,0.15)] transition-colors">
+                                        <i class="ph-fill ph-play text-[12px]"></i>
+                                    </div>
+                                    <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium group-hover:text-white transition-colors">Podcast – Edición final</span>
+                                </div>
+                                <span class="text-gray-500 text-[11px]">Ayer, 18:40</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actividad del Proyecto -->
+                    <div class="bg-app-panel border border-app-border rounded-xl flex-1 flex flex-col p-5 lg:p-6 overflow-hidden">
+                        <div class="flex items-center gap-2 text-white text-[14px] font-semibold mb-6 shrink-0">
+                            <i class="ph ph-git-merge text-app-cyan text-[20px]"></i> Actividad del proyecto
+                        </div>
+                        
+                        <div class="relative pl-3 flex-1 overflow-y-auto pr-2">
+                            <!-- Vertical Timeline Line -->
+                            <div class="absolute left-[15px] top-1.5 bottom-1.5 w-px bg-[#1a2738]"></div>
+                            
+                            <div class="flex flex-col gap-5 lg:gap-6">
+                                <!-- Activity 1 -->
+                                <div class="relative flex items-start gap-3 lg:gap-4">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-app-cyan mt-[3px] shrink-0 relative z-10 shadow-[0_0_8px_rgba(0,229,255,0.8)] outline outline-4 outline-app-panel"></div>
+                                    <div class="flex flex-1 justify-between items-start gap-2">
+                                        <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium leading-tight">Escena 03 generada</span>
+                                        <span class="text-gray-500 text-[10px] lg:text-[11px] whitespace-nowrap pt-0.5">Hoy, 11:24</span>
+                                    </div>
+                                </div>
+
+                                <!-- Activity 2 -->
+                                <div class="relative flex items-start gap-3 lg:gap-4">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-app-orange mt-[3px] shrink-0 relative z-10 shadow-[0_0_8px_rgba(255,183,0,0.8)] outline outline-4 outline-app-panel"></div>
+                                    <div class="flex flex-1 justify-between items-start gap-2">
+                                        <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium leading-tight">Variantes comparadas (A/B/C)</span>
+                                        <span class="text-gray-500 text-[10px] lg:text-[11px] whitespace-nowrap pt-0.5">Hoy, 11:20</span>
+                                    </div>
+                                </div>
+
+                                <!-- Activity 3 -->
+                                <div class="relative flex items-start gap-3 lg:gap-4">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-gray-500 mt-[3px] shrink-0 relative z-10 outline outline-4 outline-app-panel"></div>
+                                    <div class="flex flex-1 justify-between items-start gap-2">
+                                        <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium leading-tight">Voz configurada: Narrador ES</span>
+                                        <span class="text-gray-500 text-[10px] lg:text-[11px] whitespace-nowrap pt-0.5">Hoy, 10:55</span>
+                                    </div>
+                                </div>
+
+                                <!-- Activity 4 -->
+                                <div class="relative flex items-start gap-3 lg:gap-4">
+                                    <div class="w-2.5 h-2.5 rounded-full bg-gray-500 mt-[3px] shrink-0 relative z-10 outline outline-4 outline-app-panel"></div>
+                                    <div class="flex flex-1 justify-between items-start gap-2">
+                                        <span class="text-gray-200 text-[12px] lg:text-[13px] font-medium leading-tight">Proyecto creado: Audiolibro</span>
+                                        <span class="text-gray-500 text-[10px] lg:text-[11px] whitespace-nowrap pt-0.5">Hoy, 10:50</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>

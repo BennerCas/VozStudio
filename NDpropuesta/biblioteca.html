@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Presets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#050a10',
+                            panel: '#0c131d',
+                            panelInner: '#060a0f',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700',
+                            text: '#f8fafc',
+                            textMuted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main Window App Styling */
+        .app-window {
+            width: 100%;
+            height: 100%;
+            background-color: #02060b;
+            border: 1px solid #00e5ff;
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .window-header {
+            background: #02060b;
+            border-bottom: 1px solid #1a2738;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 240px;
+            background-color: #02060b;
+            border-right: 1px solid #1a2738;
+            display: flex;
+            flex-direction: column;
+            padding-top: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            color: #f8fafc;
+            background: linear-gradient(90deg, rgba(0,229,255,0.08) 0%, rgba(0,229,255,0) 100%);
+            border-left-color: #00e5ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1a2738; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3f5a; }
+    </style>
+</head>
+<body>
+
+    <!-- Main App Window -->
+    <div class="app-window">
+        
+        <!-- Window Title Bar -->
+        <header class="window-header">
+            <div class="flex items-center gap-3 text-[13px] font-semibold text-gray-300 tracking-wide">
+                <i class="ph ph-waveform text-app-cyan text-lg"></i> VOZSTUDIO OMNI-ES
+            </div>
+            <div class="flex gap-4 text-gray-500">
+                <i class="ph ph-minus cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-square cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-x cursor-pointer hover:text-white transition-colors"></i>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="flex-1 flex flex-col gap-1 mt-4">
+                    <div class="nav-item">
+                        <i class="ph ph-folder-open text-xl text-gray-400 group-hover:text-app-cyan transition-colors"></i> Proyectos
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-microphone-stage text-xl"></i> Producción
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-stack text-xl"></i> Presets
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-waveform text-xl"></i> Clonación<br>y Calidad
+                    </div>
+                    <!-- BIBLIOTECA Y EXPORTACIÓN IS ACTIVE -->
+                    <div class="nav-item">
+                        <i class="ph-bold ph-scales text-xl"></i> Comparar<br>Variantes
+                    </div>
+                    <div class="nav-item active">
+                        <i class="ph-bold ph-cube text-xl text-app-cyan drop-shadow-[0_0_5px_rgba(0,229,255,0.5)]"></i> Biblioteca<br>y Exportación
+                    </div>
+                </nav>
+
+                <div class="border-t border-app-border mt-auto pt-2 pb-4">
+                    <div class="nav-item">
+                        <i class="ph ph-gear text-xl"></i> Ajustes
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: BIBLIOTECA Y EXPORTACIÓN -->
+            <main class="flex-1 bg-app-bg p-6 lg:p-8 flex flex-col overflow-hidden">
+                
+                <!-- Page Header -->
+                <div class="flex items-center gap-3 mb-6 shrink-0">
+                    <i class="ph-bold ph-cube text-[28px] text-white"></i>
+                    <h2 class="text-[22px] font-bold text-white tracking-wide">BIBLIOTECA Y EXPORTACIÓN</h2>
+                </div>
+
+                <!-- Search and Favorites -->
+                <div class="flex gap-4 mb-5 shrink-0">
+                    <div class="relative flex-1">
+                        <i class="ph-bold ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-[18px]"></i>
+                        <input type="text" placeholder="Buscar en la biblioteca..." class="w-full bg-[#0c131d] border border-gray-700 rounded-lg pl-10 pr-4 py-2.5 text-[14px] text-gray-300 focus:outline-none focus:border-app-cyan shadow-inner">
+                    </div>
+                    <button class="border border-app-orange text-app-orange px-5 py-2.5 rounded-lg flex items-center gap-2 text-[14px] font-medium hover:bg-app-orange/10 transition-colors shadow-[0_0_10px_rgba(255,183,0,0.1)]">
+                        <i class="ph-fill ph-star text-[16px]"></i> Favoritos
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex items-center gap-6 mb-5 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <span class="text-[14px] text-white font-medium">Colección:</span>
+                        <div class="relative">
+                            <select class="appearance-none bg-[#0c131d] border border-gray-700 rounded-lg pl-3 pr-10 py-1.5 text-[14px] text-gray-300 outline-none cursor-pointer hover:border-gray-500 transition-colors">
+                                <option>Todos</option>
+                            </select>
+                            <i class="ph-bold ph-caret-down absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none text-[12px]"></i>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-[14px] text-white font-medium">Etiquetas:</span>
+                        <div class="flex gap-2">
+                            <span class="border border-app-cyan/50 bg-[#041d2b] text-app-cyan px-2.5 py-1 rounded flex items-center gap-1.5 text-[13px] cursor-pointer hover:bg-[#06283b] transition-colors">
+                                Audiolibro <i class="ph-bold ph-x text-[10px]"></i>
+                            </span>
+                            <span class="border border-app-cyan/50 bg-[#041d2b] text-app-cyan px-2.5 py-1 rounded flex items-center gap-1.5 text-[13px] cursor-pointer hover:bg-[#06283b] transition-colors">
+                                Podcast <i class="ph-bold ph-x text-[10px]"></i>
+                            </span>
+                            <span class="border border-app-cyan/30 bg-[#0a1b24] text-app-cyan/60 px-2.5 py-1 rounded flex items-center gap-1.5 text-[13px] cursor-pointer opacity-70">
+                                <span class="line-through">Curso</span> <i class="ph-bold ph-x text-[10px]"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Data Area (Table + Metadata) -->
+                <div class="flex gap-5 flex-1 min-h-0 mb-6">
+                    
+                    <!-- Left Table -->
+                    <div class="flex-1 flex flex-col bg-app-panelInner border border-app-border rounded-[14px] overflow-hidden">
+                        
+                        <!-- Table Header -->
+                        <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 p-3 border-b border-[#1a2738] text-[13px] font-medium text-gray-300 bg-[#0a111a]">
+                            <div></div>
+                            <div class="flex items-center gap-1 cursor-pointer hover:text-white">Nombre <i class="ph-bold ph-caret-up-down text-gray-500 text-[10px]"></i></div>
+                            <div class="text-left">Duración</div>
+                            <div class="text-left">Etiquetas</div>
+                            <div></div>
+                        </div>
+                        
+                        <!-- Table Body -->
+                        <div class="flex-1 overflow-y-auto p-2 flex flex-col gap-1.5">
+                            
+                            <!-- Row 1 -->
+                            <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 py-2 px-1 items-center rounded-lg hover:bg-[#131d2a] transition-colors group">
+                                <div class="flex justify-center"><button class="w-[26px] h-[26px] rounded-full border border-gray-500 flex items-center justify-center group-hover:border-gray-300 transition-colors"><i class="ph-fill ph-play text-white text-[10px] ml-0.5"></i></button></div>
+                                <div class="text-[13px] text-gray-200">Audiolibro - Escena 01</div>
+                                <div class="text-[13px] text-gray-400">00:05:22</div>
+                                <div><span class="bg-[#1e293b] border border-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded">Audiolibro</span></div>
+                                <div class="flex justify-center"><button><i class="ph-bold ph-star text-gray-400 hover:text-gray-200 transition-colors text-[16px]"></i></button></div>
+                            </div>
+                            
+                            <!-- Row 2 -->
+                            <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 py-2 px-1 items-center rounded-lg hover:bg-[#131d2a] transition-colors group">
+                                <div class="flex justify-center"><button class="w-[26px] h-[26px] rounded-full border border-gray-500 flex items-center justify-center group-hover:border-gray-300 transition-colors"><i class="ph-fill ph-play text-white text-[10px] ml-0.5"></i></button></div>
+                                <div class="text-[13px] text-gray-200">Audiolibro - Escena 02</div>
+                                <div class="text-[13px] text-gray-400">00:04:58</div>
+                                <div><span class="bg-[#1e293b] border border-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded">Audiolibro</span></div>
+                                <div class="flex justify-center"><button><i class="ph-bold ph-star text-gray-400 hover:text-gray-200 transition-colors text-[16px]"></i></button></div>
+                            </div>
+
+                            <!-- Row 3 (Active) -->
+                            <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 py-2 px-1 items-center rounded-lg border border-app-cyan bg-[#041824] shadow-[0_0_15px_rgba(0,229,255,0.1)] relative overflow-hidden">
+                                <div class="absolute inset-0 bg-gradient-to-r from-[rgba(0,229,255,0.15)] to-transparent pointer-events-none w-1/3"></div>
+                                <div class="flex justify-center relative z-10"><button class="w-[26px] h-[26px] rounded-full border border-app-cyan flex items-center justify-center bg-[#022c3d]"><i class="ph-fill ph-play text-app-cyan text-[10px] ml-0.5"></i></button></div>
+                                <div class="text-[13px] text-white font-medium relative z-10">Audiolibro - Escena 03</div>
+                                <div class="text-[13px] text-gray-300 relative z-10">00:05:21</div>
+                                <div class="relative z-10"><span class="bg-[#063345] border border-app-cyan/40 text-app-cyan text-[11px] px-2.5 py-1 rounded shadow-[0_0_8px_rgba(0,229,255,0.2)]">Audiolibro</span></div>
+                                <div class="flex justify-center relative z-10"><button><i class="ph-fill ph-star text-app-orange text-[18px] drop-shadow-[0_0_6px_rgba(255,183,0,0.6)]"></i></button></div>
+                            </div>
+
+                            <!-- Row 4 -->
+                            <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 py-2 px-1 items-center rounded-lg hover:bg-[#131d2a] transition-colors group">
+                                <div class="flex justify-center"><button class="w-[26px] h-[26px] rounded-full border border-gray-500 flex items-center justify-center group-hover:border-gray-300 transition-colors"><i class="ph-fill ph-play text-white text-[10px] ml-0.5"></i></button></div>
+                                <div class="text-[13px] text-gray-200">Curso de ventas - Módulo 1</div>
+                                <div class="text-[13px] text-gray-400">00:06:34</div>
+                                <div><span class="bg-[#1e293b] border border-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded">Curso</span></div>
+                                <div class="flex justify-center"><button><i class="ph-bold ph-star text-gray-400 hover:text-gray-200 transition-colors text-[16px]"></i></button></div>
+                            </div>
+
+                            <!-- Row 5 -->
+                            <div class="grid grid-cols-[48px_1fr_100px_110px_48px] gap-2 py-2 px-1 items-center rounded-lg hover:bg-[#131d2a] transition-colors group">
+                                <div class="flex justify-center"><button class="w-[26px] h-[26px] rounded-full border border-gray-500 flex items-center justify-center group-hover:border-gray-300 transition-colors"><i class="ph-fill ph-play text-white text-[10px] ml-0.5"></i></button></div>
+                                <div class="text-[13px] text-gray-200">Podcast - Episodio 01</div>
+                                <div class="text-[13px] text-gray-400">00:18:27</div>
+                                <div><span class="bg-[#1e293b] border border-gray-700 text-gray-300 text-[11px] px-2.5 py-1 rounded">Podcast</span></div>
+                                <div class="flex justify-center"><button><i class="ph-bold ph-star text-gray-400 hover:text-gray-200 transition-colors text-[16px]"></i></button></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Metadata Panel -->
+                    <div class="w-[280px] bg-app-panel bg-[#0c131d] border border-app-border rounded-[14px] p-5 flex flex-col gap-5 shadow-lg">
+                        <div class="flex items-center gap-2 text-white font-medium text-[15px]">
+                            <i class="ph-bold ph-info text-[20px] text-gray-400"></i> Metadatos
+                        </div>
+                        
+                        <div class="grid grid-cols-[70px_1fr] gap-y-3.5 text-[13px]">
+                            <div class="text-gray-400">Nombre:</div>
+                            <div class="text-gray-200 font-medium truncate">Audiolibro - Escena 03</div>
+                            
+                            <div class="text-gray-400">Formato:</div>
+                            <div class="text-gray-200 font-medium">WAV (48 kHz, 24 bits)</div>
+                            
+                            <div class="text-gray-400">Voz:</div>
+                            <div class="text-gray-200 font-medium">Narrador ES</div>
+                            
+                            <div class="text-gray-400">Creación:</div>
+                            <div class="text-gray-200 font-medium">Hoy, 11:24</div>
+                            
+                            <div class="text-gray-400">Tamaño:</div>
+                            <div class="text-gray-200 font-medium">112.6 MB</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Export Action Area -->
+                <div class="flex items-center justify-between shrink-0 bg-[#0c131d] border border-app-border rounded-[14px] px-6 py-4 shadow-lg">
+                    <div class="flex items-center gap-6">
+                        <span class="text-white font-semibold text-[14px]">Exportar como:</span>
+                        
+                        <div class="flex items-center gap-6">
+                            <!-- Selected Radio -->
+                            <label class="flex items-center gap-2.5 cursor-pointer group">
+                                <div class="w-4 h-4 rounded-full border-2 border-app-cyan flex items-center justify-center shadow-[0_0_5px_rgba(0,229,255,0.3)]">
+                                    <div class="w-2 h-2 rounded-full bg-app-cyan shadow-[0_0_4px_rgba(0,229,255,0.8)]"></div>
+                                </div>
+                                <span class="text-white text-[13px] font-medium tracking-wide">WAV</span>
+                            </label>
+                            
+                            <!-- Unselected Radios -->
+                            <label class="flex items-center gap-2.5 cursor-pointer group">
+                                <div class="w-4 h-4 rounded-full border-2 border-gray-500 group-hover:border-gray-300 transition-colors"></div>
+                                <span class="text-gray-400 text-[13px] font-medium group-hover:text-gray-200 tracking-wide transition-colors">FLAC</span>
+                            </label>
+                            
+                            <label class="flex items-center gap-2.5 cursor-pointer group">
+                                <div class="w-4 h-4 rounded-full border-2 border-gray-500 group-hover:border-gray-300 transition-colors"></div>
+                                <span class="text-gray-400 text-[13px] font-medium group-hover:text-gray-200 tracking-wide transition-colors">MP3</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button class="bg-gradient-to-b from-[#ffcf54] to-[#f59e0b] hover:from-[#ffd770] hover:to-[#fbbf24] text-black font-bold px-6 py-2.5 rounded-lg flex items-center gap-2.5 transition-all shadow-[0_4px_15px_rgba(255,183,0,0.25)] hover:shadow-[0_4px_20px_rgba(255,183,0,0.4)] active:scale-[0.98]">
+                        <i class="ph-bold ph-download-simple text-[18px]"></i> 
+                        <span class="text-[14px]">Exportar proyecto</span>
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        // Waveform generation script removed as it is no longer used in this view.
+    </script>
+</body>
+</html>

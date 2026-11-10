@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Presets</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#050a10',
+                            panel: '#0c131d',
+                            panelInner: '#060a0f',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700',
+                            text: '#f8fafc',
+                            textMuted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main Window App Styling */
+        .app-window {
+            width: 100%;
+            height: 100%;
+            background-color: #02060b;
+            border: 1px solid #00e5ff;
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .window-header {
+            background: #02060b;
+            border-bottom: 1px solid #1a2738;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 240px;
+            background-color: #02060b;
+            border-right: 1px solid #1a2738;
+            display: flex;
+            flex-direction: column;
+            padding-top: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            color: #f8fafc;
+            background: linear-gradient(90deg, rgba(0,229,255,0.08) 0%, rgba(0,229,255,0) 100%);
+            border-left-color: #00e5ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1a2738; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3f5a; }
+    </style>
+</head>
+<body>
+
+    <!-- Main App Window -->
+    <div class="app-window">
+        
+        <!-- Window Title Bar -->
+        <header class="window-header">
+            <div class="flex items-center gap-3 text-[13px] font-semibold text-gray-300 tracking-wide">
+                <i class="ph ph-waveform text-app-cyan text-lg"></i> VOZSTUDIO OMNI-ES
+            </div>
+            <div class="flex gap-4 text-gray-500">
+                <i class="ph ph-minus cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-square cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-x cursor-pointer hover:text-white transition-colors"></i>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="flex-1 flex flex-col gap-1 mt-4">
+                    <div class="nav-item">
+                        <i class="ph ph-folder-open text-xl text-gray-400 group-hover:text-app-cyan transition-colors"></i> Proyectos
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-microphone-stage text-xl"></i> Producción
+                    </div>
+                    <!-- PRESETS IS ACTIVE -->
+                    <div class="nav-item active">
+                        <i class="ph ph-stack text-xl text-app-cyan"></i> Presets
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-waveform text-xl"></i> Clonación<br>y Calidad
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-scales text-xl"></i> Comparar<br>Variantes
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-cube text-xl"></i> Biblioteca<br>y Exportación
+                    </div>
+                </nav>
+
+                <div class="border-t border-app-border mt-auto pt-2 pb-4">
+                    <div class="nav-item">
+                        <i class="ph ph-gear text-xl"></i> Ajustes
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: PRESETS -->
+            <main class="flex-1 bg-app-bg p-6 lg:p-8 flex flex-col overflow-hidden">
+                
+                <!-- Page Header -->
+                <div class="flex items-center gap-3 mb-6 lg:mb-8 shrink-0">
+                    <i class="ph ph-stack text-[28px] text-app-cyan"></i>
+                    <h2 class="text-2xl font-bold text-white tracking-wide">PRESETS</h2>
+                </div>
+
+                <!-- Presets Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 flex-1 min-h-0 overflow-y-auto pr-2 pb-2">
+                    
+                    <!-- Card 1: Audiolibro (Active) -->
+                    <div class="bg-app-panelInner border border-app-cyan rounded-xl p-5 lg:p-6 flex flex-col shadow-[0_0_15px_rgba(0,229,255,0.1)] relative cursor-pointer group">
+                        <div class="absolute top-5 right-5 text-app-cyan bg-[#060a0f] rounded-full">
+                            <i class="ph-fill ph-check-circle text-[22px]"></i>
+                        </div>
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-book-open text-app-cyan text-3xl"></i>
+                            <h3 class="text-white font-bold text-[17px] border-b-2 border-app-cyan pb-0.5 inline-block">Audiolibro</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-300 text-[13px] lg:text-[14px]">
+                                <i class="ph ph-microphone text-[18px] text-gray-400"></i> Voz: Narrativa
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-300 text-[13px] lg:text-[14px]">
+                                <i class="ph ph-target text-[18px] text-gray-400"></i> Tempo: 1.00x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-300 text-[13px] lg:text-[14px]">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Podcast -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-microphone text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-bold text-[17px]">Podcast</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-microphone text-[18px]"></i> Voz: Conversacional
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-target text-[18px]"></i> Tempo: 1.00x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan opacity-80 group-hover:opacity-100 transition-opacity"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Curso -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-graduation-cap text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-bold text-[17px]">Curso</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-microphone text-[18px]"></i> Voz: Didáctica
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-target text-[18px]"></i> Tempo: 1.00x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan opacity-80 group-hover:opacity-100 transition-opacity"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Spot -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-megaphone text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-bold text-[17px]">Spot</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-microphone text-[18px]"></i> Voz: Comercial
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-target text-[18px]"></i> Tempo: 1.10x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan opacity-80 group-hover:opacity-100 transition-opacity"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 5: Noticias -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-article text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-bold text-[17px]">Noticias</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-microphone text-[18px]"></i> Voz: Informativa
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-target text-[18px]"></i> Tempo: 1.05x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan opacity-80 group-hover:opacity-100 transition-opacity"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card 6: Meditación -->
+                    <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-xl p-5 lg:p-6 flex flex-col cursor-pointer group">
+                        <div class="flex items-center gap-3 mb-4">
+                            <i class="ph ph-flower-lotus text-app-cyan text-3xl opacity-80 group-hover:opacity-100 transition-opacity"></i>
+                            <h3 class="text-gray-200 group-hover:text-white transition-colors font-bold text-[17px]">Meditación</h3>
+                        </div>
+                        <div class="flex flex-col gap-3 mt-auto">
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-microphone text-[18px]"></i> Voz: Calma
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-target text-[18px]"></i> Tempo: 0.95x
+                            </div>
+                            <div class="flex items-center gap-3 text-gray-400 text-[13px] lg:text-[14px] group-hover:text-gray-300 transition-colors">
+                                <i class="ph ph-waveform text-[18px] text-app-cyan opacity-80 group-hover:opacity-100 transition-opacity"></i> Calidad: Alta
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Bottom Button -->
+                <div class="mt-6 flex justify-end shrink-0">
+                    <button class="bg-app-orange hover:bg-[#e6a600] transition-colors text-black text-[15px] font-bold py-3 px-8 rounded-lg shadow-[0_0_20px_rgba(255,183,0,0.15)] flex items-center gap-2">
+                        <i class="ph-bold ph-check text-[20px]"></i> Aplicar preset
+                    </button>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>

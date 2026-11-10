@@ -42,3 +42,7 @@ logs/
 scripts/launcher/*.ico
 *.tmp
 *.log
+# Local AI Studio Zero-Trust defaults
+!.env.example
+!.env.sample
+!.env.template

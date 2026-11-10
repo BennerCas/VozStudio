@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Producción</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#050a10',
+                            panel: '#0c131d',
+                            panelInner: '#060a0f',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700',
+                            text: '#f8fafc',
+                            textMuted: '#94a3b8'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            margin: 0;
+            padding: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Main Window App Styling */
+        .app-window {
+            width: 100%;
+            height: 100%;
+            background-color: #02060b;
+            border: 1px solid #00e5ff;
+            box-shadow: inset 0 0 20px rgba(0, 229, 255, 0.05);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        
+        .window-header {
+            background: #02060b;
+            border-bottom: 1px solid #1a2738;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            flex-shrink: 0;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            width: 240px;
+            background-color: #02060b;
+            border-right: 1px solid #1a2738;
+            display: flex;
+            flex-direction: column;
+            padding-top: 12px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 20px;
+            color: #94a3b8;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+
+        .nav-item:hover {
+            color: #f8fafc;
+        }
+
+        .nav-item.active {
+            color: #f8fafc;
+            background: linear-gradient(90deg, rgba(0,229,255,0.08) 0%, rgba(0,229,255,0) 100%);
+            border-left-color: #00e5ff;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #1a2738; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #2a3f5a; }
+    </style>
+</head>
+<body>
+
+    <!-- Main App Window -->
+    <div class="app-window">
+        
+        <!-- Window Title Bar -->
+        <header class="window-header">
+            <div class="flex items-center gap-3 text-[13px] font-semibold text-gray-300 tracking-wide">
+                <i class="ph ph-waveform text-app-cyan text-lg"></i> VOZSTUDIO OMNI-ES
+            </div>
+            <div class="flex gap-4 text-gray-500">
+                <i class="ph ph-minus cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-square cursor-pointer hover:text-white transition-colors"></i>
+                <i class="ph ph-x cursor-pointer hover:text-white transition-colors"></i>
+            </div>
+        </header>
+        
+        <div class="flex flex-1 overflow-hidden">
+            <!-- Sidebar Navigation -->
+            <aside class="sidebar">
+                <nav class="flex-1 flex flex-col gap-1 mt-4">
+                    <div class="nav-item">
+                        <i class="ph ph-folder-open text-xl"></i> Proyectos
+                    </div>
+                    <!-- PRODUCCIÓN IS ACTIVE -->
+                    <div class="nav-item active">
+                        <i class="ph ph-microphone-stage text-xl text-app-cyan"></i> Producción
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-stack text-xl"></i> Presets
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-waveform text-xl"></i> Clonación<br>y Calidad
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-scales text-xl"></i> Comparar<br>Variantes
+                    </div>
+                    <div class="nav-item">
+                        <i class="ph ph-cube text-xl"></i> Biblioteca<br>y Exportación
+                    </div>
+                </nav>
+
+                <div class="border-t border-app-border mt-auto pt-2 pb-4">
+                    <div class="nav-item">
+                        <i class="ph ph-gear text-xl"></i> Ajustes
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area: PRODUCCIÓN -->
+            <main class="flex-1 bg-app-bg p-6 lg:p-8 flex flex-col overflow-hidden">
+                
+                <!-- Page Header -->
+                <div class="flex justify-between items-center mb-6 lg:mb-8">
+                    <div class="flex items-center gap-3">
+                        <i class="ph ph-microphone-stage text-[28px] text-app-cyan"></i>
+                        <h2 class="text-2xl font-bold text-white tracking-wide">PRODUCCIÓN</h2>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <div class="bg-app-panel border border-app-border hover:border-gray-600 transition-colors rounded-lg px-4 py-2.5 flex items-center gap-6 cursor-pointer">
+                            <span class="text-gray-300 text-[13px] font-medium">Proyecto: Audiolibro</span>
+                            <i class="ph ph-caret-down text-gray-400 text-sm"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Grid Layout -->
+                <div class="flex gap-4 lg:gap-6 flex-1 min-h-0">
+                    
+                    <!-- Column 1: Escenas -->
+                    <div class="w-[250px] lg:w-[280px] flex flex-col gap-4 lg:gap-6">
+                        <div class="bg-app-panel border border-app-border rounded-xl flex flex-col flex-1 overflow-hidden">
+                            <!-- Header -->
+                            <div class="flex justify-between items-center px-5 py-4">
+                                <span class="text-gray-100 text-sm font-semibold">Escenas (3)</span>
+                                <button class="w-7 h-7 rounded-md flex items-center justify-center bg-[rgba(0,229,255,0.1)] text-app-cyan hover:bg-[rgba(0,229,255,0.2)] transition-colors">
+                                    <i class="ph ph-plus text-sm font-bold"></i>
+                                </button>
+                            </div>
+                            <!-- List -->
+                            <div class="px-3 pb-3 flex flex-col gap-2 overflow-y-auto">
+                                <!-- Item 1 (Active) -->
+                                <div class="bg-app-panelInner border border-app-cyan rounded-lg p-3 cursor-pointer shadow-[0_0_15px_rgba(0,229,255,0.05)] relative overflow-hidden group">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex gap-3 items-center">
+                                            <span class="text-gray-400 font-medium text-[13px] w-5">01</span>
+                                            <div class="flex flex-col">
+                                                <span class="text-white text-[13px] font-semibold leading-tight">Introducción</span>
+                                                <span class="text-app-cyan text-[11px] mt-0.5 font-medium">00:05:22</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-caret-right text-app-cyan text-sm"></i>
+                                    </div>
+                                </div>
+                                <!-- Item 2 -->
+                                <div class="bg-transparent border border-transparent hover:bg-[#111926] rounded-lg p-3 cursor-pointer transition-colors group">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex gap-3 items-center">
+                                            <span class="text-gray-500 font-medium text-[13px] w-5">02</span>
+                                            <div class="flex flex-col">
+                                                <span class="text-gray-300 text-[13px] font-medium leading-tight group-hover:text-white transition-colors">Beneficios</span>
+                                                <span class="text-gray-500 text-[11px] mt-0.5 font-medium">00:04:36</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-arrow-counter-clockwise text-gray-600 text-sm"></i>
+                                    </div>
+                                </div>
+                                <!-- Item 3 -->
+                                <div class="bg-transparent border border-transparent hover:bg-[#111926] rounded-lg p-3 cursor-pointer transition-colors group">
+                                    <div class="flex items-center justify-between">
+                                        <div class="flex gap-3 items-center">
+                                            <span class="text-gray-500 font-medium text-[13px] w-5">03</span>
+                                            <div class="flex flex-col">
+                                                <span class="text-gray-300 text-[13px] font-medium leading-tight group-hover:text-white transition-colors">Llamada a la acción</span>
+                                                <span class="text-gray-500 text-[11px] mt-0.5 font-medium">00:02:18</span>
+                                            </div>
+                                        </div>
+                                        <i class="ph ph-arrow-counter-clockwise text-gray-600 text-sm"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columns 2 & 3 Wrapper -->
+                    <div class="flex-1 flex flex-col gap-4 lg:gap-6 min-w-0">
+                        
+                        <!-- Top Row: Guion & Voz/Motor -->
+                        <div class="flex gap-4 lg:gap-6 flex-1 min-h-0">
+                            <!-- Guion Panel -->
+                            <div class="bg-app-panel border border-app-border rounded-xl flex flex-col flex-1 overflow-hidden">
+                                <div class="px-5 py-4 border-b border-app-border">
+                                    <span class="text-gray-100 text-[13px] font-semibold">Guion — 01 Introducción</span>
+                                </div>
+                                <div class="px-5 py-3 border-b border-app-border flex items-center gap-4 text-gray-400 bg-app-panelInner">
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-text-b text-[17px]"></i></button>
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-text-italic text-[17px]"></i></button>
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-text-underline text-[17px]"></i></button>
+                                    <div class="w-px h-4 bg-app-border mx-1"></div>
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-list-dashes text-[17px]"></i></button>
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-list-numbers text-[17px]"></i></button>
+                                    <button class="hover:text-white transition-colors"><i class="ph-bold ph-list-bullets text-[17px]"></i></button>
+                                </div>
+                                <div class="flex-1 p-5 bg-app-panelInner relative">
+                                    <textarea class="w-full h-full bg-transparent text-gray-300 text-[13px] leading-relaxed resize-none focus:outline-none placeholder-gray-600 font-medium" placeholder="Escribe o pega tu guion aquí...">Bienvenido a este audiolibro. En las próximas páginas sonoras, descubrirás ideas prácticas para mejorar tus hábitos, aumentar tu productividad y alcanzar tus metas con un enfoque claro y realista.</textarea>
+                                </div>
+                                <div class="px-5 py-3 border-t border-app-border flex justify-between items-center bg-app-panel">
+                                    <span class="text-[12px] text-gray-400 font-medium">Caracteres: 204 &nbsp;&nbsp;|&nbsp;&nbsp; Estimado: 00:05:22</span>
+                                </div>
+                            </div>
+
+                            <!-- Voz & Motor Column -->
+                            <div class="w-[230px] lg:w-[260px] flex flex-col gap-4 lg:gap-6">
+                                <!-- Voz Seleccionada -->
+                                <div class="bg-app-panel border border-app-border rounded-xl p-5 lg:p-6 flex flex-col">
+                                    <span class="text-gray-100 text-[13px] font-semibold mb-4 border-b border-app-border pb-3">Voz seleccionada</span>
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-10 h-10 rounded-lg border border-app-cyan flex items-center justify-center bg-[rgba(0,229,255,0.05)] text-app-cyan shrink-0">
+                                            <i class="ph ph-user text-xl"></i>
+                                        </div>
+                                        <div class="flex flex-col">
+                                            <span class="text-gray-100 font-semibold text-[13px]">Narrador ES</span>
+                                            <span class="text-gray-500 text-[10px] font-medium flex items-center gap-1 cursor-pointer hover:text-gray-300 transition-colors mt-0.5">
+                                                Masculino • Neutro <i class="ph ph-caret-down"></i>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Motor / Proveedor -->
+                                <div class="bg-app-panel border border-app-border rounded-xl p-5 lg:p-6 flex flex-col flex-1">
+                                    <span class="text-gray-100 text-[13px] font-semibold mb-4 border-b border-app-border pb-3">Motor / Proveedor</span>
+                                    
+                                    <div class="flex flex-col items-start mb-5">
+                                        <div class="flex items-center gap-2 mb-2">
+                                            <i class="ph ph-cpu text-app-cyan text-xl"></i>
+                                            <span class="font-bold text-gray-100 text-[13px] tracking-wide">OMNI-ES v2.0</span>
+                                        </div>
+                                        <span class="bg-[#1a1400] border border-app-orange text-app-orange text-[10px] font-bold px-2 py-0.5 rounded ml-7">
+                                            Local (Offline)
+                                        </span>
+                                    </div>
+                                    
+                                    <div class="flex flex-col gap-2.5 mt-auto">
+                                        <div class="flex items-center gap-2">
+                                            <i class="ph ph-check text-app-cyan font-bold text-sm"></i>
+                                            <span class="text-gray-300 text-[12px] font-medium">Neuronal (TTS)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i class="ph ph-check text-app-cyan font-bold text-sm"></i>
+                                            <span class="text-gray-300 text-[12px] font-medium">Español (ES-ES)</span>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <i class="ph ph-check text-app-cyan font-bold text-sm"></i>
+                                            <span class="text-gray-300 text-[12px] font-medium">Alta calidad (48 kHz)</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuración Panel (Spans bottom of 2&3) -->
+                        <div class="bg-app-panel border border-app-border rounded-xl p-5 lg:p-6 shrink-0 flex flex-col gap-4 lg:gap-5">
+                            <div class="flex items-center gap-2 text-white text-[14px] font-semibold">
+                                <i class="ph ph-gear text-app-cyan text-lg"></i> Configuración de generación
+                            </div>
+                            
+                            <div class="flex items-end gap-5 lg:gap-6">
+                                <!-- Dropdowns -->
+                                <div class="flex flex-1 gap-4 lg:gap-5">
+                                    <div class="flex flex-col gap-1.5 lg:gap-2 flex-1">
+                                        <label class="text-[12px] text-gray-400 font-medium">Estilo</label>
+                                        <div class="bg-app-panelInner border border-app-border hover:border-gray-500 rounded-lg px-3 py-2 flex justify-between items-center cursor-pointer transition-colors">
+                                            <span class="text-gray-200 text-[13px] font-medium">Narrativo</span>
+                                            <i class="ph ph-caret-down text-gray-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1.5 flex-1">
+                                        <label class="text-[12px] text-gray-400 font-medium">Velocidad</label>
+                                        <div class="bg-app-panelInner border border-app-border hover:border-gray-500 rounded-lg px-3 py-2 flex justify-between items-center cursor-pointer transition-colors">
+                                            <span class="text-gray-200 text-[13px] font-medium">1.00x</span>
+                                            <i class="ph ph-caret-down text-gray-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1.5 flex-1">
+                                        <label class="text-[12px] text-gray-400 font-medium">Tono</label>
+                                        <div class="bg-app-panelInner border border-app-border hover:border-gray-500 rounded-lg px-3 py-2 flex justify-between items-center cursor-pointer transition-colors">
+                                            <span class="text-gray-200 text-[13px] font-medium">0</span>
+                                            <i class="ph ph-caret-down text-gray-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1.5 flex-[1.2]">
+                                        <label class="text-[12px] text-gray-400 font-medium">Calidad</label>
+                                        <div class="bg-app-panelInner border border-app-border hover:border-gray-500 rounded-lg px-3 py-2 flex justify-between items-center cursor-pointer transition-colors">
+                                            <span class="text-gray-200 text-[13px] font-medium">Alta (48 kHz)</span>
+                                            <i class="ph ph-caret-down text-gray-500 text-xs"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Button -->
+                                <button class="bg-app-orange hover:bg-[#e6a600] transition-colors text-black text-[14px] font-bold py-2 px-6 rounded-lg shadow-[0_0_20px_rgba(255,183,0,0.15)] flex items-center gap-2 shrink-0 h-[38px]">
+                                    <i class="ph-bold ph-waveform text-lg"></i> Generar variantes
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+</body>
+</html>

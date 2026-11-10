@@ -70,6 +70,14 @@ import {
 } from './qwen.data.js';
 import { BRAND, APP_ICON_URI, appMark } from './brand.js';
 import {
+  checkBackendHealth,
+  apiGetSystemStatus,
+  apiListLibrary,
+  apiSynthesize,
+  apiPlayAudio,
+  apiStopAudio,
+} from './api.js';
+import {
   esc,
   icon,
   pct,
@@ -192,6 +200,8 @@ const state = {
   batchRunning: false,
   batchTimer: null,
   nuevoProyecto: { recipeId: 'audiolibro', name: '', license: 'personal' },
+  backendOnline: false,
+  backendItems: [],
 
   // Modulo de lectura y narracion
   lectura: {
@@ -205,6 +215,7 @@ const state = {
     generated: null,
     step: 'editar',
     progress: 0,
+    lastAudioUrl: null,
     // Nulos mientras no se toquen: el preset manda hasta que el usuario ajusta.
     speed: null,
     pause: null,
@@ -1010,6 +1021,14 @@ function viewLectura() {
                     <div class="row between tiny muted"><span>Bloque ${state.lectura.generated.done} de ${state.lectura.generated.total}</span><span class="mono">${state.lectura.progress} %</span></div>
                     ${bar(state.lectura.progress, state.lectura.progress >= 100 ? 'ok' : '')}
                     <p class="tiny muted">${state.lectura.generated.done >= state.lectura.generated.total ? `${icon('check', 'sm')} Audio listo en Biblioteca · SRT por bloque generado` : 'Renderizando en la cola global...'}</p>
+                    ${
+                      state.lectura.lastAudioUrl
+                        ? `<div class="row wrap" style="margin-top:var(--space-2)">
+                            <button class="btn sm primary" data-action="lectura:play">${icon('play', 'sm')} Escuchar audio generado</button>
+                            <button class="btn sm" data-action="audio:stop">${icon('pause', 'sm')} Detener</button>
+                          </div>`
+                        : ''
+                    }
                   </div>`
                 : `<p class="tiny dim">${icon('info', 'sm')} El audio aparece en Biblioteca con su JSON auditado y su SRT por bloque.</p>`
             }
@@ -2055,32 +2074,64 @@ function libraryRows() {
 
 function viewBiblioteca() {
   const rows = libraryRows();
+  const hasReal = state.backendItems && state.backendItems.length > 0;
   return `
   <div class="stack-4">
     <div class="row between wrap">
-      <div><h1 style="font-size:var(--text-2xl)">Biblioteca</h1><p class="tiny muted mt-2">Tomas aprobadas con su JSON auditado: motor, voz, parametros, RTF y huella de hardware.</p></div>
-      <button class="btn" data-action="modal:export">${icon('download', 'sm')} Exportar paquete</button>
+      <div>
+        <h1 style="font-size:var(--text-2xl)">Biblioteca</h1>
+        <p class="tiny muted mt-2">Tomas aprobadas con su JSON auditado: motor, voz, parametros, RTF y huella de hardware.</p>
+      </div>
+      <div class="row">
+        ${state.backendOnline ? `<span class="badge ok">${icon('check', 'sm')} Backend local conectado</span>` : ''}
+        <button class="btn sm" data-action="biblioteca:refresh">${icon('refresh', 'sm')} Refrescar</button>
+        <button class="btn sm" data-action="audio:stop">${icon('pause', 'sm')} Detener audio</button>
+        <button class="btn" data-action="modal:export">${icon('download', 'sm')} Exportar paquete</button>
+      </div>
     </div>
     <section class="panel">
-      <div class="panel-head"><div><p class="eyebrow">Auditada</p><h2>${rows.length} tomas recientes</h2></div></div>
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">${hasReal ? 'Audios generados en backend' : 'Auditada'}</p>
+          <h2>${hasReal ? `${state.backendItems.length} audios reales en biblioteca` : `${rows.length} tomas recientes`}</h2>
+        </div>
+      </div>
       <div class="panel-body tight">
         <div class="table-wrap scroll-area" data-scroll-area="biblioteca">
         <table class="table">
-          <thead><tr><th>Bloque</th><th>Texto</th><th>Voz</th><th>Motor</th><th class="num">Dur.</th><th class="num">RTF</th><th>Estado</th></tr></thead>
+          <thead><tr><th>Identificador</th><th>Texto / Prompt</th><th>Voz</th><th>Motor</th><th class="num">Dur.</th><th class="num">RTF</th><th>Estado</th><th class="num">Audio</th></tr></thead>
           <tbody>
-            ${rows
-              .map(
-                (row) => `<tr>
-                  <td class="mono">${esc(row.block.id)}</td>
-                  <td class="truncate" style="max-width:320px">${esc(row.block.text.slice(0, 64))}</td>
-                  <td>${esc(row.voice ? row.voice.name : 'sin voz')}</td>
-                  <td>${esc(engineById(row.voice ? row.voice.engine : 'kokoro').name)}</td>
-                  <td class="num mono">${row.take.duration.toFixed(2)}</td>
-                  <td class="num mono">${row.take.rtf.toFixed(3)}</td>
-                  <td>${row.approved ? `<span class="badge ok">${icon('check', 'sm')} aprobada</span>` : `<span class="badge">toma</span>`}</td>
-                </tr>`,
-              )
-              .join('')}
+            ${
+              hasReal
+                ? state.backendItems
+                    .map(
+                      (item) => `<tr>
+                        <td class="mono">${esc(item.id ? item.id.slice(0, 14) : 'audio')}</td>
+                        <td class="truncate" style="max-width:320px" title="${esc(item.prompt_original || item.text || item.archivo || item.id)}">${esc((item.prompt_original || item.text || item.archivo || item.id).slice(0, 64))}</td>
+                        <td>${esc(item.voz_id || 'n/a')}</td>
+                        <td>${esc(item.motor || 'qwen3_tts')}</td>
+                        <td class="num mono">${item.metricas?.duracion_audio_seg ? `${item.metricas.duracion_audio_seg.toFixed(2)}s` : '-'}</td>
+                        <td class="num mono">${item.metricas?.rtf ? item.metricas.rtf.toFixed(3) : '-'}</td>
+                        <td><span class="badge ok">${icon('check', 'sm')} local</span></td>
+                        <td class="num"><button class="btn sm primary" data-action="library:play" data-url="${esc(item.audio_url)}">${icon('play', 'sm')} Reproducir</button></td>
+                      </tr>`,
+                    )
+                    .join('')
+                : rows
+                    .map(
+                      (row) => `<tr>
+                        <td class="mono">${esc(row.block.id)}</td>
+                        <td class="truncate" style="max-width:320px">${esc(row.block.text.slice(0, 64))}</td>
+                        <td>${esc(row.voice ? row.voice.name : 'sin voz')}</td>
+                        <td>${esc(engineById(row.voice ? row.voice.engine : 'kokoro').name)}</td>
+                        <td class="num mono">${row.take.duration.toFixed(2)}s</td>
+                        <td class="num mono">${row.take.rtf.toFixed(3)}</td>
+                        <td>${row.approved ? `<span class="badge ok">${icon('check', 'sm')} aprobada</span>` : `<span class="badge">toma</span>`}</td>
+                        <td class="num"><button class="btn sm" data-action="block:play" data-block="${row.block.id}">${icon('play', 'sm')} Escuchar</button></td>
+                      </tr>`,
+                    )
+                    .join('')
+            }
           </tbody>
         </table>
         </div>
@@ -2633,9 +2684,26 @@ function navigate(route) {
   state.modals = [];
   state.palette.open = false;
   render();
+  if (state.route === 'biblioteca') {
+    cargarBibliotecaReal();
+  }
   // El scroll vive en #content: cada pantalla empieza por su cabecera.
   const content = $('#content');
   if (content) content.scrollTop = 0;
+}
+
+async function cargarBibliotecaReal() {
+  try {
+    const isOnline = await checkBackendHealth();
+    state.backendOnline = isOnline;
+    if (isOnline) {
+      const items = await apiListLibrary();
+      state.backendItems = items || [];
+      render();
+    }
+  } catch (err) {
+    console.warn('Error al consultar biblioteca local:', err);
+  }
 }
 
 function selectBlock(id) {
@@ -2753,37 +2821,100 @@ function syncLecturaMeta() {
   }
 }
 
-function lecturaGenerate() {
+function splitTextIntoBlocks(text, chunkSize) {
+  if (!text) return [];
+  const max = Math.max(50, chunkSize || 280);
+  const paras = text.split(/\n+/);
+  const blocks = [];
+  for (const p of paras) {
+    let clean = p.trim();
+    if (!clean) continue;
+    while (clean.length > max) {
+      let cut = clean.lastIndexOf('. ', max);
+      if (cut <= 0) cut = clean.lastIndexOf(', ', max);
+      if (cut <= 0) cut = clean.lastIndexOf(' ', max);
+      if (cut <= 0) cut = max;
+      blocks.push(clean.slice(0, cut).trim());
+      clean = clean.slice(cut).trim();
+    }
+    if (clean) blocks.push(clean);
+  }
+  return blocks.length ? blocks : [text];
+}
+
+async function lecturaGenerate() {
   const s = lecturaStats();
   if (s.chars < 10) {
     notify('Falta texto', 'Pega un texto o carga un documento antes de generar', 'warn');
     return;
   }
   const preset = s.preset;
-  state.lectura.generated = { total: s.chunks, done: 0 };
+  const catVoice = catalogVoice(state.lectura.voice);
+  const voiceId = catVoice?.vid || catVoice?.id || 'ef_dora';
+  const engineId = state.lectura.engine || catVoice?.engine || 'kokoro';
+  const speed = preset.speed || 1.0;
+  const blocks = splitTextIntoBlocks(s.text, preset.chunk);
+  const total = blocks.length;
+
+  state.lectura.generated = { total, done: 0, audio_urls: [] };
   state.lectura.progress = 0;
-  notify('Render iniciado', `${s.chunks} bloques · ${preset.name} · ${fmtDuration(s.est.seconds)} estimados`, 'ok');
+  state.lectura.lastAudioUrl = null;
+  notify('Render iniciado', `${total} bloques · ${preset.name} · ${fmtDuration(s.est.seconds)} estimados`, 'ok');
   enqueueRender(null, state.mode, null);
   render();
-  const timer = setInterval(() => {
-    const gen = state.lectura.generated;
-    if (!gen) {
-      clearInterval(timer);
-      return;
+
+  try {
+    let lastUrl = null;
+    for (let i = 0; i < blocks.length; i++) {
+      const chunkText = blocks[i];
+      const res = await apiSynthesize({
+        text: chunkText,
+        engine_id: engineId,
+        voice_id: voiceId,
+        speed: speed,
+        max_chunk_chars: preset.chunk || 280,
+        emotion: preset.emotion || null,
+      });
+
+      lastUrl = res.audio_url;
+      state.lectura.generated.done = i + 1;
+      state.lectura.generated.audio_urls.push(res.audio_url);
+      state.lectura.progress = pct(i + 1, total);
+      state.lectura.lastAudioUrl = lastUrl;
+
+      const barNode = $('#lectura-progress');
+      if (barNode) barNode.style.width = `${state.lectura.progress}%`;
+      const label = $('#lectura-progress-label');
+      if (label) label.textContent = `Bloque ${i + 1} de ${total}`;
     }
-    gen.done = Math.min(gen.total, gen.done + Math.max(1, Math.round(gen.total / 14)));
-    state.lectura.progress = pct(gen.done, gen.total);
-    const barNode = $('#lectura-progress');
-    if (barNode) barNode.style.width = `${state.lectura.progress}%`;
-    const label = $('#lectura-progress-label');
-    if (label) label.textContent = `Bloque ${gen.done} de ${gen.total}`;
-    if (gen.done >= gen.total) {
-      clearInterval(timer);
-      state.lectura.step = 'listo';
-      notify('Audio listo', `${preset.name} · ${s.chars.toLocaleString('es-ES')} caracteres · SRT por bloque`, 'ok');
-      render();
-    }
-  }, 320);
+
+    state.lectura.step = 'listo';
+    notify('Audio listo', `${preset.name} · ${s.chars.toLocaleString('es-ES')} caracteres · Sintesis completada`, 'ok');
+    render();
+  } catch (err) {
+    notify('Backend no disponible', `Simulando narracion (${err.message || 'sin conexion'}). Usando cola virtual.`, 'warn');
+    state.lectura.generated = { total: s.chunks, done: 0 };
+    state.lectura.progress = 0;
+    const timer = setInterval(() => {
+      const gen = state.lectura.generated;
+      if (!gen) {
+        clearInterval(timer);
+        return;
+      }
+      gen.done = Math.min(gen.total, gen.done + Math.max(1, Math.round(gen.total / 14)));
+      state.lectura.progress = pct(gen.done, gen.total);
+      const barNode = $('#lectura-progress');
+      if (barNode) barNode.style.width = `${state.lectura.progress}%`;
+      const label = $('#lectura-progress-label');
+      if (label) label.textContent = `Bloque ${gen.done} de ${gen.total}`;
+      if (gen.done >= gen.total) {
+        clearInterval(timer);
+        state.lectura.step = 'listo';
+        notify('Audio listo (simulado)', `${preset.name} · ${s.chars.toLocaleString('es-ES')} caracteres · SRT por bloque`, 'ok');
+        render();
+      }
+    }, 320);
+  }
 }
 
 /* ------------------------- modulo diseno acciones ------------------------- */
@@ -2855,7 +2986,7 @@ function disenoGenerate() {
 }
 
 /* --------------------------------- acciones ------------------------------- */
-document.addEventListener('click', (event) => {
+document.addEventListener('click', async (event) => {
   const target = event.target.closest('[data-action]');
   if (!target) return;
   const action = target.dataset.action;
@@ -3096,8 +3227,33 @@ document.addEventListener('click', (event) => {
       break;
     }
     case 'lectura:generate':
-      lecturaGenerate();
+      await lecturaGenerate();
       break;
+    case 'lectura:play':
+      if (state.lectura.lastAudioUrl) {
+        apiPlayAudio(state.lectura.lastAudioUrl);
+        notify('Reproduciendo WAV real', 'Narracion generada', 'ok');
+      } else {
+        notify('Reproduciendo audio (simulado)', 'Narracion', 'info');
+      }
+      break;
+    case 'audio:stop':
+      apiStopAudio();
+      notify('Audio detenido', '', 'info');
+      break;
+    case 'biblioteca:refresh':
+      notify('Actualizando biblioteca...', 'Consultando backend', 'info');
+      await cargarBibliotecaReal();
+      notify('Biblioteca actualizada', `${state.backendItems?.length || 0} audios encontrados`, 'ok');
+      break;
+    case 'library:play': {
+      const url = target.dataset.url;
+      if (url) {
+        apiPlayAudio(url);
+        notify('Reproduciendo WAV real', 'Elemento de biblioteca', 'ok');
+      }
+      break;
+    }
     case 'lectura:normalize':
       if (!state.lectura.text.trim()) {
         notify('Nada que limpiar', 'Pega un texto primero', 'warn');
@@ -3204,29 +3360,65 @@ document.addEventListener('click', (event) => {
         break;
       }
       const instruccion = compileProfile(q.profile, q.master);
-      const random = seeded(`qwen-${q.profile.gender}-${q.profile.age}-${q.speech.length}-${q.title}`);
-      const duration = 2 + random() * 3.4;
-      const rtf = 1.4 + random() * 1.6; // CPU: mas lento que tiempo real
-      // Ojo: no se puede llamar `render` a esta variable, taparia la funcion global.
-      const toma = {
-        id: `r-${Date.now()}`,
-        title: q.title || 'Nueva voz',
-        category: q.activeTitle ? 'Biblioteca' : 'Personalizada',
-        text: q.speech,
-        instruction: instruccion,
-        profile: { ...q.profile },
-        duration: Number(duration.toFixed(2)),
-        elapsed: Number((duration * rtf).toFixed(2)),
-        rtf: Number(rtf.toFixed(2)),
-      };
-      q.lastRender = toma;
-      q.renders = [toma, ...q.renders].slice(0, 24);
-      notify('Audio generado', `${toma.duration} s en ${toma.elapsed} s · RTF ${toma.rtf}`, 'ok');
-      render();
+      notify('Sintetizando en local con Qwen3-TTS...', 'Iniciando inferencia local', 'info');
+
+      try {
+        const res = await apiSynthesize({
+          text: q.speech,
+          engine_id: 'qwen3_tts',
+          voice_id: 'qwen3_voice_design',
+          voice_design_prompt: instruccion,
+          temperature: q.master.temperature || 0.7,
+        });
+
+        const duration = res.metricas?.duracion_audio_seg || 3.0;
+        const elapsed = res.metricas?.tiempo_inferencia_ms ? res.metricas.tiempo_inferencia_ms / 1000 : 2.0;
+        const rtf = res.metricas?.rtf || elapsed / duration;
+        const toma = {
+          id: res.item?.id || `r-${Date.now()}`,
+          title: q.title || 'Nueva voz Qwen',
+          category: q.activeTitle ? 'Biblioteca' : 'Personalizada',
+          text: q.speech,
+          instruction: instruccion,
+          audio_url: res.audio_url,
+          duration: Number(duration.toFixed(2)),
+          elapsed: Number(elapsed.toFixed(2)),
+          rtf: Number(rtf.toFixed(2)),
+        };
+        q.lastRender = toma;
+        q.renders = [toma, ...q.renders].slice(0, 24);
+        notify('Audio generado', `${toma.duration} s en ${toma.elapsed} s · RTF ${toma.rtf}`, 'ok');
+        render();
+      } catch (err) {
+        notify('Backend no disponible', `Simulando generacion (${err.message || 'sin conexion'}). Usando estimacion local.`, 'warn');
+        const random = seeded(`qwen-${q.profile.gender}-${q.profile.age}-${q.speech.length}-${q.title}`);
+        const duration = 2 + random() * 3.4;
+        const rtf = 1.4 + random() * 1.6; // CPU: mas lento que tiempo real
+        const toma = {
+          id: `r-${Date.now()}`,
+          title: q.title || 'Nueva voz',
+          category: q.activeTitle ? 'Biblioteca' : 'Personalizada',
+          text: q.speech,
+          instruction: instruccion,
+          profile: { ...q.profile },
+          duration: Number(duration.toFixed(2)),
+          elapsed: Number((duration * rtf).toFixed(2)),
+          rtf: Number(rtf.toFixed(2)),
+        };
+        q.lastRender = toma;
+        q.renders = [toma, ...q.renders].slice(0, 24);
+        notify('Audio generado (simulado)', `${toma.duration} s en ${toma.elapsed} s · RTF ${toma.rtf}`, 'ok');
+        render();
+      }
       break;
     }
     case 'qwen:play':
-      if (state.qwen.lastRender) notify('Reproduciendo WAV', state.qwen.lastRender.title, 'info');
+      if (state.qwen.lastRender && state.qwen.lastRender.audio_url) {
+        apiPlayAudio(state.qwen.lastRender.audio_url);
+        notify('Reproduciendo WAV real', state.qwen.lastRender.title, 'ok');
+      } else if (state.qwen.lastRender) {
+        notify('Reproduciendo WAV', state.qwen.lastRender.title, 'info');
+      }
       break;
     case 'qwen:reuse': {
       const r = state.qwen.lastRender;
@@ -3252,9 +3444,16 @@ document.addEventListener('click', (event) => {
       render();
       break;
     }
-    case 'qwen:render-play':
-      notify('Reproduciendo WAV', (state.qwen.renders.find((r) => r.id === target.dataset.render) || {}).title || '', 'info');
+    case 'qwen:render-play': {
+      const r = state.qwen.renders.find((item) => item.id === target.dataset.render);
+      if (r && r.audio_url) {
+        apiPlayAudio(r.audio_url);
+        notify('Reproduciendo WAV real', r.title || 'Toma Qwen', 'ok');
+      } else {
+        notify('Reproduciendo WAV', r ? r.title : '', 'info');
+      }
       break;
+    }
     case 'qwen:render-reuse': {
       const r = state.qwen.renders.find((item) => item.id === target.dataset.render);
       if (!r) break;
@@ -3983,6 +4182,27 @@ function runPaletteItem(id) {
 }
 
 /* ---------------------------------- boot ---------------------------------- */
+async function checkBackendReal() {
+  try {
+    const isUp = await checkBackendHealth();
+    state.backendOnline = isUp;
+    if (isUp) {
+      const status = await apiGetSystemStatus();
+      if (status && status.hardware) {
+        if (typeof status.hardware.vram_usada_gb === 'number') system.vramUsed = status.hardware.vram_usada_gb;
+        if (typeof status.hardware.vram_limit_gb === 'number') system.vramLimit = status.hardware.vram_limit_gb;
+        if (typeof status.hardware.ram_used_gb === 'number') system.ramUsed = status.hardware.ram_used_gb;
+        if (typeof status.hardware.ram_total_gb === 'number') system.ramTotal = status.hardware.ram_total_gb;
+      }
+      if (status && status.active_engine) {
+        system.engine = status.active_engine;
+      }
+    }
+  } catch (_e) {
+    state.backendOnline = false;
+  }
+}
+
 function tickSystem() {
   system.gpu = clamp(system.gpu + (Math.random() * 6 - 3), 12, 96);
   system.ramUsed = clamp(system.ramUsed + (Math.random() * 0.4 - 0.2), 9, 28);
@@ -4020,8 +4240,14 @@ try {
   /* sin localStorage (iframe sandboxeado): se abre en Inicio */
 }
 render();
+checkBackendReal().then(() => {
+  if (state.route === 'biblioteca') {
+    cargarBibliotecaReal();
+  }
+});
 setInterval(tickSystem, 4200);
 setInterval(tickClock, 30000);
+setInterval(checkBackendReal, 10000);
 
 // Hooks de verificacion (sin efecto en el navegador).
 export { state as __state, render as __render, navigate as __navigate, CATALOG as __catalog };

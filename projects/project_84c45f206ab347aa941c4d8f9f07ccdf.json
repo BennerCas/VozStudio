@@ -1,0 +1,20 @@
+{
+  "created_at": "2026-11-05T15:06:17.970406Z",
+  "description": "Producción local de voz",
+  "id": "project_84c45f206ab347aa941c4d8f9f07ccdf",
+  "name": "Proyecto 5/11/2026",
+  "preset_id": null,
+  "scenes": [
+    {
+      "engine_id": "piper",
+      "id": "scene_001",
+      "parameters": {},
+      "status": "draft",
+      "text": "Bienvenido a VozStudio Omni-ES. Esta consola ejecuta modelos neurales de sintesis y clonacion de voz en espanol cien por ciento en local sobre ONNX Runtime y DirectML, garantizando privacidad absoluta y latencia determinista.",
+      "title": "Introducción",
+      "voice_id": "es_MX-claude-high"
+    }
+  ],
+  "settings": {},
+  "updated_at": "2026-11-05T15:06:17.970406Z"
+}

@@ -113,6 +113,7 @@ class AppConfig:
     PROJECT_ROOT: Path = DEFAULT_PROJECT_ROOT
     MODELS_LINK_DIR: Path = DEFAULT_PROJECT_ROOT / "models_link"
     BIBLIOTECA_DIR: Path = DEFAULT_PROJECT_ROOT / "biblioteca"
+    PROJECTS_DIR: Path = DEFAULT_PROJECT_ROOT / "projects"
     BRAINS_SPACE_DIR: Path = Path(r"C:\antigravityAS\Modelos -ai-brains")
     BRAINS_HYPHEN_DIR: Path = Path(r"C:\antigravityAS\Modelos-ai-brains")
     GPU_MEMORY_LIMIT_GB: float = 25.0
@@ -133,6 +134,7 @@ class AppConfig:
             PROJECT_ROOT=root,
             MODELS_LINK_DIR=root / "models_link",
             BIBLIOTECA_DIR=root / "biblioteca",
+            PROJECTS_DIR=root / "projects",
             BRAINS_SPACE_DIR=brains_space,
             BRAINS_HYPHEN_DIR=Path(r"C:\antigravityAS\Modelos-ai-brains"),
             GPU_MEMORY_LIMIT_GB=_parse_float_env("OLIVE_GPU_MEMORY_LIMIT", 25.0, minimum=1.0),
@@ -149,6 +151,7 @@ settings: AppConfig = AppConfig.from_env()
 PROJECT_ROOT: Path = settings.PROJECT_ROOT
 MODELS_LINK_DIR: Path = settings.MODELS_LINK_DIR
 BIBLIOTECA_DIR: Path = settings.BIBLIOTECA_DIR
+PROJECTS_DIR: Path = settings.PROJECTS_DIR
 BRAINS_SPACE_DIR: Path = settings.BRAINS_SPACE_DIR
 BRAINS_HYPHEN_DIR: Path = settings.BRAINS_HYPHEN_DIR
 GPU_MEMORY_LIMIT_GB: float = settings.GPU_MEMORY_LIMIT_GB
@@ -171,6 +174,7 @@ __all__ = [
     "GPU_MEMORY_LIMIT_GB",
     "MODELS_LINK_DIR",
     "PROJECT_ROOT",
+    "PROJECTS_DIR",
     "load_dotenv_file",
     "settings",
 ]

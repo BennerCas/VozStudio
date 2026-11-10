@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VOZSTUDIO OMNI-ES - Biblioteca de Iconos Animados</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        app: {
+                            bg: '#02060b',
+                            panel: '#0c131d',
+                            border: '#1a2738',
+                            cyan: '#00e5ff',
+                            orange: '#ffb700'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #02060b;
+            color: #f8fafc;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+        }
+
+        /* ----- KEYFRAMES (ANIMATIONS) ----- */
+        
+        /* 1. Equalizer (Clonación y Calidad) */
+        @keyframes eq {
+            0%, 100% { transform: scaleY(0.3); }
+            50% { transform: scaleY(1); }
+        }
+        .anim-eq rect { transform-origin: bottom; animation: eq 1s ease-in-out infinite; }
+        .anim-eq rect:nth-child(1) { animation-duration: 0.9s; animation-delay: 0.1s; }
+        .anim-eq rect:nth-child(2) { animation-duration: 1.2s; animation-delay: 0.4s; }
+        .anim-eq rect:nth-child(3) { animation-duration: 0.8s; animation-delay: 0.2s; }
+        .anim-eq rect:nth-child(4) { animation-duration: 1.1s; animation-delay: 0.5s; }
+        .anim-eq rect:nth-child(5) { animation-duration: 1.0s; animation-delay: 0.3s; }
+
+        /* 2. Floating Layers (Presets) */
+        @keyframes float-layer {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-4px); }
+        }
+        .anim-layers path { animation: float-layer 2s ease-in-out infinite; }
+        .anim-layers path:nth-child(1) { animation-delay: 0s; }
+        .anim-layers path:nth-child(2) { animation-delay: 0.2s; opacity: 0.7; }
+        .anim-layers path:nth-child(3) { animation-delay: 0.4s; opacity: 0.4; }
+
+        /* 3. Balance Scales (Comparar Variantes) */
+        @keyframes tilt {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-8deg); }
+            75% { transform: rotate(8deg); }
+        }
+        .anim-scales { transform-origin: center 30%; animation: tilt 3s ease-in-out infinite; }
+
+        /* 4. Pulse Radiate (Play / Mic) */
+        @keyframes radiate {
+            0% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(0, 229, 255, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 229, 255, 0); }
+        }
+        .anim-radiate { border-radius: 50%; animation: radiate 1.5s infinite; }
+
+        /* 5. Gear Spin (Ajustes) */
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .anim-spin { transform-origin: center; animation: spin 4s linear infinite; }
+
+        /* 6. Bounce Down (Exportar / Descargar) */
+        @keyframes bounce-down {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(4px); }
+        }
+        .anim-bounce-down path.arrow { animation: bounce-down 1.5s ease-in-out infinite; }
+
+        /* 7. Star Pulse (Favoritos) */
+        @keyframes star-pulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(255, 183, 0, 0.4)); }
+            50% { transform: scale(1.15); filter: drop-shadow(0 0 10px rgba(255, 183, 0, 0.8)); }
+        }
+        .anim-star { transform-origin: center; animation: star-pulse 2s ease-in-out infinite; }
+
+        /* 8. Breathing Lotus (Meditación) */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .anim-lotus path { transform-origin: bottom center; animation: breathe 3s ease-in-out infinite; }
+        .anim-lotus path:nth-child(2), .anim-lotus path:nth-child(3) { animation-delay: 0.5s; }
+
+        /* 9. Megaphone Waves (Spot) */
+        @keyframes sound-wave {
+            0% { opacity: 0; transform: translateX(-2px) scale(0.8); }
+            50% { opacity: 1; transform: translateX(0) scale(1); }
+            100% { opacity: 0; transform: translateX(2px) scale(1.2); }
+        }
+        .anim-megaphone path.wave-1 { animation: sound-wave 1.5s infinite; }
+        .anim-megaphone path.wave-2 { animation: sound-wave 1.5s infinite 0.3s; }
+
+        /* 10. Folder Open/Close (Proyectos) */
+        @keyframes folder-flap {
+            0%, 100% { transform: skewX(0deg) scaleY(1); }
+            50% { transform: skewX(-5deg) scaleY(0.9); }
+        }
+        .anim-folder path.flap { transform-origin: bottom left; animation: folder-flap 3s ease-in-out infinite; }
+
+        /* 11. Check Draw (Aprobada) */
+        @keyframes draw-check {
+            0% { stroke-dasharray: 0, 100; opacity: 0; }
+            50%, 100% { stroke-dasharray: 100, 0; opacity: 1; }
+        }
+        @keyframes pop-circle {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50%, 100% { transform: scale(1); opacity: 1; }
+        }
+        .anim-check circle { transform-origin: center; animation: pop-circle 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite; }
+        .anim-check path { animation: draw-check 2s ease-out infinite; }
+
+        /* 12. Floating Cube (Biblioteca) */
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        .anim-cube { animation: float 3s ease-in-out infinite; }
+
+        /* Card Styling */
+        .icon-card {
+            background: #0c131d;
+            border: 1px solid #1a2738;
+            border-radius: 12px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .icon-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(0,229,255,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .icon-card:hover {
+            border-color: #00e5ff;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .icon-card:hover::before {
+            opacity: 1;
+        }
+
+        .icon-container {
+            width: 48px;
+            height: 48px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #00e5ff;
+            position: relative;
+            z-index: 10;
+        }
+
+        .icon-container.orange {
+            color: #ffb700;
+        }
+
+        .icon-container.green {
+            color: #22c55e;
+        }
+    </style>
+</head>
+<body class="p-8">
+
+    <header class="mb-10 border-b border-app-border pb-6 flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-bold text-white flex items-center gap-3 tracking-wide">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2" stroke-linecap="round" class="anim-eq">
+                    <rect x="3" y="12" width="2" height="8" rx="1" />
+                    <rect x="8" y="6" width="2" height="14" rx="1" />
+                    <rect x="13" y="10" width="2" height="10" rx="1" />
+                    <rect x="18" y="4" width="2" height="16" rx="1" />
+                </svg>
+                VOZSTUDIO OMNI-ES
+            </h1>
+            <p class="text-gray-400 mt-2 text-sm">Biblioteca de Iconos Animados / Design System</p>
+        </div>
+        <div class="text-xs text-app-cyan border border-app-cyan/30 bg-app-cyan/10 px-4 py-2 rounded-full">
+            15 Iconos Interactivos
+        </div>
+    </header>
+
+    <main class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+
+        <!-- 1. Waveform (Clonación) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-eq">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <rect x="2" y="12" width="2" height="8" rx="1" />
+                    <rect x="7" y="6" width="2" height="14" rx="1" />
+                    <rect x="12" y="10" width="2" height="10" rx="1" />
+                    <rect x="17" y="4" width="2" height="16" rx="1" />
+                    <rect x="22" y="14" width="2" height="6" rx="1" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Waveform</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Clonación y Calidad</p>
+            </div>
+        </div>
+
+        <!-- 2. Layers (Presets) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-layers">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round">
+                    <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                    <path d="M2 12l10 5 10-5" />
+                    <path d="M2 17l10 5 10-5" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Capas / Stack</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Presets</p>
+            </div>
+        </div>
+
+        <!-- 3. Scales (Comparar Variantes) -->
+        <div class="icon-card group">
+            <div class="icon-container">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="anim-scales">
+                    <path d="M12 3v18" />
+                    <path d="M3 21h18" />
+                    <path d="M12 6H5.5L3 14h5l-2.5-8z" />
+                    <path d="M12 6h6.5l2.5 8h-5l2.5-8z" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Balanza</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Comparar Variantes</p>
+            </div>
+        </div>
+
+        <!-- 4. Cube (Biblioteca) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-cube">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                    <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                    <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Cubo Hexagonal</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Biblioteca y Exportación</p>
+            </div>
+        </div>
+
+        <!-- 5. Gear (Ajustes) -->
+        <div class="icon-card group">
+            <div class="icon-container">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="anim-spin">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Engranaje</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Ajustes Generales</p>
+            </div>
+        </div>
+
+        <!-- 6. Microphone (Producción) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-radiate bg-app-cyan/10">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z" />
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                    <line x1="8" y1="22" x2="16" y2="22" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Micrófono</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Producción / Grabar</p>
+            </div>
+        </div>
+
+        <!-- 7. Folder (Proyectos) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-folder">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                    <path class="flap" d="M2 10h20l-2 11H4L2 10z" fill="#0c131d" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Carpeta</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Gestión de Proyectos</p>
+            </div>
+        </div>
+
+        <!-- 8. Download / Export (Exportar) -->
+        <div class="icon-card group">
+            <div class="icon-container orange anim-bounce-down">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path class="arrow" d="M12 4v12M8 12l4 4 4-4" />
+                    <line x1="4" y1="20" x2="20" y2="20" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Exportar</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Botón de Acción</p>
+            </div>
+        </div>
+
+        <!-- 9. Star (Favoritos) -->
+        <div class="icon-card group">
+            <div class="icon-container orange">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor" class="anim-star">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Estrella (Favorito)</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Calificación y Listas</p>
+            </div>
+        </div>
+
+        <!-- 10. Play Button (Reproductor) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-radiate bg-app-cyan/10">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Play</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Comparar / Escuchar</p>
+            </div>
+        </div>
+
+        <!-- 11. Megaphone (Spot / Presets) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-megaphone">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" />
+                    <path class="wave-1" d="M15.54 8.46a5 5 0 0 1 0 7.07" />
+                    <path class="wave-2" d="M19.07 4.93a10 10 0 0 1 0 14.14" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Megáfono</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Voz Comercial</p>
+            </div>
+        </div>
+
+        <!-- 12. Lotus (Meditación / Presets) -->
+        <div class="icon-card group">
+            <div class="icon-container anim-lotus">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22C12 22 12 12 12 12C12 12 6 7 2 12C2 12 12 22 12 22Z" />
+                    <path d="M12 22C12 22 12 12 12 12C12 12 18 7 22 12C22 12 12 22 12 22Z" />
+                    <path d="M12 22C12 22 12 14 12 14C12 14 8 2 12 2C16 2 12 14 12 14" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Loto</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Voz Calma</p>
+            </div>
+        </div>
+
+        <!-- 13. Book (Audiolibro / Presets) -->
+        <div class="icon-card group">
+            <div class="icon-container">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:-translate-y-1 transition-transform duration-300">
+                    <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                    <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Libro</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Voz Narrativa</p>
+            </div>
+        </div>
+
+        <!-- 14. Check Circle (Aprobada / Muestra Apta) -->
+        <div class="icon-card group">
+            <div class="icon-container green anim-check">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M9 12l2 2 4-4" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Check</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Validación / Aprobación</p>
+            </div>
+        </div>
+        
+        <!-- 15. User / Avatar (Voz Seleccionada) -->
+        <div class="icon-card group">
+            <div class="icon-container">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="group-hover:scale-110 transition-transform duration-300">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                </svg>
+            </div>
+            <div class="text-center z-10">
+                <h3 class="text-white text-sm font-semibold">Usuario</h3>
+                <p class="text-gray-500 text-[11px] mt-1">Voz / Locutor</p>
+            </div>
+        </div>
+
+    </main>
+    
+    <footer class="mt-12 text-center text-gray-500 text-xs border-t border-app-border pt-6">
+        Diseñado para el ecosistema VOZSTUDIO OMNI-ES. SVGs generados por código con animaciones CSS puras.
+    </footer>
+
+</body>
+</html>

@@ -19,7 +19,18 @@ const ROOT = resolve(HERE, '..');
 const OUT = join(ROOT, 'index.html');
 
 // Orden de resolucion: cada modulo solo importa de los que estan antes.
-const MODULES = ['data.js', 'voces.data.js', 'prompts.data.js', 'lectura.data.js', 'clonacion.data.js', 'qwen.data.js', 'brand.js', 'ui.js', 'app.js'];
+const MODULES = [
+  'data.js',
+  'voces.data.js',
+  'prompts.data.js',
+  'lectura.data.js',
+  'clonacion.data.js',
+  'qwen.data.js',
+  'brand.js',
+  'api.js',
+  'ui.js',
+  'app.js',
+];
 
 const failures = [];
 const fail = (message) => {
@@ -60,6 +71,7 @@ function transformModule(file) {
 
   // 2. Declaraciones exportadas -> declaraciones locales.
   body = body.replace(/^export const ([A-Za-z0-9_$]+)/gm, 'const $1');
+  body = body.replace(/^export async function ([A-Za-z0-9_$]+)/gm, 'async function $1');
   body = body.replace(/^export function ([A-Za-z0-9_$]+)/gm, 'function $1');
   body = body.replace(/^export let ([A-Za-z0-9_$]+)/gm, 'let $1');
 
@@ -111,7 +123,7 @@ transformed.filter(Boolean).forEach(({ file, imports }) => {
 // Colisiones de nombres entre modulos: romperian el paquete plano.
 const seen = new Map();
 transformed.filter(Boolean).forEach(({ file, body }) => {
-  const declared = [...body.matchAll(/^(?:const|let|function)\s+([A-Za-z0-9_$]+)/gm)].map((m) => m[1]);
+  const declared = [...body.matchAll(/^(?:const|let|async\s+function|function)\s+([A-Za-z0-9_$]+)/gm)].map((m) => m[1]);
   declared.forEach((name) => {
     if (seen.has(name) && seen.get(name) !== file) fail(`nombre duplicado '${name}' en ${file} y ${seen.get(name)}`);
     else seen.set(name, file);
@@ -168,7 +180,7 @@ window.__atlas = {
 // Validaciones del resultado.
 if (!html.includes('function render()')) fail('no se encontro render() en el paquete');
 if ((html.match(/<script/g) || []).length !== 1) fail('debe haber exactamente un <script>');
-if (/https?:\/\/(?!www\.w3\.org)/.test(html.replace(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, ''))) {
+if (/https?:\/\/(?!(?:www\.w3\.org|127\.0\.0\.1|localhost))/.test(html.replace(/xmlns="http:\/\/www\.w3\.org\/2000\/svg"/g, ''))) {
   fail('el paquete contiene URLs externas');
 }
 // Cero emojis en todo el paquete (norma del proyecto).

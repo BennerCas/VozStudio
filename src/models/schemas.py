@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
@@ -169,4 +169,106 @@ class VocalCleanResponse(BaseModel):
 
     audio_url: str
     metrics: VocalCleanMetricsResponse
+
+
+class ProjectMemoryPayload(BaseModel):
+    """Contexto persistente que mantiene coherencia entre escenas y sesiones."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    brief: str | None = Field(default=None, max_length=1000)
+    creative_direction: str | None = Field(default=None, max_length=1500)
+    glossary: list[str] | None = Field(default=None, max_length=60)
+    notes: list[str] | None = Field(default=None, max_length=60)
+
+
+class ProjectSceneCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str = Field(default="Nueva escena", min_length=1, max_length=120)
+    role: str = Field(default="scene", min_length=1, max_length=40)
+    text: str = Field(default="", max_length=12000)
+    engine_id: str = Field(default="kokoro", pattern=r"^[a-z0-9_-]{2,32}$")
+    voice_id: str | None = Field(default=None, max_length=64)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+
+
+class ProjectSceneUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    role: str | None = Field(default=None, min_length=1, max_length=40)
+    text: str | None = Field(default=None, max_length=12000)
+    engine_id: str | None = Field(default=None, pattern=r"^[a-z0-9_-]{2,32}$")
+    voice_id: str | None = Field(default=None, max_length=64)
+    parameters: dict[str, Any] | None = None
+    status: Literal["draft", "ready", "generated", "approved"] | None = None
+    library_item_ids: list[str] | None = Field(default=None, max_length=100)
+
+
+class ProjectCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str = Field(default="Proyecto sin titulo", min_length=1, max_length=120)
+    description: str = Field(default="", max_length=1000)
+    preset_id: str | None = Field(default=None, pattern=r"^[a-z0-9_]{2,64}$")
+    memory: ProjectMemoryPayload | None = None
+
+
+class ProjectUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    name: str | None = Field(default=None, min_length=1, max_length=120)
+    description: str | None = Field(default=None, max_length=1000)
+    project_type: str | None = Field(default=None, min_length=1, max_length=48)
+    color: str | None = Field(default=None, min_length=4, max_length=20)
+    deliverables: list[str] | None = Field(default=None, max_length=40)
+    settings: dict[str, Any] | None = None
+    memory: ProjectMemoryPayload | None = None
+
+
+class ProjectSceneResponse(BaseModel):
+    id: str
+    title: str
+    role: str
+    text: str
+    engine_id: str
+    voice_id: str | None = None
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    status: str
+    library_item_ids: list[str] = Field(default_factory=list)
+
+
+class ProjectMemoryResponse(BaseModel):
+    brief: str = ""
+    creative_direction: str = ""
+    glossary: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    prompt_version: str = ""
+
+
+class ProjectResponse(BaseModel):
+    schema_version: int
+    id: str
+    name: str
+    description: str
+    project_type: str
+    preset_id: str | None = None
+    preset_version: str
+    color: str
+    scenes: list[ProjectSceneResponse]
+    deliverables: list[str] = Field(default_factory=list)
+    settings: dict[str, Any] = Field(default_factory=dict)
+    memory: ProjectMemoryResponse
+    created_at: str
+    updated_at: str
+
+
+class ProjectPresetResponse(BaseModel):
+    id: str
+    name: str
+    project_type: str
+    description: str
+    color: str
+    deliverables: list[str] = Field(default_factory=list)
 
