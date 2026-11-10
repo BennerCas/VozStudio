@@ -64,15 +64,25 @@ suelto, si aparece una URL externa, un identificador no ASCII o un emoji.
 
 ## Estado verificado
 
-Comprobado con un DOM real (jsdom) sobre el HTML generado: **671 comprobaciones en veintitres suites**
-(189 sobre el fuente modular, 27 sobre el archivo único cargado como `file://`, 11 arrancando por
-HTTP real, 23 sobre la estructura de columnas fijas, 21 sobre el comportamiento del scroll, 8
-sobre el modelo de caja del shell, 38 sobre la reorganización de pantallas, 14 sobre la mecánica
-de las bandejas, 53 sobre la rejilla exacta y la navegación inferior, 40 sobre el rediseño de
-Lectura, Diseño y Producir, 10 sobre la invisibilidad de todos los carriles, 30 sobre el tablero de
-Diseño de voz (mitad y mitad, vista previa grande, botones en fila y lista fija), 23 sobre la columna
-1 de CosyVoice, 24 sobre el rediseño de Producir, 44 sobre el módulo de clonación, 40 sobre Qwen
-Voice Studio y 16 sobre la biblioteca mejorada de prompts).
+Comprobado con un DOM real (jsdom) sobre el HTML generado: **770 comprobaciones en treinta y siete
+suites**. A las veintitres que ya existian se suman `cortes2` (39, cortes y desbordamientos),
+`arranque` (14, el modulo Qwen se ve siempre), `estrecho` (12, ventana estrecha y escala al 130 %),
+`contenido` (11, integridad de lo que se muestra) y `cabeceras` (5, distribucion de las cabeceras).
+Ese conjunto cubre, entre otras cosas:
+
+- Ningun boton tiene alto fijo: `.btn`, `.btn.sm` y `.btn.lg` crecen con su texto y llevan un
+  minimo comodo. El boton de icono es el unico cuadrado, y no lleva texto.
+- Ningun recorte de lineas esconde informacion: los `line-clamp` pasan a bloque completo, y los
+  titulos largos se parten en dos lineas en vez de terminar en puntos suspensivos.
+- Las filas y cabeceras dejan encogerse a sus hijos (`min-width: 0`), de modo que nada empuja el
+  contenido fuera de su panel.
+- Con la escala tipografica al 130 % y en anchos de 1180 y 900 px, las rejillas de cuatro
+  columnas bajan a dos y el reparto se mantiene.
+
+> **Cuidado con la especificidad.** `.design-actions .btn` pesa (0,2,0) y le gana a un `.btn`
+> suelto (0,1,0) aunque este mas abajo en el archivo. Las reglas de legibilidad repiten esos
+> selectores para empatar y ganar por orden. Si se anade una fila de acciones nueva, hay que
+> sumarla a esa lista o el `nowrap` volvera en silencio.
 
 `check2.mjs` (estructura, 12 rutas, políticas), `flows.mjs` (interacciones), `selects.mjs`
 (evento `change` real), `inputs.mjs` (campos numéricos) y `lectura2.mjs` (sliders y foco) cubren:

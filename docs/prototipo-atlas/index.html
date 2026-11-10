@@ -3918,11 +3918,15 @@ body {
   flex-direction: column;
   overflow: hidden;
 }
+/*
+  La descripcion del preset se muestra entera: la tarjeta es de alto comun
+  y el texto fluye. Antes se recortaba a dos lineas y escondia el final.
+*/
 .read-col.c2 .tray-viewport > .preset-card p {
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  display: block;
+  -webkit-line-clamp: unset;
+  overflow: visible;
+  overflow-wrap: anywhere;
 }
 .read-col.c2 .tray-viewport > .preset-card .specs {
   margin-top: auto;
@@ -5649,6 +5653,273 @@ body {
   .topbar .tb-shortcut {
     padding-inline: 8px;
   }
+}
+
+/* =======================================================================
+   LEGIBILIDAD: NI CORTES NI DESBORDAMIENTOS
+   Cuatro causas distintas producian el mismo sintoma: texto partido a la
+   mitad y contenido escondido sin avisar.
+
+     1. Botones con altura fija y `nowrap`: en cuanto el texto crece (zoom,
+        escala tipografica o traduccion) se salia del boton.
+     2. Cajas con altura fija que contenian texto variable.
+     3. Recortes a dos lineas con `line-clamp`: esconden frases enteras sin
+        decir que hay mas.
+     4. Filas que no dejan encogerse a sus hijos, que empujan el contenido
+        fuera del contenedor.
+
+   La regla es la misma en todo el prototipo: el texto manda sobre el alto,
+   y lo que no quepa se desplaza o se reparte, nunca se corta en silencio.
+   ======================================================================= */
+
+/* ---- 1. Botones: crecen con su texto y reparten el ancho ------------- */
+
+/*
+   `.design-actions .btn` fija `white-space: nowrap` y gana por especificidad
+   (0,2,0) a un `.btn` suelto (0,1,0): el `nowrap` sobrevivia justo en las tres
+   filas de acciones, que es donde el texto se salia de la caja. Repitiendo esos
+   selectores se empata la especificidad y gana esta regla por orden.
+*/
+.btn,
+.design-actions .btn,
+.clone-actions .btn,
+.qwen-actions .btn {
+  /* 34 px es el minimo comodo, no un techo: el texto manda sobre el alto. */
+  height: auto;
+  min-height: 34px;
+  padding-block: 6px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  /*
+    `max-content` deja respirar al texto corto y `min-width: 0` permite
+    encogerse cuando hay varios botones en la misma fila.
+  */
+  min-width: 0;
+  max-width: 100%;
+}
+.btn.sm {
+  /*
+    El alto de 27 px del boton pequeno tambien es un minimo, no un techo: con
+    la escala tipografica al 130 % el texto no cabia en 27 px.
+  */
+  height: auto;
+  min-height: 27px;
+  padding-block: 3px;
+}
+.btn.lg {
+  height: auto;
+  min-height: 40px;
+  padding-block: 8px;
+}
+/* Los iconos dentro de un boton nunca se deforman ni se aplastan. */
+.btn > svg {
+  flex: none;
+}
+.btn.icon-only {
+  flex: none;
+  padding-inline: 0;
+  aspect-ratio: 1;
+  width: 34px;
+  min-width: 34px;
+}
+.btn.sm.icon-only {
+  width: 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+/*
+  Las filas de acciones conservan su diseno de una sola linea (`nowrap`), pero
+  el `min-width: 0` permite que los botones se repartan el ancho en vez de
+  empujarse fuera. Si aun asi el texto no cabe, se parte en dos lineas y el
+  boton crece en alto: nunca se sale de la caja ni se recorta.
+*/
+.row > .btn,
+.actions > .btn,
+.design-actions .btn,
+.clone-actions .btn,
+.qwen-actions .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* ---- 2. Controles de formulario: crecen como los botones ------------- */
+
+.input,
+.select,
+.textarea {
+  height: auto;
+  min-height: 34px;
+  padding-block: 6px;
+  line-height: 1.35;
+}
+.select {
+  /* El texto largo de una opcion no debe cortarse a media palabra. */
+  text-overflow: ellipsis;
+  padding-right: 26px;
+}
+.textarea {
+  min-height: 64px;
+  overflow-wrap: anywhere;
+}
+
+/* ---- 3. Nada de contenido escondido por recortes de linea ----------- */
+
+/*
+  Solo se conserva el recorte en las miniaturas de bandeja, donde la tarjeta
+  es de alto fijo por diseno y el texto completo esta a un clic. Todo lo
+  demas pasa a mostrarse entero.
+*/
+.block-text,
+.block .block-text,
+.library-item .prompt-text,
+.design-library-col .library-item .prompt-text,
+.clone-preset small,
+.clone-step .step-text small,
+.qwen-render-card p {
+  display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  -webkit-box-orient: unset;
+  overflow: visible;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-overflow: clip;
+}
+
+/* Titulos y etiquetas: se parten por palabra en vez de cortarse con puntos. */
+.preset-card h3,
+.doc-item strong,
+.file-row .file-name,
+.spec-row b,
+.kv dd,
+.engine-card header b,
+.qwen-profile .qp-text b,
+.qwen-render-card header b {
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+/* ---- 4. Filas flexibles: los hijos pueden encogerse ----------------- */
+
+/*
+  `min-width: 0` es lo que impide que un texto largo empuje la fila y se
+  salga por la derecha. Se aplica a las filas de contenido, no a los iconos.
+*/
+.row,
+.actions,
+.panel-head,
+.topbar,
+.topbar-right,
+.crumbs,
+.queue-strip,
+.spec-inline > div,
+.field,
+.tabs,
+.chips,
+.pager,
+.file-row,
+.doc-row,
+.block footer {
+  min-width: 0;
+}
+.row > *,
+.panel-head > *,
+.spec-inline > div,
+.field > *,
+.file-row > *,
+.doc-row > * {
+  min-width: 0;
+}
+.row > svg,
+.row > .btn.icon-only,
+.panel-head > .spacer,
+.panel-head > .badge {
+  flex: none;
+}
+
+/* ---- 5. Cabeceras de panel: el titulo no pelea con la insignia ----- */
+
+.panel-head {
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+.panel-head h1,
+.panel-head h2,
+.panel-head p {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.panel-head .spacer {
+  flex: 1 1 auto;
+}
+
+/* ---- 6. Carriles sin cortes: el contenido respira ------------------ */
+
+/*
+  Los carriles ya traen su propio padding: aqui solo se garantiza que su
+  contenido nunca quede pegado al borde por donde aparece la barra.
+*/
+.scroll-area,
+.panel-body {
+  scroll-padding-block: var(--space-2);
+}
+
+/* ---- 7. Ventanas estrechas: la rejilla se apila antes de apretarse -- */
+
+@media (max-width: 1180px) {
+  /* Los tableros de tres columnas pasan a dos y el resto a una. */
+  .design-board,
+  .clone-board,
+  .qwen-board,
+  .produce-grid {
+    gap: var(--space-2);
+  }
+  .panel-head h2 {
+    font-size: var(--text-lg);
+  }
+}
+
+@media (max-width: 900px) {
+  .topbar {
+    gap: var(--space-2);
+    padding-inline: var(--space-3);
+  }
+  .topbar .search span,
+  .topbar .sys-pill {
+    display: none;
+  }
+  .topbar .search {
+    flex: none;
+    width: 34px;
+    padding-inline: 0;
+    justify-content: center;
+  }
+  .topbar .search kbd {
+    display: none;
+  }
+}
+
+/* ---- 8. Escala tipografica grande: el layout se adapta ------------- */
+
+/*
+  Con --font-scale por encima de 1,15 los textos crecen hasta un 30 %. Las
+  rejillas de muchas columnas se reducen para que el texto no se comprima.
+*/
+.shell[data-font-scale="1.15"] .qwen-fields,
+.shell[data-font-scale="1.15"] .clean-grid,
+.shell[data-font-scale="1.15"] .engine-pick,
+.shell[data-font-scale="1.3"] .qwen-fields,
+.shell[data-font-scale="1.3"] .clean-grid,
+.shell[data-font-scale="1.3"] .engine-pick {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.shell[data-font-scale="1.3"] .grid-4,
+.shell[data-font-scale="1.3"] .grid-3 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
     </style>
